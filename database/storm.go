@@ -285,7 +285,10 @@ func (d *StormDatabase) AddTorrentHistory(infoHash, name string, b []byte) {
 	var oldItem TorrentHistory
 	if err := d.db.One("InfoHash", infoHash, &oldItem); err == nil {
 		oldItem.Dt = time.Now()
-		d.db.Update(&oldItem)
+		if err := d.db.Update(&oldItem); err != nil {
+			log.Warningf("Error updating item in the history: %s", err)
+		}
+
 		return
 	}
 

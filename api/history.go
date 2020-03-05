@@ -62,7 +62,12 @@ func HistoryRemove(ctx *gin.Context) {
 	}
 
 	log.Debugf("Removing infohash '%s' with torrent history", infohash)
-	database.GetStormDB().Delete(database.TorrentHistoryBucket, infohash)
+	var th database.TorrentHistory
+	if err := database.GetStormDB().One("InfoHash", infohash, &th); err == nil {
+		database.GetStormDB().DeleteStruct(&th)
+		database.GetStormDB().ReIndex(&database.TorrentHistory{})
+	}
+
 	xbmc.Refresh()
 
 	ctx.String(200, "")
@@ -75,6 +80,8 @@ func HistoryClear(ctx *gin.Context) {
 	if err := database.GetStormDB().Drop(&database.TorrentHistory{}); err != nil {
 		log.Infof("Could not clean torrent history: %s", err)
 	}
+	database.GetStormDB().ReIndex(&database.TorrentHistory{})
+
 	xbmc.Refresh()
 
 	ctx.String(200, "")
