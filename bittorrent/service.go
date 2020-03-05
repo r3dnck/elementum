@@ -742,16 +742,11 @@ func (s *Service) RemoveTorrent(t *Torrent, forceDrop, forceDelete, isWatched bo
 		return false
 	}
 
-	defer func() {
-		database.GetStorm().DeleteBTItem(t.InfoHash())
-	}()
 
 	t = s.q.FindByHash(t.InfoHash())
 	if t == nil {
 		return false
 	}
-
-	s.q.Delete(t)
 
 	keepDownloading := false
 	if forceDrop || config.Get().KeepDownloading == 2 {
@@ -802,6 +797,12 @@ func (s *Service) RemoveTorrent(t *Torrent, forceDrop, forceDelete, isWatched bo
 	}
 
 	if !keepDownloading {
+		defer func() {
+			database.GetStorm().DeleteBTItem(t.InfoHash())
+		}()
+
+		s.q.Delete(t)
+
 		t.Drop(deleteAnswer)
 	}
 
