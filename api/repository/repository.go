@@ -119,8 +119,9 @@ type Release struct {
 }
 
 const (
-	githubUserContentURL   = "http://elementum.surge.sh/packages/%s/%s"
-	githubLatestReleaseURL = "https://api.github.com/repos/%s/%s/releases/latest"
+	githubUserContentURL    = "https://elementumorg.github.io/packages/%s/%s"
+	githubAltUserContentURL = "https://elementum.surge.sh/packages/%s/%s"
+	githubLatestReleaseURL  = "https://api.github.com/repos/%s/%s/releases/latest"
 
 	releaseChangelog = "[B]%s[/B] - %s\n%s\n\n"
 )
@@ -131,10 +132,24 @@ var (
 	log              = logging.MustGetLogger("repository")
 )
 
+func getContentURL(user, repository, url string) (resp *http.Response, err error) {
+	resp, err = proxy.GetClient().Get(fmt.Sprintf(githubUserContentURL, user, repository) + url)
+	if err == nil && resp != nil {
+		return resp, err
+	}
+
+	resp, err = proxy.GetClient().Get(fmt.Sprintf(githubAltUserContentURL, user, repository) + url)
+	if err == nil && resp != nil {
+		return resp, err
+	}
+
+	return
+}
+
 func getLastRelease(user string, repository string) string {
 	defer perf.ScopeTimer()()
 
-	resp, err := proxy.GetClient().Get(fmt.Sprintf(githubUserContentURL, user, repository) + "/release")
+	resp, err := getContentURL(user, repository, "/release")
 	if err != nil || resp == nil {
 		return ""
 	} else if err == nil && resp.StatusCode != 200 {
@@ -176,7 +191,7 @@ func getReleases(user string, repository string) []Release {
 func getAddonXML(user string, repository string) (string, error) {
 	defer perf.ScopeTimer()()
 
-	resp, err := proxy.GetClient().Get(fmt.Sprintf(githubUserContentURL, user, repository) + "/addon.xml")
+	resp, err := getContentURL(user, repository, "/addon.xml")
 	if resp == nil {
 		return "", errors.New("Not found")
 	} else if err == nil && resp.StatusCode != 200 {
