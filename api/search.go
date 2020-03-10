@@ -43,7 +43,7 @@ func Search(s *bittorrent.Service) gin.HandlerFunc {
 		// Update query last use date to show it on the top
 		database.GetStorm().AddSearchHistory(historyType, query)
 
-		fakeTmdbID := strconv.FormatUint(xxhash.Sum64String(query), 10)
+		fakeTmdbID := strconv.Itoa(int(xxhash.Sum64String(query)))
 		existingTorrent := s.HasTorrentByQuery(query)
 		if existingTorrent != "" && (config.Get().SilentStreamStart || xbmc.DialogConfirmFocused("Elementum", "LOCALIZE[30270]")) {
 			xbmc.PlayURLWithTimeout(URLQuery(

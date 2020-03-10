@@ -742,7 +742,6 @@ func (s *Service) RemoveTorrent(t *Torrent, forceDrop, forceDelete, isWatched bo
 		return false
 	}
 
-
 	t = s.q.FindByHash(t.InfoHash())
 	if t == nil {
 		return false
@@ -1689,7 +1688,7 @@ func (s *Service) GetTorrentByFakeID(query string) *Torrent {
 			continue
 		}
 
-		id := strconv.FormatUint(xxhash.Sum64String(t.DBItem.Query), 10)
+		id := strconv.Itoa(int(xxhash.Sum64String(t.DBItem.Query)))
 		if id == query {
 			return t
 		}
