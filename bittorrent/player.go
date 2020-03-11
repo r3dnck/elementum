@@ -216,7 +216,12 @@ func (btp *Player) Buffer() error {
 
 	go btp.processMetadata()
 
-	btp.t.IsBuffering = true
+	if !btp.t.Service.IsMemoryStorage() && btp.t.GetProgress() == 100 {
+		btp.t.IsBuffering = false
+		btp.t.IsBufferingFinished = true
+	} else {
+		btp.t.IsBuffering = true
+	}
 
 	buffered, done := btp.bufferEvents.Listen()
 	defer close(done)
@@ -675,7 +680,7 @@ func (btp *Player) bufferDialog() {
 }
 
 func (btp *Player) updateBufferDialog() (bool, error) {
-	if btp.dialogProgress == nil || btp.dialogProgress.IsCanceled() {
+	if (btp.dialogProgress == nil || btp.dialogProgress.IsCanceled()) && !btp.t.IsBufferingFinished {
 		log.Debugf("Dialog not yet available")
 		return false, nil
 	}

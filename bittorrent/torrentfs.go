@@ -271,6 +271,7 @@ func (tf *TorrentFSEntry) waitForPiece(piece int) error {
 	now := time.Now()
 	defer func() {
 		log.Warningf("Waiting for piece %d finished in %s", piece, time.Since(now))
+		tf.t.awaitingPieces.Remove(uint32(piece))
 	}()
 
 	tf.t.PrioritizePiece(piece)
@@ -294,7 +295,6 @@ func (tf *TorrentFSEntry) waitForPiece(piece int) error {
 		}
 	}
 
-	tf.t.awaitingPieces.Remove(uint32(piece))
 	return nil
 }
 

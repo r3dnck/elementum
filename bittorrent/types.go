@@ -4,6 +4,7 @@ const (
 	movieType   = "movie"
 	showType    = "show"
 	episodeType = "episode"
+	searchType  = "search"
 )
 
 const (

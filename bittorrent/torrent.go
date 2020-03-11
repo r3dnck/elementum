@@ -168,6 +168,13 @@ func (t *Torrent) Watch() {
 			go t.bufferFinishedEvent()
 
 		case <-t.prioritizeTicker.C:
+			// If this is a File storage and torrent is completed - no need to track pieces progress.
+			if !t.Service.IsMemoryStorage() && t.GetProgress() == 100 {
+				t.bufferTicker.Stop()
+				t.prioritizeTicker.Stop()
+				continue
+			}
+
 			go t.PrioritizePieces()
 
 		case <-t.nextTimer.C:
@@ -241,7 +248,6 @@ func (t *Torrent) bufferTickerEvent() {
 		downSpeed, upSpeed := t.GetHumanizedSpeeds()
 		log.Infof("Buffer. Pr: %d%%, Sp: %s / %s, Con: %d/%d + %d/%d, Pi: %s", int(thisProgress), downSpeed, upSpeed, seeds, seedsTotal, peers, peersTotal, piecesStatus.String())
 
-		// thisProgress := float64(t.BufferPiecesLength-progressCount) / float64(t.BufferPiecesLength) * 100
 		if thisProgress > t.BufferProgress {
 			t.BufferProgress = thisProgress
 		}
@@ -310,7 +316,8 @@ func (t *Torrent) bufferFinishedEvent() {
 // another for a piece of file from the end (probably to get codec descriptors and so on)
 // We set it as post-buffer and include in required buffer pieces array.
 func (t *Torrent) Buffer(file *File, isStartup bool) {
-	if file == nil {
+	if file == nil || (!t.Service.IsMemoryStorage() && t.GetProgress() == 100) {
+		t.bufferFinishedEvent()
 		return
 	}
 
@@ -545,16 +552,27 @@ func (t *Torrent) getBufferSize(fileOffset int64, off, length int64) (startPiece
 
 // PrioritizePiece ...
 func (t *Torrent) PrioritizePiece(piece int) {
-	if t.IsBuffering || t.th == nil || t.Closer.IsSet() {
+	if t.IsBuffering || t.th == nil || t.Closer.IsSet() || t.awaitingPieces.ContainsInt(piece) {
 		return
 	}
 
 	defer perf.ScopeTimer()()
 
-	t.awaitingPieces.AddInt(piece)
+	for i := piece; i < piece+3; i++ {
+		if t.awaitingPieces.ContainsInt(i) {
+			continue
+		}
 
-	t.th.PiecePriority(piece, 7)
-	t.th.SetPieceDeadline(piece, 0, 0)
+		t.awaitingPieces.AddInt(i)
+
+		t.th.PiecePriority(i, 7)
+		t.th.SetPieceDeadline(i, i-piece*100, 0)
+	}
+}
+
+// ClearDeadlines ...
+func (t *Torrent) ClearDeadlines() {
+	t.th.ClearPieceDeadlines()
 }
 
 // PrioritizePieces ...
@@ -1442,6 +1460,7 @@ func (t *Torrent) GetPlayURL(fileIndex string) string {
 		show        string
 		season      string
 		episode     string
+		query       string
 		contentType string
 	)
 
@@ -1453,13 +1472,17 @@ func (t *Torrent) GetPlayURL(fileIndex string) string {
 			if movie := tmdb.GetMovie(t.DBItem.ID, config.Get().Language); movie != nil {
 				toBeAdded = fmt.Sprintf("%s (%d)", movie.OriginalTitle, movie.Year())
 			}
-		} else {
+		} else if contentType == showType || contentType == episodeType {
 			show = strconv.Itoa(t.DBItem.ShowID)
 			season = strconv.Itoa(t.DBItem.Season)
 			episode = strconv.Itoa(t.DBItem.Episode)
 			if show := tmdb.GetShow(t.DBItem.ShowID, config.Get().Language); show != nil {
 				toBeAdded = fmt.Sprintf("%s S%02dE%02d", show.OriginalName, t.DBItem.Season, t.DBItem.Episode)
 			}
+		} else if contentType == searchType {
+			tmdbID = strconv.Itoa(t.DBItem.ID)
+			query = t.DBItem.Query
+			toBeAdded = t.DBItem.Query
 		}
 	}
 
@@ -1470,5 +1493,6 @@ func (t *Torrent) GetPlayURL(fileIndex string) string {
 		"tmdb", tmdbID,
 		"show", show,
 		"season", season,
-		"episode", episode)
+		"episode", episode,
+		"query", query)
 }

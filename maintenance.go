@@ -74,7 +74,10 @@ func Notification(w http.ResponseWriter, r *http.Request, s *bittorrent.Service)
 		}
 		p.Params().Seeked = true
 		// Run prioritization over Player's torrent
-		go p.GetTorrent().PrioritizePieces()
+		go func() {
+			p.GetTorrent().ClearDeadlines()
+			p.GetTorrent().PrioritizePieces()
+		}()
 
 	case "Player.OnPause":
 		p := s.GetActivePlayer()
