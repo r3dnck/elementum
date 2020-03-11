@@ -1216,9 +1216,10 @@ func Scrobble(action string, contentType string, tmdbID int, watched float64, ru
 		return
 	}
 
-	if runtime < 1 {
+	if runtime < 1 || contentType == "search" {
 		return
 	}
+
 	progress := watched / runtime * 100
 
 	log.Noticef("%s %s: %f%%, watched: %fs, duration: %fs", action, contentType, progress, watched, runtime)

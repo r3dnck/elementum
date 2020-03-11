@@ -315,7 +315,7 @@ func (btp *Player) processMetadata() {
 	database.GetStorm().UpdateBTItem(infoHash, btp.p.TMDBId, btp.p.ContentType, files, btp.p.Query, btp.p.ShowID, btp.p.Season, btp.p.Episode)
 	btp.t.DBItem = database.GetStorm().GetBTItem(infoHash)
 
-	database.GetStorm().AddTorrentHistory(btp.t.InfoHash(), btp.t.Name(), btp.t.GetMetadata())
+	go database.GetStorm().AddTorrentHistory(btp.t.InfoHash(), btp.t.Name(), btp.t.GetMetadata())
 
 	if btp.t.IsRarArchive {
 		// Just disable sequential download for RAR archives
@@ -1050,7 +1050,7 @@ func (btp *Player) smartMatch(choices []*CandidateFile) {
 
 // GetIdent tries to find playing item in Kodi library
 func (btp *Player) GetIdent() {
-	if btp.p.TMDBId == 0 || btp.p.KodiID != 0 {
+	if btp.p.TMDBId == 0 || btp.p.KodiID != 0 || btp.p.ContentType == "search" {
 		return
 	}
 
