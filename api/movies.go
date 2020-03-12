@@ -460,32 +460,32 @@ func movieLinks(tmdbID string) []*bittorrent.TorrentFile {
 	return providers.SearchMovie(searchers, movie)
 }
 
-// MoviePlaySelector ...
-func MoviePlaySelector(link string, s *bittorrent.Service) gin.HandlerFunc {
-	play := strings.Contains(link, "play")
-
-	if !strings.Contains(link, "force") && config.Get().ForceLinkType {
+// MovieRun ...
+func MovieRun(action string, s *bittorrent.Service) gin.HandlerFunc {
+	if !strings.Contains(action, "force") && !strings.Contains(action, "download") && config.Get().ForceLinkType {
 		if config.Get().ChooseStreamAuto {
-			play = true
+			action = "play"
 		} else {
-			play = false
+			action = "links"
 		}
 	}
 
-	if play {
-		return MoviePlay(s)
-	}
-	return MovieLinks(s)
+	return MovieLinks(action, s)
 }
 
 // MovieLinks ...
-func MovieLinks(s *bittorrent.Service) gin.HandlerFunc {
+func MovieLinks(action string, s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 
 		tmdbID := ctx.Params.ByName("tmdbId")
 		external := ctx.Query("external")
 		doresume := ctx.DefaultQuery("doresume", "true")
+
+		runAction := "/play"
+		if action == "download" {
+			runAction = "/download"
+		}
 
 		movie := tmdb.GetMovieByID(tmdbID, config.Get().Language)
 		if movie == nil {
@@ -494,7 +494,7 @@ func MovieLinks(s *bittorrent.Service) gin.HandlerFunc {
 
 		existingTorrent := s.HasTorrentByID(movie.ID)
 		if existingTorrent != "" && (config.Get().SilentStreamStart || xbmc.DialogConfirmFocused("Elementum", "LOCALIZE[30270]")) {
-			rURL := URLQuery(URLForXBMC("/play"),
+			rURL := URLQuery(URLForXBMC(runAction),
 				"doresume", doresume,
 				"resume", existingTorrent,
 				"tmdb", tmdbID,
@@ -508,7 +508,7 @@ func MovieLinks(s *bittorrent.Service) gin.HandlerFunc {
 		}
 
 		if torrent := InTorrentsMap(tmdbID); torrent != nil {
-			rURL := URLQuery(URLForXBMC("/play"),
+			rURL := URLQuery(URLForXBMC(runAction),
 				"doresume", doresume,
 				"uri", torrent.URI,
 				"tmdb", tmdbID,
@@ -576,11 +576,18 @@ func MovieLinks(s *bittorrent.Service) gin.HandlerFunc {
 			choices = append(choices, label)
 		}
 
-		choice := xbmc.ListDialogLarge("LOCALIZE[30228]", movie.Title, choices...)
+		choice := -1
+		if action == "play" {
+			sort.Sort(sort.Reverse(providers.ByQuality(torrents)))
+			choice = 0
+		} else {
+			choice = xbmc.ListDialogLarge("LOCALIZE[30228]", movie.Title, choices...)
+		}
+
 		if choice >= 0 {
 			AddToTorrentsMap(tmdbID, torrents[choice])
 
-			rURL := URLQuery(URLForXBMC("/play"),
+			rURL := URLQuery(URLForXBMC(runAction),
 				"uri", torrents[choice].URI,
 				"doresume", doresume,
 				"tmdb", tmdbID,
@@ -594,76 +601,3 @@ func MovieLinks(s *bittorrent.Service) gin.HandlerFunc {
 	}
 }
 
-// MoviePlay ...
-func MoviePlay(s *bittorrent.Service) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-
-		tmdbID := ctx.Params.ByName("tmdbId")
-		external := ctx.Query("external")
-		doresume := ctx.DefaultQuery("doresume", "true")
-
-		movie := tmdb.GetMovieByID(tmdbID, config.Get().Language)
-		if movie == nil {
-			return
-		}
-
-		existingTorrent := s.HasTorrentByID(movie.ID)
-		if existingTorrent != "" && (config.Get().SilentStreamStart || xbmc.DialogConfirmFocused("Elementum", "LOCALIZE[30270]")) {
-			rURL := URLQuery(URLForXBMC("/play"),
-				"doresume", doresume,
-				"resume", existingTorrent,
-				"tmdb", tmdbID,
-				"type", "movie")
-			if external != "" {
-				xbmc.PlayURL(rURL)
-			} else {
-				ctx.Redirect(302, rURL)
-			}
-			return
-		}
-
-		if torrent := InTorrentsMap(tmdbID); torrent != nil {
-			rURL := URLQuery(URLForXBMC("/play"),
-				"doresume", doresume,
-				"uri", torrent.URI,
-				"tmdb", tmdbID,
-				"type", "movie")
-			if external != "" {
-				xbmc.PlayURL(rURL)
-			} else {
-				ctx.Redirect(302, rURL)
-			}
-			return
-		}
-
-		var torrents []*bittorrent.TorrentFile
-		var err error
-
-		if torrents, err = GetCachedTorrents(tmdbID); err != nil || len(torrents) == 0 {
-			torrents = movieLinks(tmdbID)
-
-			SetCachedTorrents(tmdbID, torrents)
-		}
-
-		if len(torrents) == 0 {
-			xbmc.Notify("Elementum", "LOCALIZE[30205]", config.AddonIcon())
-			return
-		}
-
-		sort.Sort(sort.Reverse(providers.ByQuality(torrents)))
-
-		AddToTorrentsMap(tmdbID, torrents[0])
-
-		rURL := URLQuery(URLForXBMC("/play"),
-			"uri", torrents[0].URI,
-			"doresume", doresume,
-			"tmdb", tmdbID,
-			"type", "movie")
-		if external != "" {
-			xbmc.PlayURL(rURL)
-		} else {
-			ctx.Redirect(302, rURL)
-		}
-	}
-}

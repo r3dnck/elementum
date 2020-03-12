@@ -17,13 +17,17 @@ func ContextPlaySelector(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 
+		action := ctx.Params.ByName("action")
 		id := ctx.Params.ByName("kodiID")
 		kodiID, _ := strconv.Atoi(id)
 		media := ctx.Params.ByName("media")
 
-		action := "forcelinks"
+		mediaAction := "forcelinks"
 		if config.Get().ChooseStreamAuto {
-			action = "forceplay"
+			mediaAction = "forceplay"
+		}
+		if action == "download" {
+			mediaAction = action
 		}
 
 		if kodiID == 0 {
@@ -32,13 +36,13 @@ func ContextPlaySelector(s *bittorrent.Service) gin.HandlerFunc {
 		} else if media == "movie" {
 			if m := library.GetLibraryMovie(kodiID); m != nil && m.UIDs.TMDB != 0 {
 				title := fmt.Sprintf("%s (%d)", m.Title, m.Year)
-				ctx.Redirect(302, URLQuery(URLForXBMC("/movie/%d/%s/%s", m.UIDs.TMDB, action, url.PathEscape(title))))
+				ctx.Redirect(302, URLQuery(URLForXBMC("/movie/%d/%s/%s", m.UIDs.TMDB, mediaAction, url.PathEscape(title))))
 				return
 			}
 		} else if media == "episode" {
 			if s, e := library.GetLibraryEpisode(kodiID); s != nil && e != nil && e.UIDs.TMDB != 0 {
 				title := fmt.Sprintf("%s S%02dE%02d", s.Title, e.Season, e.Episode)
-				ctx.Redirect(302, URLQuery(URLForXBMC("/show/%d/season/%d/episode/%d/%s/%s", s.UIDs.TMDB, e.Season, e.Episode, action, url.PathEscape(title))))
+				ctx.Redirect(302, URLQuery(URLForXBMC("/show/%d/season/%d/episode/%d/%s/%s", s.UIDs.TMDB, e.Season, e.Episode, mediaAction, url.PathEscape(title))))
 				return
 			}
 		}

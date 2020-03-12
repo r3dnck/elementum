@@ -170,7 +170,9 @@ func main() {
 		shutdown(false)
 	}))
 
-	xbmc.Notify("Elementum", "LOCALIZE[30208]", config.AddonIcon())
+	if config.Get().GreetingEnabled {
+		xbmc.Notify("Elementum", "LOCALIZE[30208]", config.AddonIcon())
+	}
 
 	sigc := make(chan os.Signal, 2)
 	signal.Notify(sigc,

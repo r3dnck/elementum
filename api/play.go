@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/elgatito/elementum/bittorrent"
 	"github.com/elgatito/elementum/database"
@@ -13,6 +14,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sanity-io/litter"
 )
+
+// Download ...
+func Download(s *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		rURL, _ := url.Parse(fmt.Sprintf("%s%s", util.GetContextHTTPHost(ctx), strings.Replace(ctx.Request.RequestURI, "/download", "/play", 1)+"&background=true"))
+		ctx.Redirect(302, rURL.String())
+		return
+	}
+}
 
 // Play ...
 func Play(s *bittorrent.Service) gin.HandlerFunc {
@@ -27,6 +37,7 @@ func Play(s *bittorrent.Service) gin.HandlerFunc {
 		show := ctx.Query("show")
 		season := ctx.Query("season")
 		episode := ctx.Query("episode")
+		background := ctx.DefaultQuery("background", "false")
 
 		if uri == "" && resume == "" {
 			return
@@ -79,6 +90,7 @@ func Play(s *bittorrent.Service) gin.HandlerFunc {
 			Season:         seasonNumber,
 			Episode:        episodeNumber,
 			Query:          query,
+			Background:     background == "true",
 		}
 
 		player := bittorrent.NewPlayer(s, params)

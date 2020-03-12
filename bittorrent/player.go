@@ -77,6 +77,7 @@ type PlayerParams struct {
 	WasSeeked       bool
 	DoneAudio       bool
 	DoneSubtitles   bool
+	Background      bool
 	KodiPosition    int
 	WatchedProgress int
 	WatchedTime     float64
@@ -216,7 +217,8 @@ func (btp *Player) Buffer() error {
 
 	go btp.processMetadata()
 
-	if !btp.t.Service.IsMemoryStorage() && btp.t.GetProgress() == 100 {
+	if btp.p.Background || !btp.t.Service.IsMemoryStorage() && btp.t.GetProgress() == 100 {
+		log.Info("Skipping buffering")
 		btp.t.IsBuffering = false
 		btp.t.IsBufferingFinished = true
 	} else {
@@ -350,7 +352,9 @@ func (btp *Player) processMetadata() {
 
 	log.Info("Setting piece priorities")
 
-	go btp.t.Buffer(btp.chosenFile, true)
+	if !btp.p.Background {
+		go btp.t.Buffer(btp.chosenFile, true)
+	}
 
 	// TODO find usage of resumeIndex. Do we need pause/resume for it?
 	// if btp.resumeIndex < 0 {
@@ -640,7 +644,9 @@ func (btp *Player) Close() {
 		return
 	}
 
-	btp.s.RemoveTorrent(btp.t, false, btp.notEnoughSpace, btp.IsWatched())
+	if !btp.p.Background {
+		btp.s.RemoveTorrent(btp.t, false, btp.notEnoughSpace, btp.IsWatched())
+	}
 }
 
 func (btp *Player) bufferDialog() {
@@ -826,7 +832,7 @@ func (btp *Player) playerLoop() {
 
 playbackWaitLoop:
 	for {
-		if xbmc.PlayerIsPlaying() {
+		if btp.p.Background || xbmc.PlayerIsPlaying() {
 			break playbackWaitLoop
 		}
 		select {
@@ -855,7 +861,7 @@ playbackWaitLoop:
 
 playbackLoop:
 	for {
-		if xbmc.PlayerIsPlaying() == false {
+		if btp.p.Background || xbmc.PlayerIsPlaying() == false {
 			btp.t.IsPlaying = false
 			break playbackLoop
 		}
