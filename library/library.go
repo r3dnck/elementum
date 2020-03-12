@@ -316,7 +316,7 @@ func Init() {
 				go Refresh()
 			}
 		case <-updateTicker.C:
-			if config.Get().UpdateFrequency > 0 {
+			if config.Get().UpdateFrequency > 0 && config.Get().LibraryEnabled {
 				go func() {
 					if err := updateLibraryShows(); err != nil {
 						log.Warning(err)
@@ -371,6 +371,10 @@ func ShowsLibraryPath() string {
 // Library updates
 //
 func updateLibraryShows() error {
+	if !config.Get().LibraryEnabled {
+		return nil
+	}
+	
 	if err := checkShowsPath(); err != nil {
 		return err
 	}

@@ -52,7 +52,7 @@ func RefreshKodi() error {
 
 // Refresh is updating library from Kodi
 func Refresh() error {
-	if l.Running.IsTrakt {
+	if l.Running.IsTrakt || !config.Get().LibraryEnabled {
 		return nil
 	}
 
@@ -78,7 +78,7 @@ func Refresh() error {
 
 // RefreshMovies updates movies in the library
 func RefreshMovies() error {
-	if l.Running.IsMovies || l.Running.IsKodi {
+	if l.Running.IsMovies || l.Running.IsKodi || !config.Get().LibraryEnabled {
 		return nil
 	}
 
@@ -142,7 +142,7 @@ func RefreshMovies() error {
 
 // RefreshShows updates shows in the library
 func RefreshShows() error {
-	if l.Running.IsShows || l.Running.IsKodi {
+	if l.Running.IsShows || l.Running.IsKodi || !config.Get().LibraryEnabled {
 		return nil
 	}
 

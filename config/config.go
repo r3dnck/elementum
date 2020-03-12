@@ -69,6 +69,7 @@ type Configuration struct {
 	ShowSeasonsOrder          int
 	SmartEpisodeStart         bool
 	SmartEpisodeMatch         bool
+	LibraryEnabled            bool
 	LibraryUpdate             int
 	StrmLanguage              string
 	LibraryNFOMovies          bool
@@ -515,6 +516,7 @@ func Reload() *Configuration {
 		PlaybackPercent:           settings["playback_percent"].(int),
 		SmartEpisodeStart:         settings["smart_episode_start"].(bool),
 		SmartEpisodeMatch:         settings["smart_episode_match"].(bool),
+		LibraryEnabled:            settings["library_enabled"].(bool),
 		LibraryUpdate:             settings["library_update"].(int),
 		StrmLanguage:              settings["strm_language"].(string),
 		LibraryNFOMovies:          settings["library_nfo_movies"].(bool),
