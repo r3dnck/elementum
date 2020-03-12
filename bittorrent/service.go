@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -205,7 +206,7 @@ func (s *Service) configure() {
 	// settings.SetInt("torrent_connect_boost", 20)
 	// settings.SetInt("torrent_connect_boost", 100)
 	settings.SetInt("torrent_connect_boost", 0)
-	settings.SetInt("aio_threads", 4)
+	settings.SetInt("aio_threads", runtime.NumCPU()*4)
 	settings.SetInt("cache_size", -1)
 	settings.SetInt("mixed_mode_algorithm", int(lt.SettingsPackPreferTcp))
 
@@ -228,14 +229,18 @@ func (s *Service) configure() {
 	settings.SetInt("seed_choking_algorithm", int(lt.SettingsPackFastestUpload))
 
 	// Sizes
-	settings.SetInt("max_out_request_queue", 60000)
-	settings.SetInt("max_allowed_in_request_queue", 25000)
+	settings.SetInt("request_queue_time", 2)
+	settings.SetInt("max_out_request_queue", 2000)
+	settings.SetInt("max_allowed_in_request_queue", 2000)
+	// settings.SetInt("max_out_request_queue", 60000)
+	// settings.SetInt("max_allowed_in_request_queue", 25000)
 	// settings.SetInt("listen_queue_size", 2000)
 	// settings.SetInt("unchoke_slots_limit", 20)
 	settings.SetInt("max_peerlist_size", 50000)
 	settings.SetInt("dht_upload_rate_limit", 50000)
 	settings.SetInt("max_pex_peers", 200)
 	settings.SetInt("max_suggest_pieces", 50)
+	settings.SetInt("whole_pieces_threshold", 10)
 	// settings.SetInt("aio_threads", 8)
 
 	settings.SetInt("send_buffer_low_watermark", 10*1024)
@@ -260,7 +265,7 @@ func (s *Service) configure() {
 	}
 
 	if s.config.ConnTrackerLimitAuto || s.config.ConnTrackerLimit == 0 {
-		settings.SetInt("connection_speed", 100)
+		settings.SetInt("connection_speed", 200)
 	} else {
 		settings.SetInt("connection_speed", s.config.ConnTrackerLimit)
 	}
@@ -389,8 +394,8 @@ func (s *Service) configure() {
 		// settings.SetInt("request_timeout", 10)
 		// settings.SetInt("peer_connect_timeout", 10)
 
-		settings.SetInt("max_out_request_queue", 50000)
-		settings.SetInt("max_allowed_in_request_queue", 50000)
+		// settings.SetInt("max_out_request_queue", 50000)
+		// settings.SetInt("max_allowed_in_request_queue", 50000)
 
 		// settings.SetInt("initial_picker_threshold", 20)
 		// settings.SetInt("share_mode_target", 1)
@@ -405,7 +410,7 @@ func (s *Service) configure() {
 		settings.SetInt("cache_size", 0)
 
 		// Adjust timeouts to avoid disconnect due to idling connections
-		settings.SetInt("inactivity_timeout", 60*20)
+		settings.SetInt("inactivity_timeout", 60*30)
 		settings.SetInt("peer_timeout", 60*10)
 	}
 

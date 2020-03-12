@@ -75,7 +75,8 @@ func Notification(w http.ResponseWriter, r *http.Request, s *bittorrent.Service)
 		p.Params().Seeked = true
 		// Run prioritization over Player's torrent
 		go func() {
-			p.GetTorrent().ClearDeadlines()
+			// TODO: Do we need to clear deadlines? It can be just few pieces in the waitlist.
+			// p.GetTorrent().ClearDeadlines()
 			p.GetTorrent().PrioritizePieces()
 		}()
 

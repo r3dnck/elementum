@@ -565,13 +565,13 @@ func (t *Torrent) PrioritizePiece(piece int) {
 
 		t.awaitingPieces.AddInt(i)
 
-		t.th.PiecePriority(i, 7)
 		t.th.SetPieceDeadline(i, i-piece*100, 0)
 	}
 }
 
 // ClearDeadlines ...
 func (t *Torrent) ClearDeadlines() {
+	t.awaitingPieces.Clear()
 	t.th.ClearPieceDeadlines()
 }
 
