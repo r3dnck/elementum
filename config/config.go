@@ -53,6 +53,7 @@ type Configuration struct {
 	UseCacheSearch            bool
 	CacheSearchDuration       int
 	ResultsPerPage            int
+	GreetingEnabled           bool
 	EnableOverlayStatus       bool
 	SilentStreamStart         bool
 	AutoYesEnabled            bool
@@ -499,6 +500,7 @@ func Reload() *Configuration {
 		UseCacheSearch:            settings["use_cache_search"].(bool),
 		CacheSearchDuration:       settings["cache_search_duration"].(int),
 		ResultsPerPage:            settings["results_per_page"].(int),
+		GreetingEnabled:           settings["greeting_enabled"].(bool),
 		EnableOverlayStatus:       settings["enable_overlay_status"].(bool),
 		SilentStreamStart:         settings["silent_stream_start"].(bool),
 		AutoYesEnabled:            settings["autoyes_enabled"].(bool),
