@@ -1301,7 +1301,7 @@ func renderProgressShows(ctx *gin.Context, shows []*trakt.ProgressShow, total in
 			)
 
 			contextLabel := playLabel
-			contextTitle := fmt.Sprintf("%s S%dE%d", showListing.Show.Title, seasonNumber, episodeNumber)
+			contextTitle := fmt.Sprintf("%s S%02dE%02d", showListing.Show.Title, seasonNumber, episodeNumber)
 			contextURL := contextPlayOppositeURL(thisURL, contextTitle, false)
 			if config.Get().ChooseStreamAuto {
 				contextLabel = linksLabel
