@@ -205,7 +205,7 @@ func (s *Service) configure() {
 	// settings.SetInt("peer_tos", ipToSLowCost)
 	// settings.SetInt("torrent_connect_boost", 20)
 	// settings.SetInt("torrent_connect_boost", 100)
-	settings.SetInt("torrent_connect_boost", 0)
+	// settings.SetInt("torrent_connect_boost", 0)
 	settings.SetInt("aio_threads", runtime.NumCPU()*4)
 	settings.SetInt("cache_size", -1)
 	settings.SetInt("mixed_mode_algorithm", int(lt.SettingsPackPreferTcp))
@@ -230,8 +230,8 @@ func (s *Service) configure() {
 
 	// Sizes
 	settings.SetInt("request_queue_time", 2)
-	settings.SetInt("max_out_request_queue", 2000)
-	settings.SetInt("max_allowed_in_request_queue", 2000)
+	settings.SetInt("max_out_request_queue", 5000)
+	settings.SetInt("max_allowed_in_request_queue", 5000)
 	// settings.SetInt("max_out_request_queue", 60000)
 	// settings.SetInt("max_allowed_in_request_queue", 25000)
 	// settings.SetInt("listen_queue_size", 2000)
@@ -394,8 +394,8 @@ func (s *Service) configure() {
 		// settings.SetInt("request_timeout", 10)
 		// settings.SetInt("peer_connect_timeout", 10)
 
-		// settings.SetInt("max_out_request_queue", 50000)
-		// settings.SetInt("max_allowed_in_request_queue", 50000)
+		settings.SetInt("max_out_request_queue", 50000)
+		settings.SetInt("max_allowed_in_request_queue", 50000)
 
 		// settings.SetInt("initial_picker_threshold", 20)
 		// settings.SetInt("share_mode_target", 1)
