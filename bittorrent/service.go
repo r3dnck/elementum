@@ -1024,6 +1024,9 @@ func (s *Service) loadTorrentFiles() {
 	})
 
 	for _, torrentFile := range files {
+		if s.Closer.IsSet() || s.Session == nil || s.Session.GetHandle() == nil {
+			return
+		}
 		if !strings.HasSuffix(torrentFile.Name(), ".torrent") {
 			continue
 		}
