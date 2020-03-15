@@ -552,7 +552,7 @@ func (t *Torrent) PrioritizePiece(piece int) {
 	defer perf.ScopeTimer()()
 
 	for i := piece; i < piece+3; i++ {
-		if t.awaitingPieces.ContainsInt(i) {
+		if t.awaitingPieces.ContainsInt(i) || t.hasPiece(i) {
 			continue
 		}
 
@@ -837,6 +837,10 @@ func (t *Torrent) piecesProgress(pieces map[int]float64) {
 	for piece := range pieces {
 		if t.hasPiece(piece) {
 			pieces[piece] = 1.0
+
+			if t.awaitingPieces.ContainsInt(piece) {
+				t.awaitingPieces.Remove(uint32(piece))
+			}
 		}
 	}
 
