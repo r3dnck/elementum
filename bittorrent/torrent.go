@@ -168,13 +168,6 @@ func (t *Torrent) Watch() {
 			go t.bufferFinishedEvent()
 
 		case <-t.prioritizeTicker.C:
-			// If this is a File storage and torrent is completed - no need to track pieces progress.
-			if !t.Service.IsMemoryStorage() && t.GetProgress() == 100 {
-				t.bufferTicker.Stop()
-				t.prioritizeTicker.Stop()
-				continue
-			}
-
 			go t.PrioritizePieces()
 
 		case <-t.nextTimer.C:
@@ -316,7 +309,7 @@ func (t *Torrent) bufferFinishedEvent() {
 // another for a piece of file from the end (probably to get codec descriptors and so on)
 // We set it as post-buffer and include in required buffer pieces array.
 func (t *Torrent) Buffer(file *File, isStartup bool) {
-	if file == nil || (!t.Service.IsMemoryStorage() && t.GetProgress() == 100) {
+	if file == nil {
 		t.bufferFinishedEvent()
 		return
 	}

@@ -217,8 +217,8 @@ func (btp *Player) Buffer() error {
 
 	go btp.processMetadata()
 
-	if btp.p.Background || !btp.t.Service.IsMemoryStorage() && btp.t.GetProgress() == 100 {
-		log.Info("Skipping buffering")
+	if btp.p.Background {
+		log.Info("Skipping buffering for background download")
 		btp.t.IsBuffering = false
 		btp.t.IsBufferingFinished = true
 	} else {
