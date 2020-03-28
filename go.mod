@@ -9,6 +9,7 @@ require (
 	github.com/RoaringBitmap/roaring v0.4.21
 	github.com/Sereal/Sereal v0.0.0-20200326150110-2c0ed69a855f // indirect
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
+	github.com/aktau/github-release v0.7.2 // indirect
 	github.com/anacrolix/envpprof v1.1.0
 	github.com/anacrolix/log v0.6.0 // indirect
 	github.com/anacrolix/missinggo/perf v1.0.0
@@ -47,8 +48,10 @@ require (
 	github.com/scakemyer/quasar v0.9.78
 	github.com/shirou/gopsutil v2.20.2+incompatible
 	github.com/tinylib/msgp v1.1.2
+	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80 // indirect
 	github.com/valyala/bytebufferpool v1.0.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
+	github.com/voxelbrain/goptions v0.0.0-20180630082107-58cddc247ea2 // indirect
 	github.com/zeebo/bencode v1.0.0
 	go.etcd.io/bbolt v1.3.4
 	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59 // indirect
