@@ -499,10 +499,6 @@ func (btp *Player) chooseFile() (*File, error) {
 
 	if len(candidateFiles) > 1 {
 		log.Info(fmt.Sprintf("There are %d candidate files", len(candidateFiles)))
-		if btp.p.FileIndex >= 0 && btp.p.FileIndex < len(candidateFiles) {
-			return files[candidateFiles[btp.p.FileIndex]], nil
-		}
-
 		choices := make([]*CandidateFile, 0, len(candidateFiles))
 		for _, index := range candidateFiles {
 			fileName := filepath.Base(files[index].Path)
@@ -523,7 +519,7 @@ func (btp *Player) chooseFile() (*File, error) {
 			}
 		}
 
-		if btp.p.Season > 0 {
+		if btp.p.Season > 0 && btp.p.FileIndex < 0 {
 			// In episode search we are using smart-match to store found episodes
 			//   in the torrent history table
 			go btp.smartMatch(choices)
@@ -557,6 +553,10 @@ func (btp *Player) chooseFile() (*File, error) {
 			}
 		}
 
+		if btp.p.FileIndex >= 0 && btp.p.FileIndex < len(choices) {
+			return files[choices[btp.p.FileIndex].Index], nil
+		}
+
 		items := make([]string, 0, len(choices))
 		for _, choice := range choices {
 			items = append(items, choice.DisplayName)
@@ -564,11 +564,15 @@ func (btp *Player) chooseFile() (*File, error) {
 
 		searchTitle := ""
 		if btp.p.AbsoluteNumber > 0 {
-			searchTitle = fmt.Sprintf("E%d", btp.p.AbsoluteNumber)
-		} else if btp.p.Episode > 0 {
-			searchTitle = fmt.Sprintf("S%dE%d", btp.p.Season, btp.p.Episode)
+			searchTitle += fmt.Sprintf("E%d", btp.p.AbsoluteNumber)
+		}
+		if btp.p.Episode > 0 {
+			if searchTitle != "" {
+				searchTitle += " | "
+			}
+			searchTitle += fmt.Sprintf("S%dE%d", btp.p.Season, btp.p.Episode)
 		} else if m := tmdb.GetMovieByID(strconv.Itoa(btp.p.TMDBId), config.Get().Language); m != nil {
-			searchTitle = m.Title
+			searchTitle += m.Title
 		}
 
 		choice := xbmc.ListDialog("LOCALIZE[30560];;"+searchTitle, items...)
@@ -645,6 +649,7 @@ func (btp *Player) Close() {
 	}
 
 	if !btp.p.Background {
+		// If there is no chosen file - we stop the torrent and remove everything
 		btp.s.RemoveTorrent(btp.t, false, btp.notEnoughSpace, btp.IsWatched())
 	}
 }
