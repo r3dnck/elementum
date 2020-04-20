@@ -753,7 +753,7 @@ func (s *Service) RemoveTorrent(t *Torrent, forceDrop, forceDelete, isWatched bo
 	}
 
 	keepDownloading := false
-	if forceDrop || config.Get().KeepDownloading == 2 {
+	if forceDrop || config.Get().KeepDownloading == 2 || len(t.ChosenFiles) == 0 {
 		keepDownloading = false
 	} else if config.Get().KeepDownloading == 0 || xbmc.DialogConfirm("Elementum", fmt.Sprintf("LOCALIZE[30146];;%s", t.Name())) {
 		keepDownloading = true
@@ -766,7 +766,7 @@ func (s *Service) RemoveTorrent(t *Torrent, forceDrop, forceDelete, isWatched bo
 
 	deleteAnswer := false
 	if keepDownloading == false {
-		if forceDelete {
+		if forceDelete || len(t.ChosenFiles) == 0 {
 			deleteAnswer = true
 		} else if keepSetting == 0 {
 			deleteAnswer = false
