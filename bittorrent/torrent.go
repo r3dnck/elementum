@@ -792,7 +792,6 @@ func (t *Torrent) GetStateString() string {
 		if t.Service.IsMemoryStorage() {
 			return StatusStrings[StatusQueued]
 		}
-		return StatusStrings[StatusFinished]
 	} else if state != StatusQueued && t.IsBuffering {
 		return StatusStrings[StatusBuffering]
 	}
@@ -909,7 +908,11 @@ func (t *Torrent) DownloadAllFiles() {
 // UnDownloadAllFiles ...
 func (t *Torrent) UnDownloadAllFiles() {
 	selected := []string{}
-	for _, f := range t.ChosenFiles {
+
+	chosenFiles := make([]*File, len(t.ChosenFiles))
+	copy(chosenFiles[:], t.ChosenFiles)
+
+	for _, f := range chosenFiles {
 		t.UnDownloadFile(f)
 	}
 
