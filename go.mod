@@ -5,11 +5,10 @@ go 1.14
 require (
 	github.com/DataDog/zstd v1.4.4 // indirect
 	github.com/ElementumOrg/cfbypass v0.0.0-20191231162907-2d126c93fb5f
-	github.com/ElementumOrg/libtorrent-go v0.0.0-20200304201524-4c06ad279005
+	github.com/ElementumOrg/libtorrent-go v0.0.0-20200419192000-c68478707af3
 	github.com/RoaringBitmap/roaring v0.4.21
 	github.com/Sereal/Sereal v0.0.0-20200326150110-2c0ed69a855f // indirect
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
-	github.com/aktau/github-release v0.7.2 // indirect
 	github.com/anacrolix/envpprof v1.1.0
 	github.com/anacrolix/log v0.6.0 // indirect
 	github.com/anacrolix/missinggo/perf v1.0.0
@@ -48,15 +47,14 @@ require (
 	github.com/scakemyer/quasar v0.9.78
 	github.com/shirou/gopsutil v2.20.2+incompatible
 	github.com/tinylib/msgp v1.1.2
-	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80 // indirect
 	github.com/valyala/bytebufferpool v1.0.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
-	github.com/voxelbrain/goptions v0.0.0-20180630082107-58cddc247ea2 // indirect
 	github.com/zeebo/bencode v1.0.0
 	go.etcd.io/bbolt v1.3.4
 	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59 // indirect
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e // indirect
-	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775 // indirect
+	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
+	golang.org/x/sys v0.0.0-20200413165638-669c56c373c4 // indirect
 	google.golang.org/appengine v1.6.5 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
