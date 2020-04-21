@@ -64,7 +64,7 @@ type Player struct {
 	bufferPiecesProgressLock sync.RWMutex
 
 	diskStatus *diskusage.DiskStatus
-	closing    chan interface{}
+	closer     util.Event
 	closed     bool
 }
 
@@ -132,7 +132,6 @@ func NewPlayer(bts *Service, params PlayerParams) *Player {
 		fileName:             "",
 		isDownloading:        false,
 		notEnoughSpace:       false,
-		closing:              make(chan interface{}),
 		bufferEvents:         broadcast.NewBroadcaster(),
 		subtitlesLoaded:      []string{},
 	}
@@ -620,7 +619,7 @@ func (btp *Player) Close() {
 	}
 
 	btp.closed = true
-	close(btp.closing)
+	btp.closer.Set()
 
 	// Torrent was not initialized so just close and return
 	if btp.t == nil {
@@ -674,7 +673,7 @@ func (btp *Player) bufferDialog() {
 				break
 			}
 
-			if btp.dialogProgress.IsCanceled() || btp.notEnoughSpace {
+			if btp.closer.IsSet() || btp.dialogProgress.IsCanceled() || btp.notEnoughSpace {
 				errMsg := "User cancelled the buffering"
 				log.Info(errMsg)
 				btp.bufferEvents.Broadcast(errors.New(errMsg))
@@ -691,6 +690,11 @@ func (btp *Player) bufferDialog() {
 }
 
 func (btp *Player) updateBufferDialog() (bool, error) {
+	if btp.closer.IsSet() {
+		log.Debugf("Player is set to closing, disabling Buffer update")
+		return false, nil
+	}
+
 	if (btp.dialogProgress == nil || btp.dialogProgress.IsCanceled()) && !btp.t.IsBufferingFinished {
 		log.Debugf("Dialog not yet available")
 		return false, nil
@@ -1121,10 +1125,16 @@ func (btp *Player) setRateLimiting(enable bool) {
 func (btp *Player) consumeAlerts() {
 	log.Debugf("Consuming alerts")
 	alerts, alertsDone := btp.s.Alerts()
+	pc := btp.closer.C()
+
 	defer close(alertsDone)
 
 	for {
 		select {
+		case <-pc:
+			log.Debugf("Stopping player alerts")
+			return
+
 		case alert, ok := <-alerts:
 			if !ok { // was the alerts channel closed?
 				return
@@ -1137,9 +1147,6 @@ func (btp *Player) consumeAlerts() {
 					btp.onStateChanged(stateAlert)
 				}
 			}
-		case <-btp.closing:
-			log.Debugf("Stopping player alerts")
-			return
 		}
 	}
 }

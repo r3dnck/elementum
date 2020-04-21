@@ -154,13 +154,25 @@ func (t *Torrent) Watch() {
 	sc := t.Service.Closer.C()
 	tc := t.Closer.C()
 
-	defer t.bufferTicker.Stop()
-	defer t.prioritizeTicker.Stop()
-	defer t.nextTimer.Stop()
-	defer close(t.bufferFinished)
+	defer func() {
+		log.Debugf("Closing torrent tickers")
+
+		t.bufferTicker.Stop()
+		t.prioritizeTicker.Stop()
+		t.nextTimer.Stop()
+		close(t.bufferFinished)
+	}()
 
 	for {
 		select {
+		case <-tc:
+			log.Debug("Stopping watch events")
+			return
+
+		case <-sc:
+			t.Closer.Set()
+			return
+
 		case <-t.bufferTicker.C:
 			go t.bufferTickerEvent()
 
@@ -174,14 +186,6 @@ func (t *Torrent) Watch() {
 			if t.IsNextEpisode {
 				go t.Service.RemoveTorrent(t, false, false, false)
 			}
-
-		case <-sc:
-			t.Closer.Set()
-			return
-
-		case <-tc:
-			log.Debug("Stopping watch events")
-			return
 		}
 	}
 }
@@ -206,6 +210,10 @@ func (t *Torrent) startBufferTicker() {
 }
 
 func (t *Torrent) bufferTickerEvent() {
+	if t.Closer.IsSet() {
+		return
+	}
+
 	defer perf.ScopeTimer()()
 
 	if t.IsBuffering && len(t.BufferPiecesProgress) > 0 {
@@ -1362,6 +1370,38 @@ func (t *Torrent) HasMetadata() bool {
 	defer lt.DeleteTorrentStatus(ts)
 
 	return ts.GetHasMetadata()
+}
+
+// WaitForMetadata waits for getting torrent information or cancels if torrent is closed
+func (t *Torrent) WaitForMetadata(infoHash string) {
+	sc := t.Service.Closer.C()
+	tc := t.Closer.C()
+	mc := t.GotInfo()
+
+	log.Infof("Waiting for information fetched for torrent: %s", infoHash)
+	dialog := xbmc.NewDialogProgressBG("Elementum", "LOCALIZE[30583]", "LOCALIZE[30583]")
+	defer func() {
+		if dialog != nil {
+			dialog.Close()
+		}
+	}()
+
+	for {
+		select {
+		case <-sc:
+			log.Warningf("Cancelling waiting for torrent metadata due to service closing: %s", infoHash)
+			return
+
+		case <-tc:
+			log.Warningf("Cancelling waiting for torrent metadata due to torrent closing: %s", infoHash)
+			return
+
+		case <-mc:
+			log.Infof("Information fetched for torrent: %s", infoHash)
+			return
+
+		}
+	}
 }
 
 // GetHandle ...

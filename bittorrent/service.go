@@ -725,13 +725,7 @@ func (s *Service) AddTorrent(uri string, paused bool) (*Torrent, error) {
 	s.q.Add(t)
 
 	if !t.HasMetadata() {
-		log.Infof("Waiting for information fetched for torrent: %s", infoHash)
-		dialog := xbmc.NewDialogProgressBG("Elementum", "LOCALIZE[30583]", "LOCALIZE[30583]")
-		<-t.GotInfo()
-		log.Infof("Information fetched for torrent: %s", infoHash)
-		if dialog != nil {
-			dialog.Close()
-		}
+		t.WaitForMetadata(infoHash)
 	}
 
 	// Saving torrent file
