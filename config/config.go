@@ -99,29 +99,33 @@ type Configuration struct {
 	ConnTrackerLimit          int
 	ConnTrackerLimitAuto      bool
 	SessionSave               int
-	ShareRatioLimit           int
-	SeedTimeRatioLimit        int
-	SeedTimeLimit             int
-	DisableUpload             bool
-	DisableDHT                bool
-	DisableTCP                bool
-	DisableUTP                bool
-	DisableUPNP               bool
-	EncryptionPolicy          int
-	ListenPortMin             int
-	ListenPortMax             int
-	ListenInterfaces          string
-	ListenAutoDetectIP        bool
-	ListenAutoDetectPort      bool
-	OutgoingInterfaces        string
-	TunedStorage              bool
-	UseLibtorrentConfig       bool
-	UseLibtorrentLogging      bool
-	UseLibtorrentDeadlines    bool
-	UseLibtorrentPauseResume  bool
-	LibtorrentProfile         int
-	MagnetTrackers            int
-	Scrobble                  bool
+
+	SeedForever        bool
+	ShareRatioLimit    int
+	SeedTimeRatioLimit int
+	SeedTimeLimit      int
+
+	DisableUpload            bool
+	DisableDHT               bool
+	DisableTCP               bool
+	DisableUTP               bool
+	DisableUPNP              bool
+	EncryptionPolicy         int
+	ListenPortMin            int
+	ListenPortMax            int
+	ListenInterfaces         string
+	ListenAutoDetectIP       bool
+	ListenAutoDetectPort     bool
+	OutgoingInterfaces       string
+	TunedStorage             bool
+	DiskCacheSize            int
+	UseLibtorrentConfig      bool
+	UseLibtorrentLogging     bool
+	UseLibtorrentDeadlines   bool
+	UseLibtorrentPauseResume bool
+	LibtorrentProfile        int
+	MagnetTrackers           int
+	Scrobble                 bool
 
 	AutoScrapeEnabled        bool
 	AutoScrapeLibraryEnabled bool
@@ -523,6 +527,7 @@ func Reload() *Configuration {
 		StrmLanguage:              settings["strm_language"].(string),
 		LibraryNFOMovies:          settings["library_nfo_movies"].(bool),
 		LibraryNFOShows:           settings["library_nfo_shows"].(bool),
+		SeedForever:               settings["seed_forever"].(bool),
 		ShareRatioLimit:           settings["share_ratio_limit"].(int),
 		SeedTimeRatioLimit:        settings["seed_time_ratio_limit"].(int),
 		SeedTimeLimit:             settings["seed_time_limit"].(int) * 3600,
@@ -539,6 +544,7 @@ func Reload() *Configuration {
 		ListenAutoDetectPort:      settings["listen_autodetect_port"].(bool),
 		OutgoingInterfaces:        settings["outgoing_interfaces"].(string),
 		TunedStorage:              settings["tuned_storage"].(bool),
+		DiskCacheSize:             settings["disk_cache_size"].(int) * 1024 * 1024,
 		UseLibtorrentConfig:       settings["use_libtorrent_config"].(bool),
 		UseLibtorrentLogging:      settings["use_libtorrent_logging"].(bool),
 		UseLibtorrentDeadlines:    settings["use_libtorrent_deadline"].(bool),
@@ -748,6 +754,10 @@ func Reload() *Configuration {
 
 	if newConfig.SessionSave == 0 {
 		newConfig.SessionSave = 10
+	}
+
+	if newConfig.DiskCacheSize == 0 {
+		newConfig.DiskCacheSize = 12 * 1024 * 1024
 	}
 
 	if newConfig.AutoYesEnabled {

@@ -255,7 +255,7 @@ func (s *Service) configure() {
 		settings.SetBool("use_read_cache", true)
 		settings.SetBool("coalesce_reads", true)
 		settings.SetBool("coalesce_writes", true)
-		settings.SetInt("max_queued_disk_bytes", 10*1024*1024)
+		settings.SetInt("max_queued_disk_bytes", s.config.DiskCacheSize)
 	}
 
 	if s.config.ConnectionsLimit > 0 {
@@ -288,14 +288,16 @@ func (s *Service) configure() {
 	// 	s.Session.AddUploadExtension()
 	// }
 
-	if !s.IsMemoryStorage() && s.config.ShareRatioLimit > 0 {
-		settings.SetInt("share_ratio_limit", s.config.ShareRatioLimit)
-	}
-	if !s.IsMemoryStorage() && s.config.SeedTimeRatioLimit > 0 {
-		settings.SetInt("seed_time_ratio_limit", s.config.SeedTimeRatioLimit)
-	}
-	if !s.IsMemoryStorage() && s.config.SeedTimeLimit > 0 {
-		settings.SetInt("seed_time_limit", s.config.SeedTimeLimit)
+	if !s.config.SeedForever && !s.IsMemoryStorage() {
+		if s.config.ShareRatioLimit > 0 {
+			settings.SetInt("share_ratio_limit", s.config.ShareRatioLimit)
+		}
+		if s.config.SeedTimeRatioLimit > 0 {
+			settings.SetInt("seed_time_ratio_limit", s.config.SeedTimeRatioLimit)
+		}
+		if s.config.SeedTimeLimit > 0 {
+			settings.SetInt("seed_time_limit", s.config.SeedTimeLimit)
+		}
 	}
 
 	log.Info("Applying encryption settings...")
