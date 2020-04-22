@@ -23,7 +23,7 @@ var (
 // RefreshTrakt gets user activities from Trakt
 // to see if we need to add movies/set watched status and so on
 func RefreshTrakt() error {
-	if config.Get().TraktToken == "" {
+	if config.Get().TraktToken == "" || !config.Get().TraktSyncEnabled || (!config.Get().TraktSyncPlaybackEnabled && xbmc.PlayerIsPlaying()) {
 		return nil
 	} else if l.Running.IsTrakt {
 		log.Debugf("TraktSync: already in scanning")

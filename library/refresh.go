@@ -78,7 +78,7 @@ func Refresh() error {
 
 // RefreshMovies updates movies in the library
 func RefreshMovies() error {
-	if l.Running.IsMovies || l.Running.IsKodi || !config.Get().LibraryEnabled {
+	if l.Running.IsMovies || l.Running.IsKodi || !config.Get().LibraryEnabled || !config.Get().LibrarySyncEnabled || (!config.Get().LibrarySyncPlaybackEnabled && xbmc.PlayerIsPlaying()) {
 		return nil
 	}
 
@@ -142,7 +142,7 @@ func RefreshMovies() error {
 
 // RefreshShows updates shows in the library
 func RefreshShows() error {
-	if l.Running.IsShows || l.Running.IsKodi || !config.Get().LibraryEnabled {
+	if l.Running.IsShows || l.Running.IsKodi || !config.Get().LibraryEnabled || !config.Get().LibrarySyncEnabled || (!config.Get().LibrarySyncPlaybackEnabled && xbmc.PlayerIsPlaying()) {
 		return nil
 	}
 

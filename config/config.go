@@ -29,76 +29,78 @@ const maxMemorySize = 300 * 1024 * 1024
 
 // Configuration ...
 type Configuration struct {
-	DownloadPath              string
-	TorrentsPath              string
-	LibraryPath               string
-	Info                      *xbmc.AddonInfo
-	Platform                  *xbmc.Platform
-	Language                  string
-	TemporaryPath             string
-	ProfilePath               string
-	HomePath                  string
-	XbmcPath                  string
-	SpoofUserAgent            int
-	KeepDownloading           int
-	KeepFilesPlaying          int
-	KeepFilesFinished         int
-	UseTorrentHistory         bool
-	TorrentHistorySize        int
-	UseFanartTv               bool
-	DisableBgProgress         bool
-	DisableBgProgressPlayback bool
-	ForceUseTrakt             bool
-	UseCacheSelection         bool
-	UseCacheSearch            bool
-	CacheSearchDuration       int
-	ResultsPerPage            int
-	GreetingEnabled           bool
-	EnableOverlayStatus       bool
-	SilentStreamStart         bool
-	AutoYesEnabled            bool
-	AutoYesTimeout            int
-	ChooseStreamAuto          bool
-	ForceLinkType             bool
-	UseOriginalTitle          bool
-	UseAnimeEnTitle           bool
-	AddSpecials               bool
-	AddEpisodeNumbers         bool
-	ShowUnairedSeasons        bool
-	ShowUnairedEpisodes       bool
-	ShowSeasonsAll            bool
-	ShowSeasonsOrder          int
-	SmartEpisodeStart         bool
-	SmartEpisodeMatch         bool
-	LibraryEnabled            bool
-	LibraryUpdate             int
-	StrmLanguage              string
-	LibraryNFOMovies          bool
-	LibraryNFOShows           bool
-	PlaybackPercent           int
-	DownloadStorage           int
-	SkipBurstSearch           bool
-	AutoMemorySize            bool
-	AutoKodiBufferSize        bool
-	AutoAdjustMemorySize      bool
-	AutoMemorySizeStrategy    int
-	MemorySize                int
-	AutoAdjustBufferSize      bool
-	MinCandidateSize          int64
-	MinCandidateShowSize      int64
-	BufferTimeout             int
-	BufferSize                int
-	EndBufferSize             int
-	KodiBufferSize            int
-	UploadRateLimit           int
-	DownloadRateLimit         int
-	AutoloadTorrents          bool
-	AutoloadTorrentsPaused    bool
-	LimitAfterBuffering       bool
-	ConnectionsLimit          int
-	ConnTrackerLimit          int
-	ConnTrackerLimitAuto      bool
-	SessionSave               int
+	DownloadPath               string
+	TorrentsPath               string
+	LibraryPath                string
+	Info                       *xbmc.AddonInfo
+	Platform                   *xbmc.Platform
+	Language                   string
+	TemporaryPath              string
+	ProfilePath                string
+	HomePath                   string
+	XbmcPath                   string
+	SpoofUserAgent             int
+	KeepDownloading            int
+	KeepFilesPlaying           int
+	KeepFilesFinished          int
+	UseTorrentHistory          bool
+	TorrentHistorySize         int
+	UseFanartTv                bool
+	DisableBgProgress          bool
+	DisableBgProgressPlayback  bool
+	ForceUseTrakt              bool
+	UseCacheSelection          bool
+	UseCacheSearch             bool
+	CacheSearchDuration        int
+	ResultsPerPage             int
+	GreetingEnabled            bool
+	EnableOverlayStatus        bool
+	SilentStreamStart          bool
+	AutoYesEnabled             bool
+	AutoYesTimeout             int
+	ChooseStreamAuto           bool
+	ForceLinkType              bool
+	UseOriginalTitle           bool
+	UseAnimeEnTitle            bool
+	AddSpecials                bool
+	AddEpisodeNumbers          bool
+	ShowUnairedSeasons         bool
+	ShowUnairedEpisodes        bool
+	ShowSeasonsAll             bool
+	ShowSeasonsOrder           int
+	SmartEpisodeStart          bool
+	SmartEpisodeMatch          bool
+	LibraryEnabled             bool
+	LibrarySyncEnabled         bool
+	LibrarySyncPlaybackEnabled bool
+	LibraryUpdate              int
+	StrmLanguage               string
+	LibraryNFOMovies           bool
+	LibraryNFOShows            bool
+	PlaybackPercent            int
+	DownloadStorage            int
+	SkipBurstSearch            bool
+	AutoMemorySize             bool
+	AutoKodiBufferSize         bool
+	AutoAdjustMemorySize       bool
+	AutoMemorySizeStrategy     int
+	MemorySize                 int
+	AutoAdjustBufferSize       bool
+	MinCandidateSize           int64
+	MinCandidateShowSize       int64
+	BufferTimeout              int
+	BufferSize                 int
+	EndBufferSize              int
+	KodiBufferSize             int
+	UploadRateLimit            int
+	DownloadRateLimit          int
+	AutoloadTorrents           bool
+	AutoloadTorrentsPaused     bool
+	LimitAfterBuffering        bool
+	ConnectionsLimit           int
+	ConnTrackerLimit           int
+	ConnTrackerLimitAuto       bool
+	SessionSave                int
 
 	SeedForever        bool
 	ShareRatioLimit    int
@@ -141,6 +143,8 @@ type Configuration struct {
 	TraktToken                     string
 	TraktRefreshToken              string
 	TraktTokenExpiry               int
+	TraktSyncEnabled               bool
+	TraktSyncPlaybackEnabled       bool
 	TraktSyncFrequencyMin          int
 	TraktSyncCollections           bool
 	TraktSyncWatchlist             bool
@@ -462,100 +466,102 @@ func Reload() *Configuration {
 	}
 
 	newConfig := Configuration{
-		DownloadPath:              downloadPath,
-		LibraryPath:               libraryPath,
-		TorrentsPath:              torrentsPath,
-		Info:                      info,
-		Platform:                  platform,
-		Language:                  xbmc.GetLanguageISO639_1(),
-		TemporaryPath:             info.TempPath,
-		ProfilePath:               info.Profile,
-		HomePath:                  info.Home,
-		XbmcPath:                  info.Xbmc,
-		DownloadStorage:           settings["download_storage"].(int),
-		SkipBurstSearch:           settings["skip_burst_search"].(bool),
-		AutoMemorySize:            settings["auto_memory_size"].(bool),
-		AutoAdjustMemorySize:      settings["auto_adjust_memory_size"].(bool),
-		AutoMemorySizeStrategy:    settings["auto_memory_size_strategy"].(int),
-		MemorySize:                settings["memory_size"].(int) * 1024 * 1024,
-		AutoKodiBufferSize:        settings["auto_kodi_buffer_size"].(bool),
-		AutoAdjustBufferSize:      settings["auto_adjust_buffer_size"].(bool),
-		MinCandidateSize:          int64(settings["min_candidate_size"].(int) * 1024 * 1024),
-		MinCandidateShowSize:      int64(settings["min_candidate_show_size"].(int) * 1024 * 1024),
-		BufferTimeout:             settings["buffer_timeout"].(int),
-		BufferSize:                settings["buffer_size"].(int) * 1024 * 1024,
-		EndBufferSize:             settings["end_buffer_size"].(int) * 1024 * 1024,
-		UploadRateLimit:           settings["max_upload_rate"].(int) * 1024,
-		DownloadRateLimit:         settings["max_download_rate"].(int) * 1024,
-		AutoloadTorrents:          settings["autoload_torrents"].(bool),
-		AutoloadTorrentsPaused:    settings["autoload_torrents_paused"].(bool),
-		SpoofUserAgent:            settings["spoof_user_agent"].(int),
-		LimitAfterBuffering:       settings["limit_after_buffering"].(bool),
-		KeepDownloading:           settings["keep_downloading"].(int),
-		KeepFilesPlaying:          settings["keep_files_playing"].(int),
-		KeepFilesFinished:         settings["keep_files_finished"].(int),
-		UseTorrentHistory:         settings["use_torrent_history"].(bool),
-		TorrentHistorySize:        settings["torrent_history_size"].(int),
-		UseFanartTv:               settings["use_fanart_tv"].(bool),
-		DisableBgProgress:         settings["disable_bg_progress"].(bool),
-		DisableBgProgressPlayback: settings["disable_bg_progress_playback"].(bool),
-		ForceUseTrakt:             settings["force_use_trakt"].(bool),
-		UseCacheSelection:         settings["use_cache_selection"].(bool),
-		UseCacheSearch:            settings["use_cache_search"].(bool),
-		CacheSearchDuration:       settings["cache_search_duration"].(int),
-		ResultsPerPage:            settings["results_per_page"].(int),
-		GreetingEnabled:           settings["greeting_enabled"].(bool),
-		EnableOverlayStatus:       settings["enable_overlay_status"].(bool),
-		SilentStreamStart:         settings["silent_stream_start"].(bool),
-		AutoYesEnabled:            settings["autoyes_enabled"].(bool),
-		AutoYesTimeout:            settings["autoyes_timeout"].(int),
-		ChooseStreamAuto:          settings["choose_stream_auto"].(bool),
-		ForceLinkType:             settings["force_link_type"].(bool),
-		UseOriginalTitle:          settings["use_original_title"].(bool),
-		UseAnimeEnTitle:           settings["use_anime_en_title"].(bool),
-		AddSpecials:               settings["add_specials"].(bool),
-		AddEpisodeNumbers:         settings["add_episode_numbers"].(bool),
-		ShowUnairedSeasons:        settings["unaired_seasons"].(bool),
-		ShowUnairedEpisodes:       settings["unaired_episodes"].(bool),
-		ShowSeasonsAll:            settings["seasons_all"].(bool),
-		ShowSeasonsOrder:          settings["seasons_order"].(int),
-		PlaybackPercent:           settings["playback_percent"].(int),
-		SmartEpisodeStart:         settings["smart_episode_start"].(bool),
-		SmartEpisodeMatch:         settings["smart_episode_match"].(bool),
-		LibraryEnabled:            settings["library_enabled"].(bool),
-		LibraryUpdate:             settings["library_update"].(int),
-		StrmLanguage:              settings["strm_language"].(string),
-		LibraryNFOMovies:          settings["library_nfo_movies"].(bool),
-		LibraryNFOShows:           settings["library_nfo_shows"].(bool),
-		SeedForever:               settings["seed_forever"].(bool),
-		ShareRatioLimit:           settings["share_ratio_limit"].(int),
-		SeedTimeRatioLimit:        settings["seed_time_ratio_limit"].(int),
-		SeedTimeLimit:             settings["seed_time_limit"].(int) * 3600,
-		DisableUpload:             settings["disable_upload"].(bool),
-		DisableDHT:                settings["disable_dht"].(bool),
-		DisableTCP:                settings["disable_tcp"].(bool),
-		DisableUTP:                settings["disable_utp"].(bool),
-		DisableUPNP:               settings["disable_upnp"].(bool),
-		EncryptionPolicy:          settings["encryption_policy"].(int),
-		ListenPortMin:             settings["listen_port_min"].(int),
-		ListenPortMax:             settings["listen_port_max"].(int),
-		ListenInterfaces:          settings["listen_interfaces"].(string),
-		ListenAutoDetectIP:        settings["listen_autodetect_ip"].(bool),
-		ListenAutoDetectPort:      settings["listen_autodetect_port"].(bool),
-		OutgoingInterfaces:        settings["outgoing_interfaces"].(string),
-		TunedStorage:              settings["tuned_storage"].(bool),
-		DiskCacheSize:             settings["disk_cache_size"].(int) * 1024 * 1024,
-		UseLibtorrentConfig:       settings["use_libtorrent_config"].(bool),
-		UseLibtorrentLogging:      settings["use_libtorrent_logging"].(bool),
-		UseLibtorrentDeadlines:    settings["use_libtorrent_deadline"].(bool),
-		UseLibtorrentPauseResume:  settings["use_libtorrent_pauseresume"].(bool),
-		LibtorrentProfile:         settings["libtorrent_profile"].(int),
-		MagnetTrackers:            settings["magnet_trackers"].(int),
-		ConnectionsLimit:          settings["connections_limit"].(int),
-		ConnTrackerLimit:          settings["conntracker_limit"].(int),
-		ConnTrackerLimitAuto:      settings["conntracker_limit_auto"].(bool),
-		SessionSave:               settings["session_save"].(int),
-		Scrobble:                  settings["trakt_scrobble"].(bool),
+		DownloadPath:               downloadPath,
+		LibraryPath:                libraryPath,
+		TorrentsPath:               torrentsPath,
+		Info:                       info,
+		Platform:                   platform,
+		Language:                   xbmc.GetLanguageISO639_1(),
+		TemporaryPath:              info.TempPath,
+		ProfilePath:                info.Profile,
+		HomePath:                   info.Home,
+		XbmcPath:                   info.Xbmc,
+		DownloadStorage:            settings["download_storage"].(int),
+		SkipBurstSearch:            settings["skip_burst_search"].(bool),
+		AutoMemorySize:             settings["auto_memory_size"].(bool),
+		AutoAdjustMemorySize:       settings["auto_adjust_memory_size"].(bool),
+		AutoMemorySizeStrategy:     settings["auto_memory_size_strategy"].(int),
+		MemorySize:                 settings["memory_size"].(int) * 1024 * 1024,
+		AutoKodiBufferSize:         settings["auto_kodi_buffer_size"].(bool),
+		AutoAdjustBufferSize:       settings["auto_adjust_buffer_size"].(bool),
+		MinCandidateSize:           int64(settings["min_candidate_size"].(int) * 1024 * 1024),
+		MinCandidateShowSize:       int64(settings["min_candidate_show_size"].(int) * 1024 * 1024),
+		BufferTimeout:              settings["buffer_timeout"].(int),
+		BufferSize:                 settings["buffer_size"].(int) * 1024 * 1024,
+		EndBufferSize:              settings["end_buffer_size"].(int) * 1024 * 1024,
+		UploadRateLimit:            settings["max_upload_rate"].(int) * 1024,
+		DownloadRateLimit:          settings["max_download_rate"].(int) * 1024,
+		AutoloadTorrents:           settings["autoload_torrents"].(bool),
+		AutoloadTorrentsPaused:     settings["autoload_torrents_paused"].(bool),
+		SpoofUserAgent:             settings["spoof_user_agent"].(int),
+		LimitAfterBuffering:        settings["limit_after_buffering"].(bool),
+		KeepDownloading:            settings["keep_downloading"].(int),
+		KeepFilesPlaying:           settings["keep_files_playing"].(int),
+		KeepFilesFinished:          settings["keep_files_finished"].(int),
+		UseTorrentHistory:          settings["use_torrent_history"].(bool),
+		TorrentHistorySize:         settings["torrent_history_size"].(int),
+		UseFanartTv:                settings["use_fanart_tv"].(bool),
+		DisableBgProgress:          settings["disable_bg_progress"].(bool),
+		DisableBgProgressPlayback:  settings["disable_bg_progress_playback"].(bool),
+		ForceUseTrakt:              settings["force_use_trakt"].(bool),
+		UseCacheSelection:          settings["use_cache_selection"].(bool),
+		UseCacheSearch:             settings["use_cache_search"].(bool),
+		CacheSearchDuration:        settings["cache_search_duration"].(int),
+		ResultsPerPage:             settings["results_per_page"].(int),
+		GreetingEnabled:            settings["greeting_enabled"].(bool),
+		EnableOverlayStatus:        settings["enable_overlay_status"].(bool),
+		SilentStreamStart:          settings["silent_stream_start"].(bool),
+		AutoYesEnabled:             settings["autoyes_enabled"].(bool),
+		AutoYesTimeout:             settings["autoyes_timeout"].(int),
+		ChooseStreamAuto:           settings["choose_stream_auto"].(bool),
+		ForceLinkType:              settings["force_link_type"].(bool),
+		UseOriginalTitle:           settings["use_original_title"].(bool),
+		UseAnimeEnTitle:            settings["use_anime_en_title"].(bool),
+		AddSpecials:                settings["add_specials"].(bool),
+		AddEpisodeNumbers:          settings["add_episode_numbers"].(bool),
+		ShowUnairedSeasons:         settings["unaired_seasons"].(bool),
+		ShowUnairedEpisodes:        settings["unaired_episodes"].(bool),
+		ShowSeasonsAll:             settings["seasons_all"].(bool),
+		ShowSeasonsOrder:           settings["seasons_order"].(int),
+		PlaybackPercent:            settings["playback_percent"].(int),
+		SmartEpisodeStart:          settings["smart_episode_start"].(bool),
+		SmartEpisodeMatch:          settings["smart_episode_match"].(bool),
+		LibraryEnabled:             settings["library_enabled"].(bool),
+		LibrarySyncEnabled:         settings["library_sync_enabled"].(bool),
+		LibrarySyncPlaybackEnabled: settings["library_sync_playback_enabled"].(bool),
+		LibraryUpdate:              settings["library_update"].(int),
+		StrmLanguage:               settings["strm_language"].(string),
+		LibraryNFOMovies:           settings["library_nfo_movies"].(bool),
+		LibraryNFOShows:            settings["library_nfo_shows"].(bool),
+		SeedForever:                settings["seed_forever"].(bool),
+		ShareRatioLimit:            settings["share_ratio_limit"].(int),
+		SeedTimeRatioLimit:         settings["seed_time_ratio_limit"].(int),
+		SeedTimeLimit:              settings["seed_time_limit"].(int) * 3600,
+		DisableUpload:              settings["disable_upload"].(bool),
+		DisableDHT:                 settings["disable_dht"].(bool),
+		DisableTCP:                 settings["disable_tcp"].(bool),
+		DisableUTP:                 settings["disable_utp"].(bool),
+		DisableUPNP:                settings["disable_upnp"].(bool),
+		EncryptionPolicy:           settings["encryption_policy"].(int),
+		ListenPortMin:              settings["listen_port_min"].(int),
+		ListenPortMax:              settings["listen_port_max"].(int),
+		ListenInterfaces:           settings["listen_interfaces"].(string),
+		ListenAutoDetectIP:         settings["listen_autodetect_ip"].(bool),
+		ListenAutoDetectPort:       settings["listen_autodetect_port"].(bool),
+		OutgoingInterfaces:         settings["outgoing_interfaces"].(string),
+		TunedStorage:               settings["tuned_storage"].(bool),
+		DiskCacheSize:              settings["disk_cache_size"].(int) * 1024 * 1024,
+		UseLibtorrentConfig:        settings["use_libtorrent_config"].(bool),
+		UseLibtorrentLogging:       settings["use_libtorrent_logging"].(bool),
+		UseLibtorrentDeadlines:     settings["use_libtorrent_deadline"].(bool),
+		UseLibtorrentPauseResume:   settings["use_libtorrent_pauseresume"].(bool),
+		LibtorrentProfile:          settings["libtorrent_profile"].(int),
+		MagnetTrackers:             settings["magnet_trackers"].(int),
+		ConnectionsLimit:           settings["connections_limit"].(int),
+		ConnTrackerLimit:           settings["conntracker_limit"].(int),
+		ConnTrackerLimitAuto:       settings["conntracker_limit_auto"].(bool),
+		SessionSave:                settings["session_save"].(int),
+		Scrobble:                   settings["trakt_scrobble"].(bool),
 
 		AutoScrapeEnabled:        settings["autoscrape_is_enabled"].(bool),
 		AutoScrapeLibraryEnabled: settings["autoscrape_library_enabled"].(bool),
@@ -571,6 +577,8 @@ func Reload() *Configuration {
 		TraktToken:                     settings["trakt_token"].(string),
 		TraktRefreshToken:              settings["trakt_refresh_token"].(string),
 		TraktTokenExpiry:               settings["trakt_token_expiry"].(int),
+		TraktSyncEnabled:               settings["trakt_sync_enabled"].(bool),
+		TraktSyncPlaybackEnabled:       settings["trakt_sync_playback_enabled"].(bool),
 		TraktSyncFrequencyMin:          settings["trakt_sync_frequency_min"].(int),
 		TraktSyncCollections:           settings["trakt_sync_collections"].(bool),
 		TraktSyncWatchlist:             settings["trakt_sync_watchlist"].(bool),
