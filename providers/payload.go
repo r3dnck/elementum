@@ -32,6 +32,7 @@ type QuerySearchObject struct {
 type MovieSearchObject struct {
 	GeneralSearchObject
 	IMDBId string            `json:"imdb_id"`
+	TMDBId int               `json:"tmdb_id"`
 	Title  string            `json:"title"`
 	Year   int               `json:"year"`
 	Titles map[string]string `json:"titles"`
@@ -40,12 +41,14 @@ type MovieSearchObject struct {
 // SeasonSearchObject ...
 type SeasonSearchObject struct {
 	GeneralSearchObject
-	IMDBId string            `json:"imdb_id"`
-	TVDBId int               `json:"tvdb_id"`
-	Title  string            `json:"title"`
-	Season int               `json:"season"`
-	Year   int               `json:"year"`
-	Titles map[string]string `json:"titles"`
+	IMDBId     string            `json:"imdb_id"`
+	TVDBId     int               `json:"tvdb_id"`
+	TMDBId     int               `json:"tmdb_id"`
+	ShowTMDBId int               `json:"show_tmdb_id"`
+	Title      string            `json:"title"`
+	Season     int               `json:"season"`
+	Year       int               `json:"year"`
+	Titles     map[string]string `json:"titles"`
 }
 
 // EpisodeSearchObject ...
@@ -53,6 +56,8 @@ type EpisodeSearchObject struct {
 	GeneralSearchObject
 	IMDBId         string            `json:"imdb_id"`
 	TVDBId         int               `json:"tvdb_id"`
+	TMDBId         int               `json:"tmdb_id"`
+	ShowTMDBId     int               `json:"show_tmdb_id"`
 	Title          string            `json:"title"`
 	Season         int               `json:"season"`
 	Episode        int               `json:"episode"`

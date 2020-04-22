@@ -158,6 +158,7 @@ func (as *AddonSearcher) GetMovieSearchObject(movie *tmdb.Movie) *MovieSearchObj
 
 	sObject := &MovieSearchObject{
 		IMDBId: movie.IMDBId,
+		TMDBId: movie.ID,
 		Title:  NormalizeTitle(title),
 		Year:   year,
 		Titles: map[string]string{
@@ -203,12 +204,13 @@ func (as *AddonSearcher) GetSeasonSearchObject(show *tmdb.Show, season *tmdb.Sea
 	}
 
 	sObject := &SeasonSearchObject{
-		IMDBId: show.ExternalIDs.IMDBId,
-		TVDBId: util.StrInterfaceToInt(show.ExternalIDs.TVDBID),
-		Title:  NormalizeTitle(title),
-		Titles: map[string]string{"original": NormalizeTitle(show.OriginalName), "source": show.OriginalName},
-		Year:   year,
-		Season: season.Season,
+		IMDBId:     show.ExternalIDs.IMDBId,
+		TVDBId:     util.StrInterfaceToInt(show.ExternalIDs.TVDBID),
+		ShowTMDBId: show.ID,
+		Title:      NormalizeTitle(title),
+		Titles:     map[string]string{"original": NormalizeTitle(show.OriginalName), "source": show.OriginalName},
+		Year:       year,
+		Season:     season.Season,
 	}
 
 	// Collect titles from AlternativeTitles
@@ -265,6 +267,8 @@ func (as *AddonSearcher) GetEpisodeSearchObject(show *tmdb.Show, episode *tmdb.E
 	sObject := &EpisodeSearchObject{
 		IMDBId:         show.ExternalIDs.IMDBId,
 		TVDBId:         tvdbID,
+		TMDBId:         episode.ID,
+		ShowTMDBId:     show.ID,
 		Title:          NormalizeTitle(title),
 		Titles:         map[string]string{"original": NormalizeTitle(show.OriginalName), "source": show.OriginalName},
 		Season:         episode.SeasonNumber,
