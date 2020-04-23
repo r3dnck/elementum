@@ -85,19 +85,19 @@ const (
 var (
 	// [pр] actually contains "p" from latin and "р" from cyrillic, which looks the same, but it's not.
 	resolutionTags = []map[*regexp.Regexp]int{
-		map[*regexp.Regexp]int{regexp.MustCompile(`(?i)\W+240[pр]\W*`): Resolution240p},
-		map[*regexp.Regexp]int{regexp.MustCompile(`(?i)\W+480[pр]\W*`): Resolution480p},
-		map[*regexp.Regexp]int{regexp.MustCompile(`(?i)\W+(720[pр]|1280x720)\W*`): Resolution720p},
-		map[*regexp.Regexp]int{regexp.MustCompile(`(?i)\W+(1080[piр]|1920x1080)\W*`): Resolution1080p},
-		map[*regexp.Regexp]int{regexp.MustCompile(`(?i)\W+1440[pр]\W*`): Resolution2K},
-		map[*regexp.Regexp]int{regexp.MustCompile(`(?i)\W+(4k|2160[pр]|UHD)\W*`): Resolution4k},
+		{regexp.MustCompile(`(?i)\W+240[pр]\W*`): Resolution240p},
+		{regexp.MustCompile(`(?i)\W+480[pр]\W*`): Resolution480p},
+		{regexp.MustCompile(`(?i)\W+(720[pр]|1280x720)\W*`): Resolution720p},
+		{regexp.MustCompile(`(?i)\W+(1080[piр]|1920x1080)\W*`): Resolution1080p},
+		{regexp.MustCompile(`(?i)\W+1440[pр]\W*`): Resolution2K},
+		{regexp.MustCompile(`(?i)\W+(4k|2160[pр]|UHD)\W*`): Resolution4k},
 
-		map[*regexp.Regexp]int{regexp.MustCompile(`(?i)\W+(vhs\-?rip)\W*`): Resolution240p},
-		map[*regexp.Regexp]int{regexp.MustCompile(`(?i)\W+(tv\-?rip|sat\-?rip|iptv\-?rip|xvid|dvd|hdtv|web\-(dl)?rip)\W*`): Resolution480p},
-		map[*regexp.Regexp]int{regexp.MustCompile(`(?i)\W+(hd720p?|hd\-?rip|b[rd]rip)\W*`): Resolution720p},
-		map[*regexp.Regexp]int{regexp.MustCompile(`(?i)\W+(hd1080p?|fullhd|fhd|blu\W*ray|bd\W*remux)\W*`): Resolution1080p},
-		map[*regexp.Regexp]int{regexp.MustCompile(`(?i)\W+(2k)\W*`): Resolution2K},
-		map[*regexp.Regexp]int{regexp.MustCompile(`(?i)\W+(4k|hd4k)\W*`): Resolution4k},
+		{regexp.MustCompile(`(?i)\W+(vhs\-?rip)\W*`): Resolution240p},
+		{regexp.MustCompile(`(?i)\W+(tv\-?rip|sat\-?rip|iptv\-?rip|xvid|dvd|hdtv|web\-(dl)?rip)\W*`): Resolution480p},
+		{regexp.MustCompile(`(?i)\W+(hd720p?|hd\-?rip|b[rd]rip)\W*`): Resolution720p},
+		{regexp.MustCompile(`(?i)\W+(hd1080p?|fullhd|fhd|blu\W*ray|bd\W*remux)\W*`): Resolution1080p},
+		{regexp.MustCompile(`(?i)\W+(2k)\W*`): Resolution2K},
+		{regexp.MustCompile(`(?i)\W+(4k|hd4k)\W*`): Resolution4k},
 	}
 	// Resolutions ...
 	Resolutions = []string{"", "240p", "480p", "720p", "1080p", "2K", "4K"}

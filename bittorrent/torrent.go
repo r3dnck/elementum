@@ -593,14 +593,14 @@ func (t *Torrent) PrioritizePieces() {
 	numPieces := t.ti.NumPieces()
 
 	priorities := [][]int{
-		[]int{},
-		[]int{},
-		[]int{},
-		[]int{},
-		[]int{},
-		[]int{},
-		[]int{},
-		[]int{},
+		{},
+		{},
+		{},
+		{},
+		{},
+		{},
+		{},
+		{},
 	}
 	readerProgress := map[int]float64{}
 	readerPieces := make([]int, numPieces)
