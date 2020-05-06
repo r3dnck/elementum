@@ -28,15 +28,7 @@ func Search(s *bittorrent.Service) gin.HandlerFunc {
 		historyType := ""
 
 		if len(query) == 0 {
-			if len(keyboard) > 0 {
-				if query = xbmc.Keyboard("", "LOCALIZE[30206]"); len(query) == 0 {
-					return
-				}
-				searchHistoryAppend(ctx, historyType, query)
-			} else {
-				searchHistoryList(ctx, historyType)
-			}
-
+			searchHistoryProcess(ctx, historyType, keyboard)
 			return
 		}
 
@@ -134,6 +126,18 @@ func Search(s *bittorrent.Service) gin.HandlerFunc {
 				"type", "search"))
 			return
 		}
+	}
+}
+
+func searchHistoryProcess(ctx *gin.Context, historyType string, keyboard string) {
+	if len(keyboard) > 0 {
+		query := ""
+		if query = xbmc.Keyboard("", "LOCALIZE[30206]"); len(query) == 0 {
+			return
+		}
+		searchHistoryAppend(ctx, historyType, query)
+	} else {
+		searchHistoryList(ctx, historyType)
 	}
 }
 

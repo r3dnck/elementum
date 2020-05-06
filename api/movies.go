@@ -425,15 +425,7 @@ func SearchMovies(ctx *gin.Context) {
 	historyType := "movies"
 
 	if len(query) == 0 {
-		if len(keyboard) > 0 {
-			if query = xbmc.Keyboard("", "LOCALIZE[30206]"); len(query) == 0 {
-				return
-			}
-			searchHistoryAppend(ctx, historyType, query)
-		} else {
-			searchHistoryList(ctx, historyType)
-		}
-
+		searchHistoryProcess(ctx, historyType, keyboard)
 		return
 	}
 
@@ -600,4 +592,3 @@ func MovieLinks(action string, s *bittorrent.Service) gin.HandlerFunc {
 		}
 	}
 }
-

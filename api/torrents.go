@@ -368,6 +368,7 @@ func AddTorrent(s *bittorrent.Service) gin.HandlerFunc {
 		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 
 		if uri == "" {
+			torrentsLog.Errorf("Torrent file/magnet url is empty")
 			ctx.String(404, "Missing torrent URI")
 			return
 		}
@@ -388,6 +389,8 @@ func AddTorrent(s *bittorrent.Service) gin.HandlerFunc {
 			choice, file := t.ChooseFile()
 			if choice >= 0 && file != nil {
 				t.DownloadFile(file)
+			} else {
+				torrentsLog.Errorf("File was not selected")
 			}
 		}
 

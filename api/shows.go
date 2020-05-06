@@ -333,15 +333,7 @@ func SearchShows(ctx *gin.Context) {
 	historyType := "shows"
 
 	if len(query) == 0 {
-		if len(keyboard) > 0 {
-			if query = xbmc.Keyboard("", "LOCALIZE[30206]"); len(query) == 0 {
-				return
-			}
-			searchHistoryAppend(ctx, historyType, query)
-		} else {
-			searchHistoryList(ctx, historyType)
-		}
-
+		searchHistoryProcess(ctx, historyType, keyboard)
 		return
 	}
 

@@ -112,6 +112,7 @@ func Play(s *bittorrent.Service) gin.HandlerFunc {
 func PlayTorrent(ctx *gin.Context) {
 	retval := xbmc.DialogInsert()
 	if retval["path"] == "" {
+		log.Errorf("No path from insert dialog: %#v", retval)
 		return
 	}
 	xbmc.PlayURLWithTimeout(URLQuery(URLForXBMC("/play"), "uri", retval["path"]))
