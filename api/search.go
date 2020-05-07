@@ -175,11 +175,23 @@ func searchHistoryList(ctx *gin.Context, historyType string) {
 			Label: query,
 			Path:  searchHistoryGetXbmcURL(historyType, query),
 			ContextMenu: [][]string{
-				[]string{"LOCALIZE[30406]", fmt.Sprintf("XBMC.RunPlugin(%s)",
-					URLQuery(URLForXBMC("/search/remove"),
-						"query", query,
-						"type", historyType,
-					))},
+				{
+					"LOCALIZE[30406]",
+					fmt.Sprintf("XBMC.RunPlugin(%s)",
+						URLQuery(URLForXBMC("/search/remove"),
+							"query", query,
+							"type", historyType,
+						),
+					),
+				},
+				{
+					"LOCALIZE[30604]",
+					fmt.Sprintf("XBMC.RunPlugin(%s)",
+						URLQuery(URLForXBMC("/search/clear"),
+							"type", historyType,
+						),
+					),
+				},
 			},
 		})
 	}
