@@ -51,7 +51,9 @@ type Configuration struct {
 	ForceUseTrakt              bool
 	UseCacheSelection          bool
 	UseCacheSearch             bool
+	UseCacheTorrents           bool
 	CacheSearchDuration        int
+	ShowFilesWatched           bool
 	ResultsPerPage             int
 	GreetingEnabled            bool
 	EnableOverlayStatus        bool
@@ -62,6 +64,7 @@ type Configuration struct {
 	ForceLinkType              bool
 	UseOriginalTitle           bool
 	UseAnimeEnTitle            bool
+	UseLowestReleaseDate       bool
 	AddSpecials                bool
 	AddEpisodeNumbers          bool
 	ShowUnairedSeasons         bool
@@ -506,8 +509,10 @@ func Reload() *Configuration {
 		ForceUseTrakt:              settings["force_use_trakt"].(bool),
 		UseCacheSelection:          settings["use_cache_selection"].(bool),
 		UseCacheSearch:             settings["use_cache_search"].(bool),
+		UseCacheTorrents:           settings["use_cache_torrents"].(bool),
 		CacheSearchDuration:        settings["cache_search_duration"].(int),
 		ResultsPerPage:             settings["results_per_page"].(int),
+		ShowFilesWatched:           settings["show_files_watched"].(bool),
 		GreetingEnabled:            settings["greeting_enabled"].(bool),
 		EnableOverlayStatus:        settings["enable_overlay_status"].(bool),
 		SilentStreamStart:          settings["silent_stream_start"].(bool),
@@ -517,6 +522,7 @@ func Reload() *Configuration {
 		ForceLinkType:              settings["force_link_type"].(bool),
 		UseOriginalTitle:           settings["use_original_title"].(bool),
 		UseAnimeEnTitle:            settings["use_anime_en_title"].(bool),
+		UseLowestReleaseDate:       settings["use_lowest_release_date"].(bool),
 		AddSpecials:                settings["add_specials"].(bool),
 		AddEpisodeNumbers:          settings["add_episode_numbers"].(bool),
 		ShowUnairedSeasons:         settings["unaired_seasons"].(bool),

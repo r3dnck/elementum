@@ -35,6 +35,7 @@ type MovieSearchObject struct {
 	TMDBId int               `json:"tmdb_id"`
 	Title  string            `json:"title"`
 	Year   int               `json:"year"`
+	Years  map[string]int    `json:"years"`
 	Titles map[string]string `json:"titles"`
 }
 

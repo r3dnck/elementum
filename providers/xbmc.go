@@ -156,15 +156,55 @@ func (as *AddonSearcher) GetMovieSearchObject(movie *tmdb.Movie) *MovieSearchObj
 		title = movie.OriginalTitle
 	}
 
+	// Iterate through all available dates and take the earliest one as a basic date for searching
+	if config.Get().UseLowestReleaseDate && movie.ReleaseDates != nil && movie.ReleaseDates.Results != nil {
+		for _, r := range movie.ReleaseDates.Results {
+			if r.ReleaseDates == nil {
+				continue
+			}
+
+			for _, d := range r.ReleaseDates {
+				y, _ := strconv.Atoi(strings.Split(d.ReleaseDate, "-")[0])
+				if y < year {
+					year = y
+				}
+			}
+		}
+	}
+
 	sObject := &MovieSearchObject{
 		IMDBId: movie.IMDBId,
 		TMDBId: movie.ID,
 		Title:  NormalizeTitle(title),
 		Year:   year,
+		Years: map[string]int{
+			"original": year,
+		},
 		Titles: map[string]string{
 			"original": NormalizeTitle(movie.OriginalTitle),
 			"source":   movie.OriginalTitle,
 		},
+	}
+
+	// Collect release dates per each location
+	if movie.ReleaseDates != nil && movie.ReleaseDates.Results != nil {
+		for _, r := range movie.ReleaseDates.Results {
+			if r.ReleaseDates == nil {
+				continue
+			}
+
+			lowestYear := 0
+			for _, d := range r.ReleaseDates {
+				y, _ := strconv.Atoi(strings.Split(d.ReleaseDate, "-")[0])
+				if y < lowestYear || lowestYear == 0 {
+					lowestYear = y
+				}
+			}
+
+			if lowestYear > 0 {
+				sObject.Years[strings.ToLower(r.Iso3166_1)] = lowestYear
+			}
+		}
 	}
 
 	// Collect titles from AlternativeTitles
