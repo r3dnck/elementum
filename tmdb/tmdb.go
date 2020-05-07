@@ -357,10 +357,13 @@ type APIRequest struct {
 }
 
 const (
-	tmdbEndpoint            = "https://api.themoviedb.org/3"
-	imageEndpoint           = "http://image.tmdb.org/t/p/"
-	burstRate               = 40
-	burstTime               = 10 * time.Second
+	tmdbEndpoint  = "https://api.themoviedb.org/3"
+	imageEndpoint = "http://image.tmdb.org/t/p/"
+	burstRate     = 150
+	burstTime     = 10 * time.Second
+	// Currently TMDB is disabled rates limiting
+	// burstRate               = 40
+	// burstTime               = 10 * time.Second
 	simultaneousConnections = 20
 	cacheExpiration         = 6 * 24 * time.Hour
 	cacheHalfExpiration     = 3 * 24 * time.Hour
