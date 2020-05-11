@@ -9,15 +9,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/dustin/go-humanize"
 	"github.com/op/go-logging"
+	"github.com/valyala/bytebufferpool"
 	"github.com/zeebo/bencode"
 
 	"github.com/elgatito/elementum/config"
@@ -27,6 +30,7 @@ import (
 )
 
 var torrentFileLog = logging.MustGetLogger("torrentFile")
+var cachedInfoHash sync.Map
 
 // TorrentFile represents a physical torrent file
 type TorrentFile struct {
@@ -441,18 +445,34 @@ func (t *TorrentFile) LoadFromBytes(in []byte) error {
 	return nil
 }
 
-// Resolve ...
-func (t *TorrentFile) Resolve() error {
-	if t.IsMagnet() {
-		t.hasResolved = true
-		return nil
+// Download takes care about torrent's URI and downloads or reads cached file
+func (t *TorrentFile) Download() ([]byte, error) {
+
+	// Try to get file from cache
+	if p, ok := cachedInfoHash.Load(t.URI); ok {
+		_, errf := os.Stat(p.(string))
+		if errf == nil {
+			b, err := ioutil.ReadFile(p.(string))
+			return b, err
+		}
+
+		cachedInfoHash.Delete(t.URI)
 	}
 
+	// Try to get local file
+	if strings.HasSuffix(t.URI, "/") {
+		_, err := os.Stat(t.URI)
+		if err == nil {
+			return ioutil.ReadFile(t.URI)
+		}
+	}
+
+	// Try to download file
 	parts := strings.Split(t.URI, "|")
 	uri := parts[0]
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(parts) > 1 {
 		for _, part := range parts[1:] {
@@ -463,13 +483,14 @@ func (t *TorrentFile) Resolve() error {
 
 	resp, err := proxy.GetClient().Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	} else if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Request %s failed with code: %d", uri, resp.StatusCode)
+		return nil, fmt.Errorf("Request %s failed with code: %d", uri, resp.StatusCode)
 	}
 	defer resp.Body.Close()
 
 	var reader io.ReadCloser
+
 	switch resp.Header.Get("Content-Encoding") {
 	case "gzip":
 		reader, err = gzip.NewReader(resp.Body)
@@ -478,13 +499,28 @@ func (t *TorrentFile) Resolve() error {
 		reader = resp.Body
 	}
 
-	var buf bytes.Buffer
+	bb := bytebufferpool.Get()
+	bb.ReadFrom(reader)
+
+	defer bytebufferpool.Put(bb)
+	return bb.Bytes(), err
+}
+
+// Resolve ...
+func (t *TorrentFile) Resolve() error {
+	if t.IsMagnet() {
+		t.hasResolved = true
+		return nil
+	}
+
+	b, err := t.Download()
+	if err != nil {
+		return err
+	}
+
 	var torrentFile *TorrentFileRaw
 
-	tee := io.TeeReader(reader, &buf)
-	dec := bencode.NewDecoder(tee)
-
-	if errDec := dec.Decode(&torrentFile); errDec != nil {
+	if errDec := bencode.DecodeBytes(b, &torrentFile); errDec != nil {
 		return fmt.Errorf("Decode error: %s", errDec)
 	}
 
@@ -530,9 +566,11 @@ func (t *TorrentFile) Resolve() error {
 			err = cerr
 		}
 	}()
-	if _, err := io.Copy(out, &buf); err != nil {
+	if _, err := out.Write(b); err != nil {
 		return err
 	}
+
+	cachedInfoHash.Store(t.URI, torrentFileName)
 	t.URI = torrentFileName
 
 	t.hasResolved = true
