@@ -485,10 +485,10 @@ func MovieLinks(action string, s *bittorrent.Service) gin.HandlerFunc {
 		}
 
 		existingTorrent := s.HasTorrentByID(movie.ID)
-		if existingTorrent != "" && (config.Get().SilentStreamStart || xbmc.DialogConfirmFocused("Elementum", "LOCALIZE[30270]")) {
+		if existingTorrent != nil && (config.Get().SilentStreamStart || xbmc.DialogConfirmFocused("Elementum", fmt.Sprintf("LOCALIZE[30608];;[COLOR gold]%s[/COLOR]", existingTorrent.Title()))) {
 			rURL := URLQuery(URLForXBMC(runAction),
 				"doresume", doresume,
-				"resume", existingTorrent,
+				"resume", existingTorrent.InfoHash(),
 				"tmdb", tmdbID,
 				"type", "movie")
 			if external != "" {

@@ -541,10 +541,10 @@ func ShowSeasonLinks(action string, s *bittorrent.Service) gin.HandlerFunc {
 		longName := fmt.Sprintf("%s Season %02d", show.Name, seasonNumber)
 
 		existingTorrent := s.HasTorrentBySeason(showID, seasonNumber)
-		if existingTorrent != "" && (config.Get().SilentStreamStart || xbmc.DialogConfirmFocused("Elementum", "LOCALIZE[30270]")) {
+		if existingTorrent != nil && (config.Get().SilentStreamStart || xbmc.DialogConfirmFocused("Elementum", fmt.Sprintf("LOCALIZE[30608];;[COLOR gold]%s[/COLOR]", existingTorrent.Title()))) {
 			rURL := URLQuery(URLForXBMC(runAction),
 				"doresume", doresume,
-				"resume", existingTorrent,
+				"resume", existingTorrent.InfoHash(),
 				"tmdb", strconv.Itoa(season.ID),
 				"show", tmdbID,
 				"season", ctx.Params.ByName("season"),
@@ -733,11 +733,11 @@ func ShowEpisodeLinks(action string, s *bittorrent.Service) gin.HandlerFunc {
 
 		longName := fmt.Sprintf("%s S%02dE%02d", show.Name, seasonNumber, episodeNumber)
 
-		existingTorrent, autoStart := s.HasTorrentByEpisode(showID, seasonNumber, episodeNumber)
-		if existingTorrent != "" && (autoStart || config.Get().SilentStreamStart || xbmc.DialogConfirmFocused("Elementum", "LOCALIZE[30270]")) {
+		existingTorrent := s.HasTorrentByEpisode(showID, seasonNumber, episodeNumber)
+		if existingTorrent != nil && (config.Get().SilentStreamStart || xbmc.DialogConfirmFocused("Elementum", fmt.Sprintf("LOCALIZE[30608];;[COLOR gold]%s[/COLOR]", existingTorrent.Title()))) {
 			rURL := URLQuery(URLForXBMC(runAction),
 				"doresume", doresume,
-				"resume", existingTorrent,
+				"resume", existingTorrent.InfoHash(),
 				"tmdb", strconv.Itoa(episode.ID),
 				"show", tmdbID,
 				"season", ctx.Params.ByName("season"),

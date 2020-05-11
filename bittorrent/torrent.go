@@ -22,6 +22,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/valyala/bytebufferpool"
+	"github.com/zeebo/bencode"
 
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/database"
@@ -1012,6 +1013,21 @@ func (t *Torrent) Name() string {
 
 	t.name = t.ti.Name()
 	return t.name
+}
+
+// Title returns name of a torrent, or, if present, how it looked in plugin that found it.
+func (t *Torrent) Title() string {
+	b := t.GetMetadata()
+	if len(b) == 0 {
+		return t.Name()
+	}
+
+	var torrentFile *TorrentFileRaw
+	if errDec := bencode.DecodeBytes(b, &torrentFile); errDec != nil || torrentFile.Title == "" {
+		return t.Name()
+	}
+
+	return torrentFile.Title
 }
 
 // Length ...

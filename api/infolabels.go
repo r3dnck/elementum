@@ -195,7 +195,7 @@ func GetMovieLabels(tmdbID string) (item *xbmc.ListItem, err error) {
 
 // GetSearchLabels returnes listitem for a search query
 func GetSearchLabels(s *bittorrent.Service, tmdbID string) (item *xbmc.ListItem, err error) {
-	torrent := s.GetTorrentByFakeID(tmdbID)
+	torrent := s.HasTorrentByFakeID(tmdbID)
 	if torrent == nil || torrent.DBItem == nil {
 		return nil, errors.New("Unable to find the torrent")
 	}
