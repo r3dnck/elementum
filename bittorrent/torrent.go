@@ -71,9 +71,9 @@ type Torrent struct {
 	IsBufferingFinished bool
 	IsSeeding           bool
 	IsRarArchive        bool
-	IsPlayerAttached    bool
 	IsNextEpisode       bool
 	HasNextEpisode      bool
+	PlayerAttached      int
 
 	DBItem *database.BTItem
 

@@ -147,7 +147,7 @@ func (btp *Player) GetTorrent() *Torrent {
 func (btp *Player) SetTorrent(t *Torrent) {
 	btp.t = t
 
-	btp.t.IsPlayerAttached = true
+	btp.t.PlayerAttached++
 	btp.t.IsBuffering = false
 	btp.t.IsBufferingFinished = false
 	btp.t.IsNextEpisode = false

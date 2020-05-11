@@ -1521,7 +1521,7 @@ func (s *Service) DetachPlayer(p *Player) {
 		return
 	}
 
-	p.t.IsPlayerAttached = false
+	p.t.PlayerAttached--
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -1823,7 +1823,7 @@ func (s *Service) readCustomSettings() map[string]string {
 // StopNextEpisodes stops all torrents that wait for "next" playback
 func (s *Service) StopNextEpisodes() {
 	for _, t := range s.q.All() {
-		if t.IsNextEpisode && !t.IsPlayerAttached {
+		if t.IsNextEpisode && t.PlayerAttached <= 0 {
 			log.Infof("Stopping torrent '%s' as a not-needed next episode", t.Name())
 
 			t.stopNextTimer()
