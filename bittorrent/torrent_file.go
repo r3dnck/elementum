@@ -449,7 +449,7 @@ func (t *TorrentFile) LoadFromBytes(in []byte) error {
 func (t *TorrentFile) Download() ([]byte, error) {
 
 	// Try to get file from cache
-	if p, ok := cachedInfoHash.Load(t.URI); ok {
+	if p, ok := cachedInfoHash.Load(t.URI); ok && config.Get().UseCacheTorrents {
 		_, errf := os.Stat(p.(string))
 		if errf == nil {
 			b, err := ioutil.ReadFile(p.(string))
