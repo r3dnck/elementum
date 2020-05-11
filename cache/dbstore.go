@@ -44,9 +44,15 @@ var (
 		}}
 )
 
+var dbStore *DBStore
+
 // NewDBStore Returns instance of BoltDB backed cache store
 func NewDBStore() *DBStore {
-	return &DBStore{database.GetCache()}
+	if dbStore == nil {
+		dbStore = &DBStore{database.GetCache()}
+	}
+
+	return dbStore
 }
 
 // Set ...
