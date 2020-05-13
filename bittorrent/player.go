@@ -35,7 +35,7 @@ import (
 )
 
 const (
-	episodeMatchRegex       = `(?i)(^|\W|_)(S0*%[1]d\W?E0*%[2]d|0*%[1]dx0*%[2]d)(\W|_)`
+	episodeMatchRegex       = `(?i)(^|\W|_)(S0*%[1]d\W?E?0*%[2]d|0*%[1]dx0*%[2]d)(\W|_)`
 	singleEpisodeMatchRegex = `(?i)(^|\W|_)(E0*%[1]d|0*%[1]d)(\W|_)`
 )
 
@@ -115,6 +115,8 @@ type CandidateFile struct {
 	Index       int
 	Filename    string
 	DisplayName string
+	Path        string
+	Size        int64
 }
 
 // NewPlayer ...
@@ -1359,7 +1361,7 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, show *tmdb.Show, episod
 
 	re := regexp.MustCompile(fmt.Sprintf(episodeMatchRegex, s, e))
 	for i, choice := range choices {
-		if re.MatchString(choice.Filename) {
+		if re.MatchString(choice.Path) {
 			index = i
 			found++
 		}
@@ -1368,7 +1370,7 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, show *tmdb.Show, episod
 	if isSingleSeason && found == 0 {
 		re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, e))
 		for i, choice := range choices {
-			if re.MatchString(choice.Filename) {
+			if re.MatchString(choice.Path) {
 				index = i
 				found++
 			}
@@ -1379,7 +1381,7 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, show *tmdb.Show, episod
 		if an, _ := show.AnimeInfoWithShow(episode, tvdbShow); an != 0 {
 			re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, an))
 			for i, choice := range choices {
-				if re.MatchString(choice.Filename) {
+				if re.MatchString(choice.Path) {
 					index = i
 					found++
 				}
