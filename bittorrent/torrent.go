@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
@@ -1476,40 +1477,213 @@ func (t *Torrent) GetFiles() []*File {
 	return t.files
 }
 
-// ChooseFile asks user to select file
-func (t *Torrent) ChooseFile() (int, *File) {
-	files := t.GetFiles()
-	choices := make([]*CandidateFile, 0, len(files))
-	for index, f := range files {
-		fileName := filepath.Base(f.Path)
-		candidate := &CandidateFile{
-			Index:       index,
-			Filename:    fileName,
-			DisplayName: files[index].Path,
+// ChooseFile opens file selector if not provided with Player, otherwise tries to detect what to open.
+func (t *Torrent) ChooseFile(btp *Player) (*File, int, error) {
+	biggestFile := 0
+	maxSize := int64(0)
+	files := t.files
+	isBluRay := false
+	minSize := config.Get().MinCandidateSize
+	if btp != nil && btp.p.ShowID != 0 {
+		if s := tmdb.GetShow(btp.p.ShowID, config.Get().Language); s != nil {
+			runtime := 30
+			if len(s.EpisodeRunTime) > 0 {
+				for _, r := range s.EpisodeRunTime {
+					if r < runtime {
+						runtime = r
+					}
+				}
+			}
+
+			minSize = config.Get().MinCandidateShowSize * int64(runtime)
 		}
-		choices = append(choices, candidate)
 	}
 
-	TrimChoices(choices)
+	var candidateFiles []int
 
-	// Adding sizes to file names
-	for _, c := range choices {
-		c.DisplayName += " [" + humanize.Bytes(uint64(files[c.Index].Size)) + "]"
+	for i, f := range files {
+		size := f.Size
+		if size > maxSize {
+			maxSize = size
+			biggestFile = i
+		}
+		if size > minSize {
+			candidateFiles = append(candidateFiles, i)
+		}
+		if strings.Contains(f.Path, "BDMV/STREAM/") {
+			isBluRay = true
+			continue
+		}
+
+		fileName := filepath.Base(f.Path)
+		re := regexp.MustCompile(`(?i).*\.rar$`)
+		if re.MatchString(fileName) && size > 10*1024*1024 {
+			t.IsRarArchive = true
+			if !xbmc.DialogConfirm("Elementum", "LOCALIZE[30303]") {
+				if btp != nil {
+					btp.notEnoughSpace = true
+				}
+				return f, -1, errors.New("RAR archive detected and download was cancelled")
+			}
+			return f, -1, nil
+		}
 	}
 
-	items := make([]string, 0, len(choices))
-	for _, choice := range choices {
-		items = append(items, choice.DisplayName)
+	if isBluRay {
+		candidateFiles = []int{}
+		dirs := map[string]int{}
+
+		for i, f := range files {
+			if idx := strings.Index(f.Path, "BDMV/STREAM/"); idx != -1 {
+				dir := f.Path[0 : idx-1]
+				if _, ok := dirs[dir]; !ok {
+					dirs[dir] = i
+				} else if files[dirs[dir]].Size < files[i].Size {
+					dirs[dir] = i
+				}
+			}
+		}
+
+		if len(dirs) == 1 {
+			log.Info("Skipping file choose, as this is a BluRay stream.")
+			if btp == nil {
+				t.DownloadFile(files[biggestFile])
+				t.SaveDBFiles()
+			}
+			return files[biggestFile], -1, nil
+		}
+
+		choices := make([]*CandidateFile, 0, len(candidateFiles))
+		for dir, index := range dirs {
+			candidate := &CandidateFile{
+				Index:       index,
+				Filename:    dir,
+				DisplayName: dir,
+				Path:        dir,
+			}
+			choices = append(choices, candidate)
+		}
+
+		TrimChoices(choices)
+
+		items := make([]string, 0, len(choices))
+		for _, choice := range choices {
+			items = append(items, choice.DisplayName)
+		}
+
+		choice := xbmc.ListDialog("LOCALIZE[30223]", items...)
+		if choice >= 0 {
+			if btp == nil {
+				t.DownloadFile(files[choices[choice].Index])
+				t.SaveDBFiles()
+			}
+			return files[choices[choice].Index], choice, nil
+		}
+		return nil, -1, fmt.Errorf("User cancelled")
 	}
 
-	choice := xbmc.ListDialog("LOCALIZE[30223]", items...)
-	if choice >= 0 {
-		t.DownloadFile(files[choices[choice].Index])
+	if len(candidateFiles) > 1 {
+		log.Info(fmt.Sprintf("There are %d candidate files", len(candidateFiles)))
+		choices := make([]*CandidateFile, 0, len(candidateFiles))
+		for _, index := range candidateFiles {
+			fileName := filepath.Base(files[index].Path)
+			candidate := &CandidateFile{
+				Index:       index,
+				Filename:    fileName,
+				DisplayName: files[index].Path,
+				Path:        files[index].Path,
+				Size:        files[index].Size,
+			}
+			choices = append(choices, candidate)
+		}
+
+		TrimChoices(choices)
+
+		// Adding sizes to file names
+		if btp != nil && btp.p.Episode == 0 {
+			for _, c := range choices {
+				c.DisplayName += " [COLOR lightyellow][" + humanize.Bytes(uint64(files[c.Index].Size)) + "][/COLOR]"
+			}
+		}
+
+		if btp != nil && btp.p.Season > 0 && btp.p.FileIndex < 0 {
+			// In episode search we are using smart-match to store found episodes
+			//   in the torrent history table
+			go btp.smartMatch(choices)
+
+			lastMatched, foundMatches := MatchEpisodeFilename(btp.p.Season, btp.p.Episode, false, nil, nil, nil, choices)
+
+			if foundMatches == 1 {
+				return files[choices[lastMatched].Index], lastMatched, nil
+			}
+
+			if s := tmdb.GetShow(btp.p.ShowID, config.Get().Language); s != nil && s.IsAnime() {
+				season := tmdb.GetSeason(btp.p.ShowID, btp.p.Season, config.Get().Language, len(s.Seasons))
+				if season != nil {
+					an, _ := s.AnimeInfo(season.Episodes[btp.p.Episode-1])
+					if an != 0 {
+						btp.p.AbsoluteNumber = an
+
+						re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, btp.p.AbsoluteNumber))
+						for index, choice := range choices {
+							if re.MatchString(choice.Path) {
+								lastMatched = index
+								foundMatches++
+							}
+						}
+
+						if foundMatches == 1 {
+							if btp == nil {
+								t.DownloadFile(files[choices[lastMatched].Index])
+								t.SaveDBFiles()
+							}
+							return files[choices[lastMatched].Index], lastMatched, nil
+						}
+					}
+				}
+			}
+		}
+
+		if btp != nil && btp.p.FileIndex >= 0 && btp.p.FileIndex < len(choices) {
+			return files[choices[btp.p.FileIndex].Index], btp.p.FileIndex, nil
+		}
+
+		items := make([]string, 0, len(choices))
+		for _, choice := range choices {
+			items = append(items, choice.DisplayName)
+		}
+
+		searchTitle := ""
+		if btp != nil {
+			if btp.p.AbsoluteNumber > 0 {
+				searchTitle += fmt.Sprintf("E%d", btp.p.AbsoluteNumber)
+			}
+			if btp.p.Episode > 0 {
+				if searchTitle != "" {
+					searchTitle += " | "
+				}
+				searchTitle += fmt.Sprintf("S%dE%d", btp.p.Season, btp.p.Episode)
+			} else if m := tmdb.GetMovieByID(strconv.Itoa(btp.p.TMDBId), config.Get().Language); m != nil {
+				searchTitle += m.Title
+			}
+		}
+
+		choice := xbmc.ListDialog("LOCALIZE[30560];;"+searchTitle, items...)
+		if choice >= 0 {
+			if btp == nil {
+				t.DownloadFile(files[choices[choice].Index])
+				t.SaveDBFiles()
+			}
+			return files[choices[choice].Index], choice, nil
+		}
+		return nil, -1, fmt.Errorf("User cancelled")
+	}
+
+	if btp == nil {
+		t.DownloadFile(files[biggestFile])
 		t.SaveDBFiles()
-		return choice, files[choices[choice].Index]
 	}
-
-	return -1, nil
+	return files[biggestFile], -1, nil
 }
 
 // GetPlayURL returns url ready for Kodi

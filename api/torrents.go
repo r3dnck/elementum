@@ -386,8 +386,8 @@ func AddTorrent(s *bittorrent.Service) gin.HandlerFunc {
 			torrentsLog.Infof("Selecting all files for download")
 			t.DownloadAllFiles()
 		} else {
-			choice, file := t.ChooseFile()
-			if choice >= 0 && file != nil {
+			file, _, err := t.ChooseFile(nil)
+			if err == nil && file != nil {
 				t.DownloadFile(file)
 			} else {
 				torrentsLog.Errorf("File was not selected")
@@ -520,8 +520,8 @@ func SelectFileTorrent(s *bittorrent.Service) gin.HandlerFunc {
 			return
 		}
 
-		choice, file := torrent.ChooseFile()
-		if choice >= 0 && file != nil {
+		file, choice, err := torrent.ChooseFile(nil)
+		if err == nil && file != nil {
 			url := torrent.GetPlayURL(strconv.Itoa(choice))
 			log.Debugf("Triggering play for: %s", url)
 			xbmc.PlayURL(url)
