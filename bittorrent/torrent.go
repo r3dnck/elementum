@@ -1377,7 +1377,10 @@ func (t *Torrent) onMetadataReceived() {
 	t.fastResumeFile = filepath.Join(t.Service.config.TorrentsPath, fmt.Sprintf("%s.fastresume", infoHash))
 	t.partsFile = filepath.Join(t.Service.config.DownloadPath, fmt.Sprintf(".%s.parts", infoHash))
 
-	go t.SaveMetainfo(t.Service.config.TorrentsPath)
+	go func() {
+		t.SaveMetainfo(t.Service.config.TorrentsPath)
+		t.SaveMetainfo(filepath.Join(config.Get().Info.TempPath, fmt.Sprintf("%s.torrent", t.InfoHash)))
+	}()
 }
 
 // HasMetadata ...
