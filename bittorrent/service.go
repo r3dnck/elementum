@@ -1835,3 +1835,18 @@ func (s *Service) StopNextEpisodes() {
 	}
 
 }
+
+// IsWatchedFile ...
+func IsWatchedFile(path string, size int64) bool {
+	key := fmt.Sprintf("stored.watched_file.%s.%d", path, size)
+
+	res, _ := database.GetCache().GetCachedBool(database.CommonBucket, key)
+	return res
+}
+
+// SetWatchedFile ...
+func SetWatchedFile(path string, size int64, watched bool) {
+	key := fmt.Sprintf("stored.watched_file.%s.%d", path, size)
+
+	database.GetCache().SetCachedBool(database.CommonBucket, storedWatchedFileExpiration, key, watched)
+}

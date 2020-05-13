@@ -795,6 +795,9 @@ func (btp *Player) UpdateWatched() {
 
 	log.Infof("Currently at %f%%, KodiID: %d", progress, btp.p.KodiID)
 
+	// Update Watched state for current file
+	SetWatchedFile(btp.chosenFile.Path, btp.chosenFile.Size, progress > float64(config.Get().PlaybackPercent))
+
 	if progress > float64(config.Get().PlaybackPercent) {
 		var watched *trakt.WatchedItem
 
@@ -1172,6 +1175,29 @@ func TrimChoices(choices []*CandidateFile) {
 	sort.Slice(choices, func(i, j int) bool {
 		return choices[i].DisplayName < choices[j].DisplayName
 	})
+
+	if !config.Get().ShowFilesWatched {
+		return
+	}
+
+	anyWatched := false
+	watched := make([]bool, len(choices))
+	for i, c := range choices {
+		watched[i] = IsWatchedFile(c.Path, c.Size)
+		if watched[i] {
+			anyWatched = true
+		}
+	}
+
+	if anyWatched {
+		for i, c := range choices {
+			if watched[i] {
+				c.DisplayName = " [COLOR green][B]+[/B][/COLOR] | " + c.DisplayName
+			} else {
+				c.DisplayName = " [COLOR green] [/COLOR] | " + c.DisplayName
+			}
+		}
+	}
 }
 
 // MatchEpisodeFilename matches season and episode in the filename to get ocurrence

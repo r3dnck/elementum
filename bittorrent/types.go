@@ -138,5 +138,6 @@ const (
 )
 
 const (
-	storedResumeExpiration = 30 * 60 * 60 * 24
+	storedResumeExpiration      = 60 * 60 * 60 * 24
+	storedWatchedFileExpiration = 60 * 60 * 60 * 24
 )
