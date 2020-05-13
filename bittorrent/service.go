@@ -1716,8 +1716,11 @@ func (s *Service) GetListenIP(network string) string {
 
 // GetMemoryStats returns total and free memory sizes for this OS
 func (s *Service) GetMemoryStats() (int64, int64) {
-	v, _ := mem.VirtualMemory()
-	return int64(v.Total), int64(v.Free)
+	if v, err := mem.VirtualMemory(); v != nil && err == nil {
+		return int64(v.Total), int64(v.Free)
+	}
+
+	return 0, 0
 }
 
 // IsMemoryStorage is a shortcut for checking whether we run memory storage
