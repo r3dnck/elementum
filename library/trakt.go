@@ -193,6 +193,9 @@ func RefreshTraktWatched(itemType int, isRefreshNeeded bool) error {
 		} else if len(current) == 0 {
 			// Kind of strange check to make sure Trakt watched items are not empty
 			return nil
+		} else if len(previous) > 50 && len(current) > 50 && len(previous)/len(current) > 2 {
+			// If current*2 < previous then skipping updates
+			return nil
 		}
 
 		// Should parse all movies for Watched marks, but process only difference,
@@ -296,6 +299,9 @@ func RefreshTraktWatched(itemType int, isRefreshNeeded bool) error {
 			return err
 		} else if len(current) == 0 {
 			// Kind of strange check to make sure Trakt watched items are not empty
+			return nil
+		} else if len(previous) > 5 && len(current) > 5 && len(previous)/len(current) > 2 {
+			// If current*2 < previous then skipping updates
 			return nil
 		}
 

@@ -644,9 +644,11 @@ func WatchedShows(isUpdateNeeded bool) ([]*WatchedShow, error) {
 		&shows,
 	)
 
-	cache.
-		NewDBStore().
-		Set(watchedShowsKey, &shows, cacheExpiration)
+	if len(shows) != 0 {
+		cache.
+			NewDBStore().
+			Set(watchedShowsKey, &shows, cacheExpiration)
+	}
 
 	return shows, err
 }

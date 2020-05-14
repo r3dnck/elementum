@@ -609,10 +609,12 @@ func WatchedMovies(isUpdateNeeded bool) ([]*WatchedMovie, error) {
 		return movies[i].LastWatchedAt.Unix() > movies[j].LastWatchedAt.Unix()
 	})
 
-	cache.
-		NewDBStore().
-		Set(watchedMoviesKey, &movies, cacheExpiration)
-
+	if len(movies) != 0 {
+		cache.
+			NewDBStore().
+			Set(watchedMoviesKey, &movies, cacheExpiration)
+	}
+	
 	return movies, err
 }
 
