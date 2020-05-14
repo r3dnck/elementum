@@ -1479,6 +1479,15 @@ func (t *Torrent) GetFiles() []*File {
 
 // ChooseFile opens file selector if not provided with Player, otherwise tries to detect what to open.
 func (t *Torrent) ChooseFile(btp *Player) (*File, int, error) {
+	// Checking if we need to open specific file from torrent file.
+	if btp != nil && btp.p.OriginalIndex >= 0 {
+		for _, f := range t.files {
+			if f.Index == btp.p.OriginalIndex {
+				return f, 0, nil
+			}
+		}
+	}
+
 	biggestFile := 0
 	maxSize := int64(0)
 	files := t.files

@@ -27,8 +27,14 @@ func Download(s *bittorrent.Service) gin.HandlerFunc {
 // Play ...
 func Play(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		uri := ctx.Query("uri")
+		// Index is the file index to automatically select.
+		// Starts with 0, -1 or empty means - not defined.
+		// OIndex is the original file index to automatically select.
+		// 		Order is just like in the torrent file, without changes.
 		index := ctx.Query("index")
+		oindex := ctx.Query("oindex")
+
+		uri := ctx.Query("uri")
 		resume := ctx.Query("resume")
 		doresume := ctx.DefaultQuery("doresume", "true")
 		query := ctx.Query("query")
@@ -47,6 +53,13 @@ func Play(s *bittorrent.Service) gin.HandlerFunc {
 		if index != "" {
 			if position, err := strconv.Atoi(index); err == nil && position >= 0 {
 				fileIndex = position
+			}
+		}
+
+		originalIndex := -1
+		if oindex != "" {
+			if position, err := strconv.Atoi(oindex); err == nil && position >= 0 {
+				originalIndex = position
 			}
 		}
 
@@ -80,6 +93,7 @@ func Play(s *bittorrent.Service) gin.HandlerFunc {
 
 		params := bittorrent.PlayerParams{
 			URI:            uri,
+			OriginalIndex:  originalIndex,
 			FileIndex:      fileIndex,
 			ResumeHash:     resume,
 			ResumePlayback: doresume != "false",

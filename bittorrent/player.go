@@ -83,6 +83,7 @@ type PlayerParams struct {
 	WatchedTime     float64
 	VideoDuration   float64
 	URI             string
+	OriginalIndex   int
 	FileIndex       int
 	ResumeToken     string
 	ResumeHash      string
