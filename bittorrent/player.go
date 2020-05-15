@@ -869,6 +869,8 @@ func (btp *Player) smartMatch(choices []*CandidateFile) {
 		tvdbShow, _ = tvdb.GetShow(tvdbID, config.Get().Language)
 	}
 
+	hash := btp.t.InfoHash()
+
 	for _, season := range show.Seasons {
 		if season == nil || season.EpisodeCount == 0 {
 			continue
@@ -887,7 +889,7 @@ func (btp *Player) smartMatch(choices []*CandidateFile) {
 
 			index, found := MatchEpisodeFilename(season.Season, episode.EpisodeNumber, len(show.Seasons) == 1, show, episode, tvdbShow, choices)
 			if index >= 0 && found == 1 {
-				database.GetStorm().AddTorrentLink(strconv.Itoa(episode.ID), btp.t.InfoHash(), b)
+				database.GetStorm().AddTorrentLink(strconv.Itoa(episode.ID), hash, b)
 			}
 		}
 	}
