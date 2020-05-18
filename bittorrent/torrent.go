@@ -1411,10 +1411,11 @@ func (t *Torrent) HasMetadata() bool {
 }
 
 // WaitForMetadata waits for getting torrent information or cancels if torrent is closed
-func (t *Torrent) WaitForMetadata(infoHash string) {
+func (t *Torrent) WaitForMetadata(infoHash string) (err error) {
 	sc := t.Service.Closer.C()
 	tc := t.Closer.C()
 	mc := t.GotInfo()
+	to := time.NewTicker(time.Duration(config.Get().MagnetResolveTimeout) * time.Second)
 
 	log.Infof("Waiting for information fetched for torrent: %s", infoHash)
 	dialog := xbmc.NewDialogProgressBG("Elementum", "LOCALIZE[30583]", "LOCALIZE[30583]")
@@ -1426,6 +1427,11 @@ func (t *Torrent) WaitForMetadata(infoHash string) {
 
 	for {
 		select {
+		case <-to.C:
+			err = errors.New("Expired timeout for resolving magnet link")
+			log.Error(err)
+			return err
+
 		case <-sc:
 			log.Warningf("Cancelling waiting for torrent metadata due to service closing: %s", infoHash)
 			return
