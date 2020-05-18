@@ -270,7 +270,11 @@ func (t *Torrent) bufferTickerEvent() {
 
 // GetConnections returns connected and overall number of peers
 func (t *Torrent) GetConnections() (int, int, int, int) {
-	ts := t.th.Status(uint(lt.TorrentHandleQueryName))
+	if t.th == nil || t.th.Swigcptr() == 0 {
+		return 0, 0, 0, 0
+	}
+
+	ts := t.th.Status(uint(lt.WrappedTorrentHandleQueryName))
 	defer lt.DeleteTorrentStatus(ts)
 
 	seedsTotal := ts.GetNumComplete()
@@ -288,7 +292,11 @@ func (t *Torrent) GetConnections() (int, int, int, int) {
 
 // GetSpeeds returns download and upload speeds
 func (t *Torrent) GetSpeeds() (down, up int) {
-	ts := t.th.Status(uint(lt.TorrentHandleQueryName))
+	if t.th == nil || t.th.Swigcptr() == 0 {
+		return 0, 0
+	}
+
+	ts := t.th.Status(uint(lt.WrappedTorrentHandleQueryName))
 	defer lt.DeleteTorrentStatus(ts)
 
 	return ts.GetDownloadPayloadRate(), ts.GetUploadPayloadRate()
@@ -507,7 +515,7 @@ func (t *Torrent) Buffer(file *File, isStartup bool) {
 
 // AdjustMemorySize ...
 func (t *Torrent) AdjustMemorySize(ms int64) {
-	if t.ms == nil {
+	if t.ms == nil || t.ms.Swigcptr() == 0 {
 		return
 	}
 
@@ -761,7 +769,7 @@ func (t *Torrent) GetAddedTime() time.Time {
 
 // GetStatus ...
 func (t *Torrent) GetStatus() lt.TorrentStatus {
-	return t.th.Status(uint(lt.TorrentHandleQueryName))
+	return t.th.Status(uint(lt.WrappedTorrentHandleQueryName))
 }
 
 // GetState ...
@@ -784,13 +792,17 @@ func (t *Torrent) GetStateString() string {
 		}
 	}
 
+	if t.th == nil || t.th.Swigcptr() == 0 {
+		return StatusStrings[StatusQueued]
+	}
+
 	torrentStatus := t.th.Status()
 	defer lt.DeleteTorrentStatus(torrentStatus)
 
 	progress := float64(torrentStatus.GetProgress()) * 100
 	state := t.GetState()
 
-	if t.Service.Session.GetHandle().IsPaused() {
+	if t.Service.Session.IsPaused() {
 		return StatusStrings[StatusPaused]
 	} else if torrentStatus.GetPaused() && state != StatusFinished && state != StatusFinding {
 		if progress == 100 {
@@ -833,7 +845,7 @@ func (t *Torrent) GetBufferProgress() float64 {
 }
 
 func (t *Torrent) piecesProgress(pieces map[int]float64) {
-	if t.Closer.IsSet() {
+	if t.Closer.IsSet() || t.th == nil || t.th.Swigcptr() == 0 {
 		return
 	}
 
@@ -1060,7 +1072,9 @@ func (t *Torrent) Drop(removeFiles bool) {
 			toRemove = 1
 		}
 
-		t.Service.Session.GetHandle().RemoveTorrent(t.th, toRemove)
+		if err := t.Service.Session.RemoveTorrent(t.th, toRemove); err != nil {
+			log.Errorf("Could not remove torrent: %s", err)
+		}
 
 		// Removing .torrent file
 		if _, err := os.Stat(t.torrentFile); err == nil {
@@ -1323,7 +1337,7 @@ func (t *Torrent) updatePieces() error {
 
 	// need to keep a reference to the status or else the pieces bitfield
 	// is at risk of being collected
-	t.lastStatus = t.th.Status(uint(lt.TorrentHandleQueryPieces))
+	t.lastStatus = t.th.Status(uint(lt.WrappedTorrentHandleQueryPieces))
 	// defer lt.DeleteTorrentStatus(t.lastStatus)
 
 	if t.lastStatus.GetState() > lt.TorrentStatusSeeding {
@@ -1386,7 +1400,11 @@ func (t *Torrent) onMetadataReceived() {
 
 // HasMetadata ...
 func (t *Torrent) HasMetadata() bool {
-	ts := t.th.Status(uint(lt.TorrentHandleQueryName))
+	if t.th == nil || t.th.Swigcptr() == 0 {
+		return false
+	}
+
+	ts := t.th.Status(uint(lt.WrappedTorrentHandleQueryName))
 	defer lt.DeleteTorrentStatus(ts)
 
 	return ts.GetHasMetadata()
@@ -1431,6 +1449,10 @@ func (t *Torrent) GetHandle() lt.TorrentHandle {
 
 // GetPaused ...
 func (t *Torrent) GetPaused() bool {
+	if t.th == nil || t.th.Swigcptr() == 0 {
+		return false
+	}
+
 	ts := t.th.Status()
 	defer lt.DeleteTorrentStatus(ts)
 

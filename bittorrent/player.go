@@ -945,7 +945,7 @@ func (btp *Player) setRateLimiting(enable bool) {
 			settings.SetInt("download_rate_limit", 0)
 			settings.SetInt("upload_rate_limit", 0)
 		}
-		btp.s.Session.GetHandle().ApplySettings(settings)
+		btp.s.Session.ApplySettings(settings)
 	}
 }
 

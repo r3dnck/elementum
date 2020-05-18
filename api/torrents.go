@@ -182,7 +182,7 @@ func ListTorrents(s *bittorrent.Service) gin.HandlerFunc {
 			torrentAction := []string{"LOCALIZE[30231]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/torrents/pause/%s", t.InfoHash()))}
 			sessionAction := []string{"LOCALIZE[30233]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/torrents/pause"))}
 
-			if s.Session.GetHandle().IsPaused() {
+			if s.Session.IsPaused() {
 				sessionAction = []string{"LOCALIZE[30234]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/torrents/resume"))}
 			} else if t.GetPaused() {
 				torrentAction = []string{"LOCALIZE[30235]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/torrents/resume/%s", t.InfoHash()))}
@@ -255,7 +255,7 @@ func ListTorrentsWeb(s *bittorrent.Service) gin.HandlerFunc {
 		}
 
 		// TODO: Need to rewrite all this lists to use Service.[]Torrent
-		torrentsVector := s.Session.GetHandle().GetTorrents()
+		torrentsVector := s.Session.GetTorrents()
 		torrentsVectorSize := int(torrentsVector.Size())
 		torrents := make([]*TorrentsWeb, 0, torrentsVectorSize)
 		seedTimeLimit := config.Get().SeedTimeLimit

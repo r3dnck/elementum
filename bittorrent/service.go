@@ -44,8 +44,9 @@ type Service struct {
 	q      *Queue
 	mu     sync.Mutex
 
-	Session      lt.Session
-	PackSettings lt.SettingsPack
+	Session       lt.SessionHandle
+	SessionGlobal lt.Session
+	PackSettings  lt.SettingsPack
 
 	mappedPorts map[string]int
 
@@ -96,6 +97,10 @@ func NewService() *Service {
 	s.q = NewQueue(s)
 
 	s.configure()
+	if s.Session == nil || s.Session.Swigcptr() == 0 {
+		log.Error("Could not start Session")
+		return s
+	}
 
 	go s.alertsConsumer()
 	go s.logAlerts()
@@ -135,7 +140,9 @@ func (s *Service) Close(isShutdown bool) {
 // because it takes too much to close and Kodi hangs.
 func (s *Service) CloseSession() {
 	log.Info("Closing Session")
-	lt.DeleteSession(s.Session)
+	if err := lt.DeleteSession(s.SessionGlobal); err != nil {
+		log.Errorf("Could not delete libtorrent session: %s", err)
+	}
 }
 
 // Reconfigure fired every time addon configuration has changed
@@ -459,8 +466,19 @@ func (s *Service) configure() {
 		lt.HighPerformanceSeed(settings)
 	}
 
+	var err error
 	s.PackSettings = settings
-	s.Session = lt.NewSession(s.PackSettings, int(lt.SessionHandleAddDefaultPlugins))
+	s.SessionGlobal, err = lt.NewSession(s.PackSettings, int(lt.WrappedSessionHandleAddDefaultPlugins))
+	if err != nil {
+		log.Errorf("Could not create libtorrent session: %s", err)
+		return
+	}
+
+	s.Session, err = s.SessionGlobal.GetHandle()
+	if err != nil {
+		log.Errorf("Could not create libtorrent session handle: %s", err)
+		return
+	}
 
 	// s.Session.GetHandle().ApplySettings(s.PackSettings)
 
@@ -489,11 +507,11 @@ func (s *Service) startServices() {
 		s.PackSettings.SetBool("enable_natpmp", true)
 	}
 
-	s.Session.GetHandle().ApplySettings(s.PackSettings)
+	s.Session.ApplySettings(s.PackSettings)
 
 	for p := range s.mappedPorts {
 		port, _ := strconv.Atoi(p)
-		s.mappedPorts[p] = s.Session.GetHandle().AddPortMapping(lt.SessionHandleTcp, port, port)
+		s.mappedPorts[p] = s.Session.AddPortMapping(lt.WrappedSessionHandleTcp, port, port)
 		log.Infof("Adding port mapping %v: %v", port, s.mappedPorts[p])
 	}
 }
@@ -542,12 +560,12 @@ func (s *Service) stopServices() {
 
 	for p := range s.mappedPorts {
 		port, _ := strconv.Atoi(p)
-		s.Session.GetHandle().DeletePortMapping(s.mappedPorts[p])
+		s.Session.DeletePortMapping(s.mappedPorts[p])
 		log.Infof("Deleting port mapping %v: %v", port, s.mappedPorts[p])
 	}
 	s.mappedPorts = map[string]int{}
 
-	s.Session.GetHandle().ApplySettings(s.PackSettings)
+	s.Session.ApplySettings(s.PackSettings)
 }
 
 // CheckAvailableSpace ...
@@ -571,7 +589,7 @@ func (s *Service) checkAvailableSpace(t *Torrent) bool {
 		return false
 	}
 
-	status := t.th.Status(uint(lt.TorrentHandleQueryAccurateDownloadCounters) | uint(lt.TorrentHandleQuerySavePath))
+	status := t.th.Status(uint(lt.WrappedTorrentHandleQueryAccurateDownloadCounters) | uint(lt.WrappedTorrentHandleQuerySavePath))
 	defer lt.DeleteTorrentStatus(status)
 
 	totalSize := t.ti.TotalSize()
@@ -591,7 +609,7 @@ func (s *Service) checkAvailableSpace(t *Torrent) bool {
 		log.Errorf("Unsufficient free space on %s. Has %d, needs %d.", path, diskStatus.Free, sizeLeft)
 		xbmc.Notify("Elementum", "LOCALIZE[30207]", config.AddonIcon())
 
-		log.Infof("Pausing torrent %s", t.th.Status(uint(lt.TorrentHandleQueryName)).GetName())
+		log.Infof("Pausing torrent %s", t.th.Status(uint(lt.WrappedTorrentHandleQueryName)).GetName())
 		t.Pause()
 		return false
 	}
@@ -706,7 +724,10 @@ func (s *Service) AddTorrent(uri string, paused bool) (*Torrent, error) {
 	torrentParams.SetFilePriorities(filesPriorities)
 
 	// Call torrent creation
-	th = s.Session.GetHandle().AddTorrent(torrentParams)
+	th, err = s.Session.AddTorrent(torrentParams)
+	if err != nil {
+		return nil, err
+	}
 	if !paused {
 		th.Resume()
 	}
@@ -813,7 +834,7 @@ func (s *Service) onStateChanged(stateAlert lt.StateChangedAlert) {
 	switch stateAlert.GetState() {
 	case lt.TorrentStatusDownloading:
 		torrentHandle := stateAlert.GetHandle()
-		torrentStatus := torrentHandle.Status(uint(lt.TorrentHandleQueryName))
+		torrentStatus := torrentHandle.Status(uint(lt.WrappedTorrentHandleQueryName))
 		shaHash := torrentStatus.GetInfoHash().ToString()
 		infoHash := hex.EncodeToString([]byte(shaHash))
 		if spaceChecked, exists := s.SpaceChecked[infoHash]; exists {
@@ -842,7 +863,7 @@ func (s *Service) saveResumeDataLoop() {
 		case <-closing:
 			return
 		case <-saveResumeWait.C:
-			torrentsVector := s.Session.GetHandle().GetTorrents()
+			torrentsVector := s.Session.GetTorrents()
 			torrentsVectorSize := int(torrentsVector.Size())
 
 			for i := 0; i < torrentsVectorSize; i++ {
@@ -911,14 +932,14 @@ func (s *Service) alertsConsumer() {
 
 			return
 		default:
-			if s.Session.GetHandle().WaitForAlert(ltOneSecond).Swigcptr() == 0 {
+			if s.Session == nil || s.Session.Swigcptr() == 0 || s.Session.WaitForAlert(ltOneSecond).Swigcptr() == 0 {
 				continue
 			} else if s.Closer.IsSet() {
 				return
 			}
 
 			var alerts lt.StdVectorAlerts
-			alerts = s.Session.GetHandle().PopAlerts()
+			alerts = s.Session.PopAlerts()
 			queueSize := alerts.Size()
 			var name string
 			var infoHash string
@@ -933,7 +954,7 @@ func (s *Service) alertsConsumer() {
 				case lt.SaveResumeDataAlertAlertType:
 					saveResumeData := lt.SwigcptrSaveResumeDataAlert(alertPtr)
 					torrentHandle := saveResumeData.GetHandle()
-					torrentStatus := torrentHandle.Status(uint(lt.TorrentHandleQuerySavePath) | uint(lt.TorrentHandleQueryName))
+					torrentStatus := torrentHandle.Status(uint(lt.WrappedTorrentHandleQuerySavePath) | uint(lt.WrappedTorrentHandleQueryName))
 					name = torrentStatus.GetName()
 					shaHash := torrentStatus.GetInfoHash().ToString()
 					infoHash = hex.EncodeToString([]byte(shaHash))
@@ -1020,7 +1041,7 @@ func (s *Service) loadTorrentFiles() {
 	})
 
 	for _, torrentFile := range files {
-		if s.Closer.IsSet() || s.Session == nil || s.Session.GetHandle() == nil {
+		if s.Closer.IsSet() || s.Session == nil || s.Session.Swigcptr() == 0 {
 			return
 		}
 		if !strings.HasSuffix(torrentFile.Name(), ".torrent") {
@@ -1096,7 +1117,7 @@ func (s *Service) downloadProgress() {
 			// 	continue
 			// }
 
-			if s.Closer.IsSet() || s.Session == nil || s.Session.GetHandle() == nil {
+			if s.Closer.IsSet() || s.Session == nil || s.Session.Swigcptr() == 0 {
 				return
 			}
 
@@ -1105,7 +1126,7 @@ func (s *Service) downloadProgress() {
 			var totalProgress int
 
 			activeTorrents := make([]*activeTorrent, 0)
-			torrentsVector := s.Session.GetHandle().GetTorrents()
+			torrentsVector := s.Session.GetTorrents()
 			torrentsVectorSize := int(torrentsVector.Size())
 
 			for i := 0; i < torrentsVectorSize; i++ {
@@ -1117,7 +1138,7 @@ func (s *Service) downloadProgress() {
 				ts := torrentHandle.Status()
 				defer lt.DeleteTorrentStatus(ts)
 
-				if ts.GetHasMetadata() == false || s.Session.GetHandle().IsPaused() {
+				if ts.GetHasMetadata() == false || s.Session.IsPaused() {
 					continue
 				}
 
@@ -1401,7 +1422,7 @@ func (s *Service) SetDownloadLimit(i int) {
 	settings := s.PackSettings
 	settings.SetInt("download_rate_limit", i)
 
-	s.Session.GetHandle().ApplySettings(settings)
+	s.Session.ApplySettings(settings)
 }
 
 // SetUploadLimit ...
@@ -1409,7 +1430,7 @@ func (s *Service) SetUploadLimit(i int) {
 	settings := s.PackSettings
 
 	settings.SetInt("upload_rate_limit", i)
-	s.Session.GetHandle().ApplySettings(settings)
+	s.Session.ApplySettings(settings)
 }
 
 // RestoreLimits ...
@@ -1787,7 +1808,7 @@ func (s *Service) applyCustomSettings() {
 		log.Errorf("Cannot parse config settings for: %s=%s", k, v)
 	}
 
-	s.Session.GetHandle().ApplySettings(settings)
+	s.Session.ApplySettings(settings)
 }
 
 func (s *Service) readCustomSettings() map[string]string {
