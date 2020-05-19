@@ -1416,6 +1416,7 @@ func (t *Torrent) WaitForMetadata(infoHash string) (err error) {
 	tc := t.Closer.C()
 	mc := t.GotInfo()
 	to := time.NewTicker(time.Duration(config.Get().MagnetResolveTimeout) * time.Second)
+	defer to.Stop()
 
 	log.Infof("Waiting for information fetched for torrent: %s", infoHash)
 	dialog := xbmc.NewDialogProgressBG("Elementum", "LOCALIZE[30583]", "LOCALIZE[30583]")
