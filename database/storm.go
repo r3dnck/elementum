@@ -145,7 +145,7 @@ func (d *StormDatabase) AddSearchHistory(historyType, query string) {
 // CleanSearchHistory cleans search history for selected media type
 func (d *StormDatabase) CleanSearchHistory(historyType string) {
 	var qs []QueryHistory
-	d.db.Find("Type", historyType, &qs)
+	d.db.Select(q.Eq("Type", historyType)).Find(&qs)
 	for _, q := range qs {
 		d.db.DeleteStruct(&q)
 	}
