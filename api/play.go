@@ -31,8 +31,12 @@ func Play(s *bittorrent.Service) gin.HandlerFunc {
 		// Starts with 0, -1 or empty means - not defined.
 		// OIndex is the original file index to automatically select.
 		// 		Order is just like in the torrent file, without changes.
+		// NIndex is the file next to download
+		// NOIndex is the original torrent file next to download
 		index := ctx.Query("index")
 		oindex := ctx.Query("oindex")
+		nindex := ctx.Query("nindex")
+		noindex := ctx.Query("noindex")
 
 		uri := ctx.Query("uri")
 		resume := ctx.Query("resume")
@@ -49,62 +53,33 @@ func Play(s *bittorrent.Service) gin.HandlerFunc {
 			return
 		}
 
-		fileIndex := -1
-		if index != "" {
-			if position, err := strconv.Atoi(index); err == nil && position >= 0 {
-				fileIndex = position
-			}
-		}
+		fileIndex := strToInt(index, -1)
+		originalIndex := strToInt(oindex, -1)
 
-		originalIndex := -1
-		if oindex != "" {
-			if position, err := strconv.Atoi(oindex); err == nil && position >= 0 {
-				originalIndex = position
-			}
-		}
+		nextFileIndex := strToInt(nindex, -1)
+		nextOriginalIndex := strToInt(noindex, -1)
 
-		tmdbID := 0
-		if tmdb != "" {
-			if id, err := strconv.Atoi(tmdb); err == nil && id > 0 {
-				tmdbID = id
-			}
-		}
-
-		showID := 0
-		if show != "" {
-			if id, err := strconv.Atoi(show); err == nil && id > 0 {
-				showID = id
-			}
-		}
-
-		seasonNumber := 0
-		if season != "" {
-			if number, err := strconv.Atoi(season); err == nil && number > 0 {
-				seasonNumber = number
-			}
-		}
-
-		episodeNumber := 0
-		if episode != "" {
-			if number, err := strconv.Atoi(episode); err == nil && number > 0 {
-				episodeNumber = number
-			}
-		}
+		tmdbID := strToInt(tmdb, 0)
+		showID := strToInt(show, 0)
+		seasonNumber := strToInt(season, 0)
+		episodeNumber := strToInt(episode, 0)
 
 		params := bittorrent.PlayerParams{
-			URI:            uri,
-			OriginalIndex:  originalIndex,
-			FileIndex:      fileIndex,
-			ResumeHash:     resume,
-			ResumePlayback: doresume != "false",
-			KodiPosition:   -1,
-			ContentType:    contentType,
-			TMDBId:         tmdbID,
-			ShowID:         showID,
-			Season:         seasonNumber,
-			Episode:        episodeNumber,
-			Query:          query,
-			Background:     background == "true",
+			URI:               uri,
+			OriginalIndex:     originalIndex,
+			FileIndex:         fileIndex,
+			NextOriginalIndex: nextOriginalIndex,
+			NextFileIndex:     nextFileIndex,
+			ResumeHash:        resume,
+			ResumePlayback:    doresume != "false",
+			KodiPosition:      -1,
+			ContentType:       contentType,
+			TMDBId:            tmdbID,
+			ShowID:            showID,
+			Season:            seasonNumber,
+			Episode:           episodeNumber,
+			Query:             query,
+			Background:        background == "true",
 		}
 
 		player := bittorrent.NewPlayer(s, params)
@@ -196,4 +171,15 @@ func PlayURI(s *bittorrent.Service) gin.HandlerFunc {
 		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		ctx.String(200, "")
 	}
+}
+
+// strToInt parses string to int, and returning default value is no int found
+func strToInt(str string, def int) int {
+	if str == "" {
+		if i, err := strconv.Atoi(str); err == nil && i >= 0 {
+			return i
+		}
+	}
+
+	return def
 }
