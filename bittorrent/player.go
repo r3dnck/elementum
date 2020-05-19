@@ -357,7 +357,7 @@ func (btp *Player) processMetadata() {
 	log.Info("Setting piece priorities")
 
 	if !btp.p.Background {
-		go btp.t.Buffer(btp.chosenFile, true)
+		go btp.t.Buffer(btp.chosenFile, btp.p.ResumeHash == "")
 	}
 
 	// TODO find usage of resumeIndex. Do we need pause/resume for it?
