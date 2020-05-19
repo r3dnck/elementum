@@ -73,6 +73,7 @@ type Configuration struct {
 	ShowSeasonsOrder           int
 	SmartEpisodeStart          bool
 	SmartEpisodeMatch          bool
+	SmartEpisodeChoose         bool
 	LibraryEnabled             bool
 	LibrarySyncEnabled         bool
 	LibrarySyncPlaybackEnabled bool
@@ -130,6 +131,7 @@ type Configuration struct {
 	UseLibtorrentPauseResume bool
 	LibtorrentProfile        int
 	MagnetTrackers           int
+	MagnetResolveTimeout     int
 	Scrobble                 bool
 
 	AutoScrapeEnabled        bool
@@ -532,6 +534,7 @@ func Reload() *Configuration {
 		PlaybackPercent:            settings["playback_percent"].(int),
 		SmartEpisodeStart:          settings["smart_episode_start"].(bool),
 		SmartEpisodeMatch:          settings["smart_episode_match"].(bool),
+		SmartEpisodeChoose:         settings["smart_episode_choose"].(bool),
 		LibraryEnabled:             settings["library_enabled"].(bool),
 		LibrarySyncEnabled:         settings["library_sync_enabled"].(bool),
 		LibrarySyncPlaybackEnabled: settings["library_sync_playback_enabled"].(bool),
@@ -563,6 +566,7 @@ func Reload() *Configuration {
 		UseLibtorrentPauseResume:   settings["use_libtorrent_pauseresume"].(bool),
 		LibtorrentProfile:          settings["libtorrent_profile"].(int),
 		MagnetTrackers:             settings["magnet_trackers"].(int),
+		MagnetResolveTimeout:       settings["magnet_resolve_timeout"].(int),
 		ConnectionsLimit:           settings["connections_limit"].(int),
 		ConnTrackerLimit:           settings["conntracker_limit"].(int),
 		ConnTrackerLimitAuto:       settings["conntracker_limit_auto"].(bool),

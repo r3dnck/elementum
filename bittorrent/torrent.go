@@ -72,8 +72,8 @@ type Torrent struct {
 	IsBufferingFinished bool
 	IsSeeding           bool
 	IsRarArchive        bool
-	IsNextEpisode       bool
-	HasNextEpisode      bool
+	IsNextFile          bool
+	HasNextFile         bool
 	PlayerAttached      int
 
 	DBItem *database.BTItem
@@ -185,7 +185,7 @@ func (t *Torrent) Watch() {
 			go t.PrioritizePieces()
 
 		case <-t.nextTimer.C:
-			if t.IsNextEpisode {
+			if t.IsNextFile {
 				go t.Service.RemoveTorrent(t, false, false, false)
 			}
 		}
@@ -193,14 +193,14 @@ func (t *Torrent) Watch() {
 }
 
 func (t *Torrent) startNextTimer() {
-	t.IsNextEpisode = true
+	t.IsNextFile = true
 
 	t.nextTimer.Reset(15 * time.Minute)
 	t.demandPieces.Clear()
 }
 
 func (t *Torrent) stopNextTimer() {
-	t.IsNextEpisode = false
+	t.IsNextFile = false
 
 	if t.nextTimer != nil {
 		t.nextTimer.Stop()
@@ -588,7 +588,7 @@ func (t *Torrent) ClearDeadlines() {
 
 // PrioritizePieces ...
 func (t *Torrent) PrioritizePieces() {
-	if (t.IsBuffering && t.demandPieces.IsEmpty()) || t.IsSeeding || (!t.IsPlaying && !t.IsNextEpisode) || t.th == nil || t.Closer.IsSet() {
+	if (t.IsBuffering && t.demandPieces.IsEmpty()) || t.IsSeeding || (!t.IsPlaying && !t.IsNextFile) || t.th == nil || t.Closer.IsSet() {
 		return
 	}
 
@@ -1506,21 +1506,15 @@ func (t *Torrent) GetFiles() []*File {
 	return t.files
 }
 
-// ChooseFile opens file selector if not provided with Player, otherwise tries to detect what to open.
-func (t *Torrent) ChooseFile(btp *Player) (*File, int, error) {
-	// Checking if we need to open specific file from torrent file.
-	if btp != nil && btp.p.OriginalIndex >= 0 {
-		for _, f := range t.files {
-			if f.Index == btp.p.OriginalIndex {
-				return f, 0, nil
-			}
-		}
-	}
-
+// GetCandidateFiles returns all the files for selecting by user
+func (t *Torrent) GetCandidateFiles(btp *Player) ([]*CandidateFile, int, error) {
 	biggestFile := 0
 	maxSize := int64(0)
 	files := t.files
 	isBluRay := false
+
+	// Calculate minimal size for this type of media.
+	// For shows we multiply size_per_minute to properly allow 5-10 minute episodes.
 	minSize := config.Get().MinCandidateSize
 	if btp != nil && btp.p.ShowID != 0 {
 		if s := tmdb.GetShow(btp.p.ShowID, config.Get().Language); s != nil {
@@ -1561,9 +1555,8 @@ func (t *Torrent) ChooseFile(btp *Player) (*File, int, error) {
 				if btp != nil {
 					btp.notEnoughSpace = true
 				}
-				return f, -1, errors.New("RAR archive detected and download was cancelled")
+				return nil, -1, errors.New("RAR archive detected and download was cancelled")
 			}
-			return f, -1, nil
 		}
 	}
 
@@ -1582,42 +1575,19 @@ func (t *Torrent) ChooseFile(btp *Player) (*File, int, error) {
 			}
 		}
 
-		if len(dirs) == 1 {
-			log.Info("Skipping file choose, as this is a BluRay stream.")
-			if btp == nil {
-				t.DownloadFile(files[biggestFile])
-				t.SaveDBFiles()
-			}
-			return files[biggestFile], -1, nil
-		}
-
 		choices := make([]*CandidateFile, 0, len(candidateFiles))
 		for dir, index := range dirs {
-			candidate := &CandidateFile{
+			choices = append(choices, &CandidateFile{
 				Index:       index,
 				Filename:    dir,
 				DisplayName: dir,
 				Path:        dir,
-			}
-			choices = append(choices, candidate)
+			})
 		}
 
 		TrimChoices(choices)
 
-		items := make([]string, 0, len(choices))
-		for _, choice := range choices {
-			items = append(items, choice.DisplayName)
-		}
-
-		choice := xbmc.ListDialog("LOCALIZE[30223]", items...)
-		if choice >= 0 {
-			if btp == nil {
-				t.DownloadFile(files[choices[choice].Index])
-				t.SaveDBFiles()
-			}
-			return files[choices[choice].Index], choice, nil
-		}
-		return nil, -1, fmt.Errorf("User cancelled")
+		return choices, biggestFile, nil
 	}
 
 	if len(candidateFiles) > 1 {
@@ -1625,18 +1595,41 @@ func (t *Torrent) ChooseFile(btp *Player) (*File, int, error) {
 		choices := make([]*CandidateFile, 0, len(candidateFiles))
 		for _, index := range candidateFiles {
 			fileName := filepath.Base(files[index].Path)
-			candidate := &CandidateFile{
+			choices = append(choices, &CandidateFile{
 				Index:       index,
 				Filename:    fileName,
 				DisplayName: files[index].Path,
 				Path:        files[index].Path,
 				Size:        files[index].Size,
-			}
-			choices = append(choices, candidate)
+			})
 		}
 
 		TrimChoices(choices)
 
+		return choices, biggestFile, nil
+	}
+
+	return nil, biggestFile, nil
+}
+
+// ChooseFile opens file selector if not provided with Player, otherwise tries to detect what to open.
+func (t *Torrent) ChooseFile(btp *Player) (*File, int, error) {
+	// Checking if we need to open specific file from torrent file.
+	if btp != nil && btp.p.OriginalIndex >= 0 {
+		for _, f := range t.files {
+			if f.Index == btp.p.OriginalIndex {
+				return f, 0, nil
+			}
+		}
+	}
+
+	files := t.files
+	choices, biggestFile, err := t.GetCandidateFiles(btp)
+	if err != nil {
+		return nil, -1, err
+	}
+
+	if len(choices) > 1 {
 		// Adding sizes to file names
 		if btp != nil && btp.p.Episode == 0 {
 			for _, c := range choices {
@@ -1682,13 +1675,9 @@ func (t *Torrent) ChooseFile(btp *Player) (*File, int, error) {
 			}
 		}
 
+		// Returning exact file if it is requested
 		if btp != nil && btp.p.FileIndex >= 0 && btp.p.FileIndex < len(choices) {
 			return files[choices[btp.p.FileIndex].Index], btp.p.FileIndex, nil
-		}
-
-		items := make([]string, 0, len(choices))
-		for _, choice := range choices {
-			items = append(items, choice.DisplayName)
 		}
 
 		searchTitle := ""
@@ -1706,21 +1695,36 @@ func (t *Torrent) ChooseFile(btp *Player) (*File, int, error) {
 			}
 		}
 
+		items := make([]string, 0, len(choices))
+		for _, choice := range choices {
+			items = append(items, choice.DisplayName)
+		}
+
 		choice := xbmc.ListDialog("LOCALIZE[30560];;"+searchTitle, items...)
 		if choice >= 0 {
 			if btp == nil {
 				t.DownloadFile(files[choices[choice].Index])
 				t.SaveDBFiles()
 			}
+
 			return files[choices[choice].Index], choice, nil
 		}
 		return nil, -1, fmt.Errorf("User cancelled")
+	} else if len(choices) == 1 {
+		if btp == nil {
+			t.DownloadFile(files[choices[0].Index])
+			t.SaveDBFiles()
+		}
+
+		return files[choices[0].Index], 0, nil
 	}
 
+	// If there no proper candidates - just open the biggest file
 	if btp == nil {
 		t.DownloadFile(files[biggestFile])
 		t.SaveDBFiles()
 	}
+
 	return files[biggestFile], -1, nil
 }
 

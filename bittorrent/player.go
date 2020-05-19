@@ -70,36 +70,38 @@ type Player struct {
 
 // PlayerParams ...
 type PlayerParams struct {
-	Playing         bool
-	Paused          bool
-	Seeked          bool
-	WasPlaying      bool
-	WasSeeked       bool
-	DoneAudio       bool
-	DoneSubtitles   bool
-	Background      bool
-	KodiPosition    int
-	WatchedProgress int
-	WatchedTime     float64
-	VideoDuration   float64
-	URI             string
-	OriginalIndex   int
-	FileIndex       int
-	ResumeToken     string
-	ResumeHash      string
-	ResumePlayback  bool
-	TraktScrobbled  bool
-	ContentType     string
-	KodiID          int
-	TMDBId          int
-	ShowID          int
-	Season          int
-	Episode         int
-	AbsoluteNumber  int
-	Query           string
-	UIDs            *library.UniqueIDs
-	Resume          *library.Resume
-	StoredResume    *library.Resume
+	Playing           bool
+	Paused            bool
+	Seeked            bool
+	WasPlaying        bool
+	WasSeeked         bool
+	DoneAudio         bool
+	DoneSubtitles     bool
+	Background        bool
+	KodiPosition      int
+	WatchedProgress   int
+	WatchedTime       float64
+	VideoDuration     float64
+	URI               string
+	OriginalIndex     int
+	FileIndex         int
+	NextOriginalIndex int
+	NextFileIndex     int
+	ResumeToken       string
+	ResumeHash        string
+	ResumePlayback    bool
+	TraktScrobbled    bool
+	ContentType       string
+	KodiID            int
+	TMDBId            int
+	ShowID            int
+	Season            int
+	Episode           int
+	AbsoluteNumber    int
+	Query             string
+	UIDs              *library.UniqueIDs
+	Resume            *library.Resume
+	StoredResume      *library.Resume
 }
 
 // NextEpisode ...
@@ -153,8 +155,8 @@ func (btp *Player) SetTorrent(t *Torrent) {
 	btp.t.PlayerAttached++
 	btp.t.IsBuffering = false
 	btp.t.IsBufferingFinished = false
-	btp.t.IsNextEpisode = false
-	btp.t.HasNextEpisode = false
+	btp.t.IsNextFile = false
+	btp.t.HasNextFile = false
 
 	btp.t.stopNextTimer()
 }
@@ -286,7 +288,7 @@ func (btp *Player) processMetadata() {
 	// }
 
 	var err error
-	btp.chosenFile, _, err = btp.t.ChooseFile(btp)
+	btp.chosenFile, btp.p.FileIndex, err = btp.t.ChooseFile(btp)
 	if err != nil {
 		btp.bufferEvents.Broadcast(err)
 		return
@@ -463,8 +465,8 @@ func (btp *Player) Close() {
 		go btp.s.PlayerStop()
 	}()
 
-	if btp.t.HasNextEpisode {
-		log.Infof("Leaving torrent '%s' awaiting for next episode playback", btp.t.Name())
+	if btp.t.HasNextFile {
+		log.Infof("Leaving torrent '%s' awaiting for next file playback", btp.t.Name())
 		btp.t.startNextTimer()
 		return
 	}
@@ -680,7 +682,7 @@ playbackWaitLoop:
 	playing := true
 
 	btp.updateWatchTimes()
-	btp.findNextEpisode()
+	btp.findNextFile()
 
 	log.Infof("Got playback: %fs / %fs", btp.p.WatchedTime, btp.p.VideoDuration)
 	if btp.scrobble {
@@ -739,8 +741,8 @@ playbackLoop:
 
 			btp.p.WatchedProgress = int(btp.p.WatchedTime / btp.p.VideoDuration * 100)
 
-			if btp.next.f != nil && !btp.next.started && btp.isReadyForNextEpisode() {
-				btp.startNextEpisode()
+			if btp.next.f != nil && !btp.next.started && btp.isReadyForNextFile() {
+				btp.startNextFile()
 			}
 		}
 	}
@@ -768,7 +770,7 @@ playbackLoop:
 	}
 }
 
-func (btp *Player) isReadyForNextEpisode() bool {
+func (btp *Player) isReadyForNextFile() bool {
 	if btp.s.IsMemoryStorage() {
 		ra := btp.t.GetReadaheadSize()
 		sum := btp.t.ReadersReadaheadSum()
@@ -985,8 +987,8 @@ func (btp *Player) onStateChanged(stateAlert lt.StateChangedAlert) {
 	}
 }
 
-func (btp *Player) startNextEpisode() {
-	if btp.p.ShowID == 0 || !btp.t.HasNextEpisode || !btp.next.done || btp.next.f == nil || btp.t.IsBuffering || btp.next.started {
+func (btp *Player) startNextFile() {
+	if (btp.p.ShowID == 0 && btp.p.Query == "") || !btp.t.HasNextFile || !btp.next.done || btp.next.f == nil || btp.t.IsBuffering || btp.next.started {
 		return
 	}
 
@@ -994,21 +996,41 @@ func (btp *Player) startNextEpisode() {
 	go btp.t.Buffer(btp.next.f, false)
 }
 
-func (btp *Player) findNextEpisode() {
-	if btp.p.ShowID == 0 || btp.next.done || !config.Get().SmartEpisodeStart {
+func (btp *Player) findNextFile() {
+	if (btp.p.ShowID == 0 && btp.p.Query == "") || btp.next.done || !config.Get().SmartEpisodeStart {
 		return
 	}
 
 	// Set mark to avoid more than once
 	btp.next.done = true
 
-	// Searching if we have next episode in the torrent
-	if btp.next.f = btp.t.GetNextEpisodeFile(btp.p.Season, btp.p.Episode+1); btp.next.f == nil || btp.chosenFile == nil || btp.chosenFile.Size == 0 {
-		btp.t.HasNextEpisode = false
-		return
+	if btp.p.ShowID != 0 {
+		// Searching if we have next episode in the torrent
+		if btp.next.f = btp.t.GetNextEpisodeFile(btp.p.Season, btp.p.Episode+1); btp.next.f == nil || btp.chosenFile == nil || btp.chosenFile.Size == 0 {
+			btp.t.HasNextFile = false
+			return
+		}
+	} else {
+		// Selecting next file from available choices as the next file
+		if candidates, _, err := btp.t.GetCandidateFiles(btp); err == nil {
+			if btp.p.NextFileIndex > -1 && btp.p.NextFileIndex < len(candidates) {
+				btp.next.f = btp.t.files[candidates[btp.p.NextFileIndex].Index]
+			} else if btp.p.NextOriginalIndex > -1 && btp.p.NextOriginalIndex < len(btp.t.files) {
+				for _, f := range btp.t.files {
+					if f.Index == btp.p.NextOriginalIndex {
+						btp.next.f = f
+						break
+					}
+				}
+			} else if btp.p.FileIndex+1 < len(candidates) {
+				btp.next.f = btp.t.files[candidates[btp.p.FileIndex+1].Index]
+			} else {
+				log.Debugf("No files available for next playback. Current: %d, Candidates: %d", btp.p.FileIndex, len(candidates))
+			}
+		}
 	}
 
-	btp.t.HasNextEpisode = true
+	btp.t.HasNextFile = true
 
 	startBufferSize := btp.s.GetBufferSize()
 	_, _, _, preBufferSize := btp.t.getBufferSize(btp.next.f.Offset, 0, startBufferSize)
@@ -1016,7 +1038,7 @@ func (btp *Player) findNextEpisode() {
 
 	btp.next.bufferSize = preBufferSize + postBufferSize
 
-	log.Infof("Next episode prepared: %#v", btp.next)
+	log.Infof("Next file prepared: %#v", btp.next.f.Path)
 }
 
 // InitAudio ...

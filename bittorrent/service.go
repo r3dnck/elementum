@@ -746,7 +746,9 @@ func (s *Service) AddTorrent(uri string, paused bool) (*Torrent, error) {
 	s.q.Add(t)
 
 	if !t.HasMetadata() {
-		t.WaitForMetadata(infoHash)
+		if err := t.WaitForMetadata(infoHash); err != nil {
+			return nil, err
+		}
 	}
 
 	// Saving torrent file
@@ -1844,10 +1846,10 @@ func (s *Service) readCustomSettings() map[string]string {
 	return ret
 }
 
-// StopNextEpisodes stops all torrents that wait for "next" playback
-func (s *Service) StopNextEpisodes() {
+// StopNextFiles stops all torrents that wait for "next" playback
+func (s *Service) StopNextFiles() {
 	for _, t := range s.q.All() {
-		if t.IsNextEpisode && t.PlayerAttached <= 0 {
+		if t.IsNextFile && t.PlayerAttached <= 0 {
 			log.Infof("Stopping torrent '%s' as a not-needed next episode", t.Name())
 
 			t.stopNextTimer()

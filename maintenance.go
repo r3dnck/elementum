@@ -94,7 +94,7 @@ func Notification(w http.ResponseWriter, r *http.Request, s *bittorrent.Service)
 		seekCatched = false
 
 		// We should stop torrents, waiting for "next" playback
-		go s.StopNextEpisodes()
+		go s.StopNextFiles()
 
 		time.Sleep(400 * time.Millisecond) // Let player get its WatchedTime and VideoDuration
 		p := s.GetActivePlayer()
