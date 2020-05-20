@@ -454,15 +454,7 @@ func movieLinks(tmdbID string) []*bittorrent.TorrentFile {
 
 // MovieRun ...
 func MovieRun(action string, s *bittorrent.Service) gin.HandlerFunc {
-	if !strings.Contains(action, "force") && !strings.Contains(action, "download") && config.Get().ForceLinkType {
-		if config.Get().ChooseStreamAuto {
-			action = "play"
-		} else {
-			action = "links"
-		}
-	}
-
-	return MovieLinks(action, s)
+	return MovieLinks(detectPlayAction(action), s)
 }
 
 // MovieLinks ...
@@ -570,7 +562,6 @@ func MovieLinks(action string, s *bittorrent.Service) gin.HandlerFunc {
 
 		choice := -1
 		if action == "play" {
-			sort.Sort(sort.Reverse(providers.ByQuality(torrents)))
 			choice = 0
 		} else {
 			choice = xbmc.ListDialogLarge("LOCALIZE[30228]", movie.Title, choices...)

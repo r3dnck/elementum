@@ -114,7 +114,13 @@ func Search(s *bittorrent.Service) gin.HandlerFunc {
 			choices = append(choices, label)
 		}
 
-		choice := xbmc.ListDialogLarge("LOCALIZE[30228]", query, choices...)
+		choice := -1
+		if detectPlayAction("") == "play" {
+			choice = 0
+		} else {
+			choice = xbmc.ListDialogLarge("LOCALIZE[30228]", query, choices...)
+		}
+
 		if choice >= 0 {
 			AddToTorrentsMap(fakeTmdbID, torrents[choice])
 

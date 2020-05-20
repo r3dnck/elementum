@@ -84,3 +84,15 @@ func contextPlayOppositeURL(f string, title string, forced bool) string {
 
 	return fmt.Sprintf(f, action, url.PathEscape(title))
 }
+
+func detectPlayAction(action string) string {
+	if !strings.Contains(action, "force") && !strings.Contains(action, "download") && (action == "" || config.Get().ForceLinkType) {
+		if config.Get().ChooseStreamAuto {
+			return "play"
+		} else {
+			return "links"
+		}
+	}
+
+	return action
+}

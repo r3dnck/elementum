@@ -691,15 +691,7 @@ func showEpisodeLinks(showID int, seasonNumber int, episodeNumber int) ([]*bitto
 
 // ShowEpisodeRun ...
 func ShowEpisodeRun(action string, s *bittorrent.Service) gin.HandlerFunc {
-	if !strings.Contains(action, "force") && !strings.Contains(action, "download") && config.Get().ForceLinkType {
-		if config.Get().ChooseStreamAuto {
-			action = "play"
-		} else {
-			action = "links"
-		}
-	}
-
-	return ShowEpisodeLinks(action, s)
+	return ShowEpisodeLinks(detectPlayAction(action), s)
 }
 
 // ShowEpisodeLinks ...
