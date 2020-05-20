@@ -175,7 +175,7 @@ func PlayURI(s *bittorrent.Service) gin.HandlerFunc {
 
 // strToInt parses string to int, and returning default value is no int found
 func strToInt(str string, def int) int {
-	if str == "" {
+	if str != "" {
 		if i, err := strconv.Atoi(str); err == nil && i >= 0 {
 			return i
 		}
