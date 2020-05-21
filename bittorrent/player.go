@@ -1030,6 +1030,11 @@ func (btp *Player) findNextFile() {
 		}
 	}
 
+	if btp.next.f == nil {
+		btp.t.HasNextFile = false
+		return
+	}
+
 	btp.t.HasNextFile = true
 
 	startBufferSize := btp.s.GetBufferSize()
