@@ -1400,7 +1400,18 @@ func (t *Torrent) onMetadataReceived() {
 
 // HasMetadata ...
 func (t *Torrent) HasMetadata() bool {
-	return t.th != nil && t.th.Swigcptr() != 0 && t.gotMetainfo.IsSet()
+	if t.th == nil || t.th.Swigcptr() == 0 {
+		return false
+	}
+
+	if t.gotMetainfo.IsSet() {
+		return true
+	}
+
+	ts := t.th.Status(uint(lt.WrappedTorrentHandleQueryName))
+	defer lt.DeleteTorrentStatus(ts)
+
+	return ts.GetHasMetadata()
 }
 
 // WaitForMetadata waits for getting torrent information or cancels if torrent is closed
@@ -1422,7 +1433,7 @@ func (t *Torrent) WaitForMetadata(infoHash string) (err error) {
 	for {
 		select {
 		case <-to.C:
-			err = errors.New("Expired timeout for resolving magnet link")
+			err = fmt.Errorf("Expired timeout for resolving magnet link for %d seconds", config.Get().MagnetResolveTimeout)
 			log.Error(err)
 			return err
 
