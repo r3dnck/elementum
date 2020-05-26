@@ -5,9 +5,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/anacrolix/missinggo/perf"
+	"github.com/gin-gonic/gin"
+
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/xbmc"
-	"github.com/gin-gonic/gin"
 )
 
 const providerPrefix = "plugin://plugin.video.elementum/provider/"
@@ -36,6 +38,8 @@ func (a ByStatus) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByStatus) Less(i, j int) bool { return a[i].Status < a[j].Status }
 
 func getProviders() []Addon {
+	defer perf.ScopeTimer()()
+
 	list := make([]Addon, 0)
 	for _, addon := range xbmc.GetAddons("xbmc.python.script", "executable", "all", []string{"name", "version", "enabled"}).Addons {
 		if strings.HasPrefix(addon.ID, "script.elementum.") {

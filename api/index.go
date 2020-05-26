@@ -3,10 +3,12 @@ package api
 import (
 	"strings"
 
+	"github.com/anacrolix/missinggo/perf"
+	"github.com/gin-gonic/gin"
+
 	"github.com/elgatito/elementum/bittorrent"
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/xbmc"
-	"github.com/gin-gonic/gin"
 )
 
 func init() {
@@ -21,6 +23,8 @@ func Index(s *bittorrent.Service) gin.HandlerFunc {
 			SubtitlesIndex(s)(ctx)
 			return
 		}
+
+		defer perf.ScopeTimer()()
 
 		li := xbmc.ListItems{
 			{Label: "LOCALIZE[30214]", Path: URLForXBMC("/movies/"), Thumbnail: config.AddonResource("img", "movies.png")},
