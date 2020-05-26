@@ -435,6 +435,11 @@ func (btp *Player) findSubtitlesFile() *File {
 	return nil
 }
 
+// IsClosed returns whether player is in closing stage
+func (btp *Player) IsClosed() bool {
+	return btp.closed
+}
+
 // Close ...
 func (btp *Player) Close() {
 	// Prevent double-closing

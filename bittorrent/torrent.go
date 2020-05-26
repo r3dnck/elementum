@@ -1378,7 +1378,7 @@ func average(xs []int64) float64 {
 }
 
 func (t *Torrent) onMetadataReceived() {
-	t.gotMetainfo.Set()
+	defer t.gotMetainfo.Set()
 
 	t.ti = t.th.TorrentFile()
 
@@ -1400,14 +1400,7 @@ func (t *Torrent) onMetadataReceived() {
 
 // HasMetadata ...
 func (t *Torrent) HasMetadata() bool {
-	if t.th == nil || t.th.Swigcptr() == 0 {
-		return false
-	}
-
-	ts := t.th.Status(uint(lt.WrappedTorrentHandleQueryName))
-	defer lt.DeleteTorrentStatus(ts)
-
-	return ts.GetHasMetadata()
+	return t.th != nil && t.th.Swigcptr() != 0 && t.gotMetainfo.IsSet()
 }
 
 // WaitForMetadata waits for getting torrent information or cancels if torrent is closed

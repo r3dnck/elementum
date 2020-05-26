@@ -268,7 +268,7 @@ func ListTorrentsWeb(s *bittorrent.Service) gin.HandlerFunc {
 
 		for _, t := range s.GetTorrents() {
 			th := t.GetHandle()
-			if th == nil || !th.IsValid() {
+			if th == nil || !th.IsValid() || !t.HasMetadata() {
 				continue
 			}
 
