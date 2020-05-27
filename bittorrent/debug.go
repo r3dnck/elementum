@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/anacrolix/missinggo/perf"
+
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/xbmc"
 )
@@ -15,6 +17,8 @@ import (
 // DebugAll ...
 func DebugAll(s *Service) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer perf.ScopeTimer()()
+
 		w.Header().Set("Content-Type", "text/plain")
 
 		writeHeader(w, "Torrent Client")
@@ -34,6 +38,8 @@ func DebugAll(s *Service) http.Handler {
 // DebugBundle ...
 func DebugBundle(s *Service) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer perf.ScopeTimer()()
+
 		logPath := xbmc.TranslatePath("special://logpath/kodi.log")
 		logFile, err := os.Open(logPath)
 		if err != nil {

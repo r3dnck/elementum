@@ -9,14 +9,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/anacrolix/missinggo/perf"
+	"github.com/gin-gonic/gin"
+	"github.com/sanity-io/litter"
+
 	"github.com/elgatito/elementum/bittorrent"
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/library"
 	"github.com/elgatito/elementum/tmdb"
 	"github.com/elgatito/elementum/xbmc"
-	"github.com/sanity-io/litter"
-
-	"github.com/gin-gonic/gin"
 )
 
 var (
@@ -71,6 +72,8 @@ func encodeItem(item *xbmc.ListItem) string {
 // InfoLabelsStored ...
 func InfoLabelsStored(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		labelsString := "{}"
 
 		if listLabel := xbmc.InfoLabel("ListItem.Label"); len(listLabel) > 0 {
@@ -97,6 +100,8 @@ func InfoLabelsStored(s *bittorrent.Service) gin.HandlerFunc {
 // InfoLabelsEpisode ...
 func InfoLabelsEpisode(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		tmdbID := ctx.Params.ByName("showId")
 		showID, _ := strconv.Atoi(tmdbID)
 		seasonNumber, _ := strconv.Atoi(ctx.Params.ByName("season"))
@@ -114,6 +119,8 @@ func InfoLabelsEpisode(s *bittorrent.Service) gin.HandlerFunc {
 // InfoLabelsMovie ...
 func InfoLabelsMovie(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		tmdbID := ctx.Params.ByName("tmdbId")
 
 		if item, err := GetMovieLabels(tmdbID); err == nil {
@@ -128,6 +135,8 @@ func InfoLabelsMovie(s *bittorrent.Service) gin.HandlerFunc {
 // InfoLabelsSearch ...
 func InfoLabelsSearch(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		tmdbID := ctx.Params.ByName("tmdbId")
 
 		if item, err := GetSearchLabels(s, tmdbID); err == nil {

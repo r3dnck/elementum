@@ -13,6 +13,8 @@ import (
 	"time"
 
 	lt "github.com/ElementumOrg/libtorrent-go"
+
+	"github.com/anacrolix/missinggo/perf"
 	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
 	"github.com/op/go-logging"
@@ -51,6 +53,8 @@ type TorrentsWeb struct {
 
 // AddToTorrentsMap ...
 func AddToTorrentsMap(tmdbID string, torrent *bittorrent.TorrentFile) {
+	defer perf.ScopeTimer()()
+
 	if strings.HasPrefix(torrent.URI, "magnet") {
 		torrentsLog.Debugf("Saving torrent entry for TMDB: %#v", tmdbID)
 		if b, err := torrent.MarshalJSON(); err == nil {
@@ -74,6 +78,8 @@ func InTorrentsMap(tmdbID string) *bittorrent.TorrentFile {
 	if !config.Get().UseCacheSelection || tmdbID == "" {
 		return nil
 	}
+
+	defer perf.ScopeTimer()()
 
 	tmdbInt, _ := strconv.Atoi(tmdbID)
 	var ti database.TorrentAssignItem
@@ -108,6 +114,8 @@ func InTorrentsHistory(infohash string) *bittorrent.TorrentFile {
 		return nil
 	}
 
+	defer perf.ScopeTimer()()
+
 	var th database.TorrentHistory
 	if err := database.GetStormDB().One("InfoHash", infohash, &th); err != nil {
 		return nil
@@ -131,6 +139,8 @@ func InTorrentsHistory(infohash string) *bittorrent.TorrentFile {
 
 // GetCachedTorrents searches for torrent entries in the cache
 func GetCachedTorrents(tmdbID string) ([]*bittorrent.TorrentFile, error) {
+	defer perf.ScopeTimer()()
+
 	if !config.Get().UseCacheSearch {
 		return nil, fmt.Errorf("Caching is disabled")
 	}
@@ -162,6 +172,8 @@ func SetCachedTorrents(tmdbID string, torrents []*bittorrent.TorrentFile) error 
 // ListTorrents ...
 func ListTorrents(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		items := make(xbmc.ListItems, 0, len(s.GetTorrents()))
 		if len(s.GetTorrents()) == 0 {
 			ctx.JSON(200, xbmc.NewView("", items))
@@ -254,6 +266,8 @@ func ListTorrentsWeb(s *bittorrent.Service) gin.HandlerFunc {
 			return
 		}
 
+		defer perf.ScopeTimer()()
+
 		// TODO: Need to rewrite all this lists to use Service.[]Torrent
 		torrentsVector := s.Session.GetTorrents()
 		torrentsVectorSize := int(torrentsVector.Size())
@@ -334,6 +348,8 @@ func ListTorrentsWeb(s *bittorrent.Service) gin.HandlerFunc {
 // PauseSession ...
 func PauseSession(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		// TODO: Add Global Pause
 		xbmc.Refresh()
 		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -344,6 +360,8 @@ func PauseSession(s *bittorrent.Service) gin.HandlerFunc {
 // ResumeSession ...
 func ResumeSession(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		// TODO: Add Global Resume
 		xbmc.Refresh()
 		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -354,6 +372,8 @@ func ResumeSession(s *bittorrent.Service) gin.HandlerFunc {
 // AddTorrent ...
 func AddTorrent(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		uri := ctx.Request.FormValue("uri")
 		file, header, fileError := ctx.Request.FormFile("file")
 		allFiles := ctx.Request.FormValue("all")
@@ -402,6 +422,8 @@ func AddTorrent(s *bittorrent.Service) gin.HandlerFunc {
 // ResumeTorrent ...
 func ResumeTorrent(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		torrentID := ctx.Params.ByName("torrentId")
 		torrent, err := GetTorrentFromParam(s, torrentID)
 		if err != nil {
@@ -420,6 +442,8 @@ func ResumeTorrent(s *bittorrent.Service) gin.HandlerFunc {
 // MoveTorrent ...
 func MoveTorrent(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		torrentID := ctx.Params.ByName("torrentId")
 		torrent, err := GetTorrentFromParam(s, torrentID)
 		if err != nil {
@@ -439,6 +463,8 @@ func MoveTorrent(s *bittorrent.Service) gin.HandlerFunc {
 // PauseTorrent ...
 func PauseTorrent(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		torrentID := ctx.Params.ByName("torrentId")
 		torrent, err := GetTorrentFromParam(s, torrentID)
 		if err != nil {
@@ -477,6 +503,8 @@ func RemoveTorrent(s *bittorrent.Service) gin.HandlerFunc {
 // DownloadAllTorrent ...
 func DownloadAllTorrent(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		torrentID := ctx.Params.ByName("torrentId")
 		torrent, err := GetTorrentFromParam(s, torrentID)
 		if err != nil {
@@ -495,6 +523,8 @@ func DownloadAllTorrent(s *bittorrent.Service) gin.HandlerFunc {
 // UnDownloadAllTorrent ...
 func UnDownloadAllTorrent(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		torrentID := ctx.Params.ByName("torrentId")
 		torrent, err := GetTorrentFromParam(s, torrentID)
 		if err != nil {
@@ -513,6 +543,8 @@ func UnDownloadAllTorrent(s *bittorrent.Service) gin.HandlerFunc {
 // SelectFileTorrent ...
 func SelectFileTorrent(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		torrentID := ctx.Params.ByName("torrentId")
 		torrent, err := GetTorrentFromParam(s, torrentID)
 		if err != nil {
@@ -556,6 +588,8 @@ func GetTorrentFromParam(s *bittorrent.Service, param string) (*bittorrent.Torre
 		return nil, errors.New("Empty param")
 	}
 
+	defer perf.ScopeTimer()()
+
 	t := s.GetTorrentByHash(param)
 	if t == nil {
 		return nil, errors.New("Torrent not found")
@@ -567,6 +601,8 @@ func saveTorrentFile(file multipart.File, header *multipart.FileHeader) (string,
 	if file == nil || header == nil {
 		return "", fmt.Errorf("Not a valid file entry")
 	}
+
+	defer perf.ScopeTimer()()
 
 	var err error
 	path := filepath.Join(config.Get().TorrentsPath, filepath.Base(header.Filename))

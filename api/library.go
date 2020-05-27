@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/anacrolix/missinggo/perf"
+	"github.com/gin-gonic/gin"
+
 	"github.com/elgatito/elementum/bittorrent"
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/library"
 	"github.com/elgatito/elementum/trakt"
 	"github.com/elgatito/elementum/xbmc"
-
-	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -35,6 +36,8 @@ var (
 
 // AddMovie ...
 func AddMovie(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	tmdbID := ctx.Params.ByName("tmdbId")
 	force := ctx.DefaultQuery("force", falseType) == trueType
 
@@ -67,6 +70,8 @@ func AddMovie(ctx *gin.Context) {
 
 // AddMoviesList ...
 func AddMoviesList(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	listID := ctx.Params.ByName("listId")
 	updatingStr := ctx.DefaultQuery("updating", falseType)
 
@@ -80,6 +85,8 @@ func AddMoviesList(ctx *gin.Context) {
 
 // RemoveMovie ...
 func RemoveMovie(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	tmdbID, _ := strconv.Atoi(ctx.Params.ByName("tmdbId"))
 	tmdbStr := ctx.Params.ByName("tmdbId")
 	movie, err := library.RemoveMovie(tmdbID)
@@ -107,6 +114,8 @@ func RemoveMovie(ctx *gin.Context) {
 
 // AddShow ...
 func AddShow(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	tmdbID := ctx.Params.ByName("tmdbId")
 	force := ctx.DefaultQuery("force", falseType) == trueType
 
@@ -136,6 +145,8 @@ func AddShow(ctx *gin.Context) {
 
 // AddShowsList ...
 func AddShowsList(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	listID := ctx.Params.ByName("listId")
 	updatingStr := ctx.DefaultQuery("updating", falseType)
 
@@ -149,6 +160,8 @@ func AddShowsList(ctx *gin.Context) {
 
 // RemoveShow ...
 func RemoveShow(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	tmdbID := ctx.Params.ByName("tmdbId")
 	show, err := library.RemoveShow(tmdbID)
 	if err != nil {

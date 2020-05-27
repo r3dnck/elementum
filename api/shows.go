@@ -7,6 +7,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/anacrolix/missinggo/perf"
+	"github.com/gin-gonic/gin"
+
 	"github.com/elgatito/elementum/bittorrent"
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/database"
@@ -15,11 +18,12 @@ import (
 	"github.com/elgatito/elementum/tmdb"
 	"github.com/elgatito/elementum/trakt"
 	"github.com/elgatito/elementum/xbmc"
-	"github.com/gin-gonic/gin"
 )
 
 // TVIndex ...
 func TVIndex(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	items := xbmc.ListItems{
 		{Label: "LOCALIZE[30209]", Path: URLForXBMC("/shows/search"), Thumbnail: config.AddonResource("img", "search.png")},
 
@@ -77,6 +81,8 @@ func TVIndex(ctx *gin.Context) {
 
 // TVGenres ...
 func TVGenres(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	items := make(xbmc.ListItems, 0)
 	for _, genre := range tmdb.GetTVGenres(config.Get().Language) {
 		slug, _ := genreSlugs[genre.ID]
@@ -96,6 +102,8 @@ func TVGenres(ctx *gin.Context) {
 
 // TVLanguages ...
 func TVLanguages(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	items := make(xbmc.ListItems, 0)
 	for _, language := range tmdb.GetLanguages(config.Get().Language) {
 		items = append(items, &xbmc.ListItem{
@@ -113,6 +121,8 @@ func TVLanguages(ctx *gin.Context) {
 
 // TVCountries ...
 func TVCountries(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	items := make(xbmc.ListItems, 0)
 	for _, country := range tmdb.GetCountries(config.Get().Language) {
 		items = append(items, &xbmc.ListItem{
@@ -130,6 +140,8 @@ func TVCountries(ctx *gin.Context) {
 
 // TVLibrary ...
 func TVLibrary(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	shows, err := xbmc.VideoLibraryGetElementumShows()
 	if err != nil || shows == nil || shows.Limits == nil || shows.Limits.Total == 0 {
 		return
@@ -156,6 +168,8 @@ func TVLibrary(ctx *gin.Context) {
 
 // TVTraktLists ...
 func TVTraktLists(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	items := xbmc.ListItems{}
 
 	lists := trakt.Userlists()
@@ -188,6 +202,8 @@ func TVTraktLists(ctx *gin.Context) {
 
 // CalendarShows ...
 func CalendarShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	items := xbmc.ListItems{
 		{Label: "LOCALIZE[30295]", Path: URLForXBMC("/shows/trakt/calendars/shows"), Thumbnail: config.AddonResource("img", "tv.png")},
 		{Label: "LOCALIZE[30296]", Path: URLForXBMC("/shows/trakt/calendars/newshows"), Thumbnail: config.AddonResource("img", "fresh.png")},
@@ -268,6 +284,8 @@ func renderShows(ctx *gin.Context, shows tmdb.Shows, page int, total int, query 
 
 // PopularShows ...
 func PopularShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	p := tmdb.DiscoverFilters{}
 	p.Genre = ctx.Params.ByName("genre")
 	p.Language = ctx.Params.ByName("language")
@@ -283,6 +301,8 @@ func PopularShows(ctx *gin.Context) {
 
 // RecentShows ...
 func RecentShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	p := tmdb.DiscoverFilters{}
 	p.Genre = ctx.Params.ByName("genre")
 	p.Language = ctx.Params.ByName("language")
@@ -298,6 +318,8 @@ func RecentShows(ctx *gin.Context) {
 
 // RecentEpisodes ...
 func RecentEpisodes(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	p := tmdb.DiscoverFilters{}
 	p.Genre = ctx.Params.ByName("genre")
 	p.Language = ctx.Params.ByName("language")
@@ -313,6 +335,8 @@ func RecentEpisodes(ctx *gin.Context) {
 
 // TopRatedShows ...
 func TopRatedShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	shows, total := tmdb.TopRatedShows("", config.Get().Language, page)
 	renderShows(ctx, shows, page, total, "")
@@ -320,6 +344,8 @@ func TopRatedShows(ctx *gin.Context) {
 
 // TVMostVoted ...
 func TVMostVoted(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	shows, total := tmdb.MostVotedShows("", config.Get().Language, page)
 	renderShows(ctx, shows, page, total, "")
@@ -327,6 +353,8 @@ func TVMostVoted(ctx *gin.Context) {
 
 // SearchShows ...
 func SearchShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 	query := ctx.Query("q")
 	keyboard := ctx.Query("keyboard")
@@ -347,6 +375,8 @@ func SearchShows(ctx *gin.Context) {
 
 // ShowSeasons ...
 func ShowSeasons(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 	showID, _ := strconv.Atoi(ctx.Params.ByName("showId"))
 
@@ -400,6 +430,8 @@ func ShowSeasons(ctx *gin.Context) {
 
 // ShowEpisodes ...
 func ShowEpisodes(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 	showID, _ := strconv.Atoi(ctx.Params.ByName("showId"))
 	seasonParam := ctx.Params.ByName("season")
@@ -499,6 +531,8 @@ func showSeasonLinks(showID int, seasonNumber int) ([]*bittorrent.TorrentFile, e
 
 // ShowSeasonRun ...
 func ShowSeasonRun(action string, s *bittorrent.Service) gin.HandlerFunc {
+	defer perf.ScopeTimer()()
+
 	if !strings.Contains(action, "force") && !strings.Contains(action, "download") && config.Get().ForceLinkType {
 		if config.Get().ChooseStreamAuto {
 			action = "play"
@@ -691,6 +725,8 @@ func showEpisodeLinks(showID int, seasonNumber int, episodeNumber int) ([]*bitto
 
 // ShowEpisodeRun ...
 func ShowEpisodeRun(action string, s *bittorrent.Service) gin.HandlerFunc {
+	defer perf.ScopeTimer()()
+
 	return ShowEpisodeLinks(detectPlayAction(action), s)
 }
 

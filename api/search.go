@@ -5,16 +5,17 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/anacrolix/missinggo/perf"
 	"github.com/asdine/storm/q"
+	"github.com/cespare/xxhash"
+	"github.com/gin-gonic/gin"
+	"github.com/op/go-logging"
+
 	"github.com/elgatito/elementum/bittorrent"
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/database"
 	"github.com/elgatito/elementum/providers"
 	"github.com/elgatito/elementum/xbmc"
-
-	"github.com/cespare/xxhash"
-	"github.com/gin-gonic/gin"
-	"github.com/op/go-logging"
 )
 
 var searchLog = logging.MustGetLogger("search")
@@ -22,6 +23,8 @@ var searchLog = logging.MustGetLogger("search")
 // Search ...
 func Search(s *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		defer perf.ScopeTimer()()
+
 		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		query := ctx.Query("q")
 		keyboard := ctx.Query("keyboard")
@@ -207,6 +210,8 @@ func searchHistoryList(ctx *gin.Context, historyType string) {
 
 // SearchRemove ...
 func SearchRemove(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	query := ctx.DefaultQuery("query", "")
 	historyType := ctx.DefaultQuery("type", "")
 
@@ -224,6 +229,8 @@ func SearchRemove(ctx *gin.Context) {
 
 // SearchClear ...
 func SearchClear(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	historyType := ctx.DefaultQuery("type", "")
 
 	log.Debugf("Cleaning queries with history type %s", historyType)

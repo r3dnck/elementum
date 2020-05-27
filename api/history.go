@@ -3,15 +3,18 @@ package api
 import (
 	"fmt"
 
-	"github.com/elgatito/elementum/database"
-	"github.com/elgatito/elementum/xbmc"
-
+	"github.com/anacrolix/missinggo/perf"
 	"github.com/asdine/storm"
 	"github.com/gin-gonic/gin"
+
+	"github.com/elgatito/elementum/database"
+	"github.com/elgatito/elementum/xbmc"
 )
 
 // History ...
 func History(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 
 	infohash := ctx.Query("infohash")
@@ -55,6 +58,8 @@ func torrentHistoryEmpty() bool {
 
 // HistoryRemove ...
 func HistoryRemove(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	infohash := ctx.DefaultQuery("infohash", "")
 
 	if len(infohash) == 0 {
@@ -76,6 +81,8 @@ func HistoryRemove(ctx *gin.Context) {
 
 // HistoryClear ...
 func HistoryClear(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	log.Debugf("Cleaning queries with torrent history")
 	if err := database.GetStormDB().Drop(&database.TorrentHistory{}); err != nil {
 		log.Infof("Could not clean torrent history: %s", err)

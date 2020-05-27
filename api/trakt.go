@@ -8,6 +8,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/anacrolix/missinggo/perf"
+	"github.com/gin-gonic/gin"
+
 	"github.com/elgatito/elementum/cache"
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/database"
@@ -16,7 +19,6 @@ import (
 	"github.com/elgatito/elementum/trakt"
 	"github.com/elgatito/elementum/util"
 	"github.com/elgatito/elementum/xbmc"
-	"github.com/gin-gonic/gin"
 )
 
 func inMoviesWatchlist(tmdbID int) bool {
@@ -134,6 +136,8 @@ func AuthorizeTrakt(ctx *gin.Context) {
 
 // WatchlistMovies ...
 func WatchlistMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	movies, err := trakt.WatchlistMovies(false)
 	if err != nil {
 		xbmc.Notify("Elementum", err.Error(), config.AddonIcon())
@@ -143,6 +147,8 @@ func WatchlistMovies(ctx *gin.Context) {
 
 // WatchlistShows ...
 func WatchlistShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	shows, err := trakt.WatchlistShows(false)
 	if err != nil {
 		xbmc.Notify("Elementum", err.Error(), config.AddonIcon())
@@ -152,6 +158,8 @@ func WatchlistShows(ctx *gin.Context) {
 
 // CollectionMovies ...
 func CollectionMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	movies, err := trakt.CollectionMovies(false)
 	if err != nil {
 		xbmc.Notify("Elementum", err.Error(), config.AddonIcon())
@@ -161,6 +169,8 @@ func CollectionMovies(ctx *gin.Context) {
 
 // CollectionShows ...
 func CollectionShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	shows, err := trakt.CollectionShows(false)
 	if err != nil {
 		xbmc.Notify("Elementum", err.Error(), config.AddonIcon())
@@ -170,6 +180,8 @@ func CollectionShows(ctx *gin.Context) {
 
 // UserlistMovies ...
 func UserlistMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	user := ctx.Params.ByName("user")
 	listID := ctx.Params.ByName("listId")
 	pageParam := ctx.DefaultQuery("page", "1")
@@ -183,6 +195,8 @@ func UserlistMovies(ctx *gin.Context) {
 
 // UserlistShows ...
 func UserlistShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	listID := ctx.Params.ByName("listId")
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
@@ -207,6 +221,8 @@ func UserlistShows(ctx *gin.Context) {
 
 // AddMovieToWatchlist ...
 func AddMovieToWatchlist(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	tmdbID := ctx.Params.ByName("tmdbId")
 	resp, err := trakt.AddToWatchlist("movies", tmdbID)
 	if err != nil {
@@ -226,6 +242,8 @@ func AddMovieToWatchlist(ctx *gin.Context) {
 
 // RemoveMovieFromWatchlist ...
 func RemoveMovieFromWatchlist(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	tmdbID := ctx.Params.ByName("tmdbId")
 	resp, err := trakt.RemoveFromWatchlist("movies", tmdbID)
 	if err != nil {
@@ -245,6 +263,8 @@ func RemoveMovieFromWatchlist(ctx *gin.Context) {
 
 // AddShowToWatchlist ...
 func AddShowToWatchlist(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	tmdbID := ctx.Params.ByName("showId")
 	resp, err := trakt.AddToWatchlist("shows", tmdbID)
 	if err != nil {
@@ -264,6 +284,8 @@ func AddShowToWatchlist(ctx *gin.Context) {
 
 // RemoveShowFromWatchlist ...
 func RemoveShowFromWatchlist(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	tmdbID := ctx.Params.ByName("showId")
 	resp, err := trakt.RemoveFromWatchlist("shows", tmdbID)
 	if err != nil {
@@ -283,6 +305,8 @@ func RemoveShowFromWatchlist(ctx *gin.Context) {
 
 // AddMovieToCollection ...
 func AddMovieToCollection(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	tmdbID := ctx.Params.ByName("tmdbId")
 	resp, err := trakt.AddToCollection("movies", tmdbID)
 	if err != nil {
@@ -302,6 +326,8 @@ func AddMovieToCollection(ctx *gin.Context) {
 
 // RemoveMovieFromCollection ...
 func RemoveMovieFromCollection(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	tmdbID := ctx.Params.ByName("tmdbId")
 	resp, err := trakt.RemoveFromCollection("movies", tmdbID)
 	if err != nil {
@@ -321,6 +347,8 @@ func RemoveMovieFromCollection(ctx *gin.Context) {
 
 // AddShowToCollection ...
 func AddShowToCollection(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	tmdbID := ctx.Params.ByName("showId")
 	resp, err := trakt.AddToCollection("shows", tmdbID)
 	if err != nil {
@@ -340,6 +368,8 @@ func AddShowToCollection(ctx *gin.Context) {
 
 // RemoveShowFromCollection ...
 func RemoveShowFromCollection(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	tmdbID := ctx.Params.ByName("showId")
 	resp, err := trakt.RemoveFromCollection("shows", tmdbID)
 	if err != nil {
@@ -479,6 +509,8 @@ func renderTraktMovies(ctx *gin.Context, movies []*trakt.Movies, total int, page
 
 // TraktPopularMovies ...
 func TraktPopularMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	movies, total, err := trakt.TopMovies("popular", pageParam)
@@ -490,6 +522,8 @@ func TraktPopularMovies(ctx *gin.Context) {
 
 // TraktRecommendationsMovies ...
 func TraktRecommendationsMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	movies, total, err := trakt.TopMovies("recommendations", pageParam)
@@ -501,6 +535,8 @@ func TraktRecommendationsMovies(ctx *gin.Context) {
 
 // TraktTrendingMovies ...
 func TraktTrendingMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	movies, total, err := trakt.TopMovies("trending", pageParam)
@@ -512,6 +548,8 @@ func TraktTrendingMovies(ctx *gin.Context) {
 
 // TraktMostPlayedMovies ...
 func TraktMostPlayedMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	movies, total, err := trakt.TopMovies("played", pageParam)
@@ -523,6 +561,8 @@ func TraktMostPlayedMovies(ctx *gin.Context) {
 
 // TraktMostWatchedMovies ...
 func TraktMostWatchedMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	movies, total, err := trakt.TopMovies("watched", pageParam)
@@ -534,6 +574,8 @@ func TraktMostWatchedMovies(ctx *gin.Context) {
 
 // TraktMostCollectedMovies ...
 func TraktMostCollectedMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	movies, total, err := trakt.TopMovies("collected", pageParam)
@@ -545,6 +587,8 @@ func TraktMostCollectedMovies(ctx *gin.Context) {
 
 // TraktMostAnticipatedMovies ...
 func TraktMostAnticipatedMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	movies, total, err := trakt.TopMovies("anticipated", pageParam)
@@ -556,6 +600,8 @@ func TraktMostAnticipatedMovies(ctx *gin.Context) {
 
 // TraktBoxOffice ...
 func TraktBoxOffice(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	movies, _, err := trakt.TopMovies("boxoffice", "1")
 	if err != nil {
 		xbmc.Notify("Elementum", err.Error(), config.AddonIcon())
@@ -565,6 +611,8 @@ func TraktBoxOffice(ctx *gin.Context) {
 
 // TraktHistoryMovies ...
 func TraktHistoryMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 
@@ -585,6 +633,8 @@ func TraktHistoryMovies(ctx *gin.Context) {
 
 // TraktHistoryShows ...
 func TraktHistoryShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 
@@ -605,6 +655,8 @@ func TraktHistoryShows(ctx *gin.Context) {
 
 // TraktProgressShows ...
 func TraktProgressShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	shows, err := trakt.WatchedShowsProgress()
 	if err != nil {
 		xbmc.Notify("Elementum", err.Error(), config.AddonIcon())
@@ -698,6 +750,8 @@ func renderTraktShows(ctx *gin.Context, shows []*trakt.Shows, total int, page in
 
 // TraktPopularShows ...
 func TraktPopularShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	shows, total, err := trakt.TopShows("popular", pageParam)
@@ -709,6 +763,8 @@ func TraktPopularShows(ctx *gin.Context) {
 
 // TraktRecommendationsShows ...
 func TraktRecommendationsShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	shows, total, err := trakt.TopShows("recommendations", pageParam)
@@ -720,6 +776,8 @@ func TraktRecommendationsShows(ctx *gin.Context) {
 
 // TraktTrendingShows ...
 func TraktTrendingShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	shows, total, err := trakt.TopShows("trending", pageParam)
@@ -731,6 +789,8 @@ func TraktTrendingShows(ctx *gin.Context) {
 
 // TraktMostPlayedShows ...
 func TraktMostPlayedShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	shows, total, err := trakt.TopShows("played", pageParam)
@@ -742,6 +802,8 @@ func TraktMostPlayedShows(ctx *gin.Context) {
 
 // TraktMostWatchedShows ...
 func TraktMostWatchedShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	shows, total, err := trakt.TopShows("watched", pageParam)
@@ -753,6 +815,8 @@ func TraktMostWatchedShows(ctx *gin.Context) {
 
 // TraktMostCollectedShows ...
 func TraktMostCollectedShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	shows, total, err := trakt.TopShows("collected", pageParam)
@@ -764,6 +828,8 @@ func TraktMostCollectedShows(ctx *gin.Context) {
 
 // TraktMostAnticipatedShows ...
 func TraktMostAnticipatedShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	shows, total, err := trakt.TopShows("anticipated", pageParam)
@@ -779,6 +845,8 @@ func TraktMostAnticipatedShows(ctx *gin.Context) {
 
 // TraktMyShows ...
 func TraktMyShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	shows, total, err := trakt.CalendarShows("my/shows", pageParam)
@@ -790,6 +858,8 @@ func TraktMyShows(ctx *gin.Context) {
 
 // TraktMyNewShows ...
 func TraktMyNewShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	shows, total, err := trakt.CalendarShows("my/shows/new", pageParam)
@@ -801,6 +871,8 @@ func TraktMyNewShows(ctx *gin.Context) {
 
 // TraktMyPremieres ...
 func TraktMyPremieres(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	shows, total, err := trakt.CalendarShows("my/shows/premieres", pageParam)
@@ -812,6 +884,8 @@ func TraktMyPremieres(ctx *gin.Context) {
 
 // TraktMyMovies ...
 func TraktMyMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	movies, total, err := trakt.CalendarMovies("my/movies", pageParam)
@@ -823,6 +897,8 @@ func TraktMyMovies(ctx *gin.Context) {
 
 // TraktMyReleases ...
 func TraktMyReleases(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	movies, total, err := trakt.CalendarMovies("my/dvd", pageParam)
@@ -834,6 +910,8 @@ func TraktMyReleases(ctx *gin.Context) {
 
 // TraktAllShows ...
 func TraktAllShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	shows, total, err := trakt.CalendarShows("all/shows", pageParam)
@@ -845,6 +923,8 @@ func TraktAllShows(ctx *gin.Context) {
 
 // TraktAllNewShows ...
 func TraktAllNewShows(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	shows, total, err := trakt.CalendarShows("all/shows/new", pageParam)
@@ -856,6 +936,8 @@ func TraktAllNewShows(ctx *gin.Context) {
 
 // TraktAllPremieres ...
 func TraktAllPremieres(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	shows, total, err := trakt.CalendarShows("all/shows/premieres", pageParam)
@@ -867,6 +949,8 @@ func TraktAllPremieres(ctx *gin.Context) {
 
 // TraktAllMovies ...
 func TraktAllMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	movies, total, err := trakt.CalendarMovies("all/movies", pageParam)
@@ -878,6 +962,8 @@ func TraktAllMovies(ctx *gin.Context) {
 
 // TraktAllReleases ...
 func TraktAllReleases(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 	movies, total, err := trakt.CalendarMovies("all/dvd", pageParam)
@@ -1354,6 +1440,8 @@ func renderProgressShows(ctx *gin.Context, shows []*trakt.ProgressShow, total in
 
 // SelectTraktUserList ...
 func SelectTraktUserList(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	action := ctx.Params.ByName("action")
 	media := ctx.Params.ByName("media")
 

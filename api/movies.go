@@ -6,6 +6,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/anacrolix/missinggo/perf"
+	"github.com/gin-gonic/gin"
+
 	"github.com/elgatito/elementum/bittorrent"
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/database"
@@ -15,7 +18,6 @@ import (
 	"github.com/elgatito/elementum/tmdb"
 	"github.com/elgatito/elementum/trakt"
 	"github.com/elgatito/elementum/xbmc"
-	"github.com/gin-gonic/gin"
 )
 
 // Maps TMDB movie genre ids to slugs for images
@@ -53,6 +55,8 @@ var genreSlugs = map[int]string{
 
 // MoviesIndex ...
 func MoviesIndex(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	items := xbmc.ListItems{
 		{Label: "LOCALIZE[30209]", Path: URLForXBMC("/movies/search"), Thumbnail: config.AddonResource("img", "search.png")},
 		{Label: "LOCALIZE[30263]", Path: URLForXBMC("/movies/trakt/lists/"), Thumbnail: config.AddonResource("img", "trakt.png"), TraktAuth: true},
@@ -108,6 +112,8 @@ func MoviesIndex(ctx *gin.Context) {
 
 // MovieGenres ...
 func MovieGenres(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	items := make(xbmc.ListItems, 0)
 	for _, genre := range tmdb.GetMovieGenres(config.Get().Language) {
 		slug, _ := genreSlugs[genre.ID]
@@ -126,6 +132,8 @@ func MovieGenres(ctx *gin.Context) {
 
 // MovieLanguages ...
 func MovieLanguages(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	items := make(xbmc.ListItems, 0)
 	for _, language := range tmdb.GetLanguages(config.Get().Language) {
 		items = append(items, &xbmc.ListItem{
@@ -142,6 +150,8 @@ func MovieLanguages(ctx *gin.Context) {
 
 // MovieCountries ...
 func MovieCountries(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	items := make(xbmc.ListItems, 0)
 	for _, country := range tmdb.GetCountries(config.Get().Language) {
 		items = append(items, &xbmc.ListItem{
@@ -158,6 +168,8 @@ func MovieCountries(ctx *gin.Context) {
 
 // MovieLibrary ...
 func MovieLibrary(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	movies, err := xbmc.VideoLibraryGetElementumMovies()
 	if err != nil || movies == nil || movies.Limits == nil || movies.Limits.Total == 0 {
 		return
@@ -184,6 +196,8 @@ func MovieLibrary(ctx *gin.Context) {
 
 // TopTraktLists ...
 func TopTraktLists(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	pageParam := ctx.DefaultQuery("page", "1")
 	page, _ := strconv.Atoi(pageParam)
 
@@ -221,6 +235,8 @@ func TopTraktLists(ctx *gin.Context) {
 
 // MoviesTraktLists ...
 func MoviesTraktLists(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	items := xbmc.ListItems{}
 	lists := trakt.Userlists()
 	lists = append(lists, trakt.Likedlists()...)
@@ -251,6 +267,8 @@ func MoviesTraktLists(ctx *gin.Context) {
 
 // CalendarMovies ...
 func CalendarMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	items := xbmc.ListItems{
 		{Label: "LOCALIZE[30291]", Path: URLForXBMC("/movies/trakt/calendars/movies"), Thumbnail: config.AddonResource("img", "box_office.png")},
 		{Label: "LOCALIZE[30292]", Path: URLForXBMC("/movies/trakt/calendars/releases"), Thumbnail: config.AddonResource("img", "tv.png")},
@@ -261,6 +279,8 @@ func CalendarMovies(ctx *gin.Context) {
 }
 
 func renderMovies(ctx *gin.Context, movies tmdb.Movies, page int, total int, query string) {
+	defer perf.ScopeTimer()()
+
 	hasNextPage := 0
 	if page > 0 {
 		if page*config.Get().ResultsPerPage < total {
@@ -343,6 +363,8 @@ func renderMovies(ctx *gin.Context, movies tmdb.Movies, page int, total int, que
 
 // AutoscrapedMovies ...
 func AutoscrapedMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	sourceMovies, err := scrape.GetMovies()
 	if err != nil {
 		ctx.String(200, err.Error())
@@ -364,6 +386,8 @@ func AutoscrapedMovies(ctx *gin.Context) {
 
 // PopularMovies ...
 func PopularMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	p := tmdb.DiscoverFilters{}
 	p.Genre = ctx.Params.ByName("genre")
 	p.Language = ctx.Params.ByName("language")
@@ -379,6 +403,8 @@ func PopularMovies(ctx *gin.Context) {
 
 // RecentMovies ...
 func RecentMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	p := tmdb.DiscoverFilters{}
 	p.Genre = ctx.Params.ByName("genre")
 	p.Language = ctx.Params.ByName("language")
@@ -394,6 +420,8 @@ func RecentMovies(ctx *gin.Context) {
 
 // TopRatedMovies ...
 func TopRatedMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	genre := ctx.Params.ByName("genre")
 	if genre == "0" {
 		genre = ""
@@ -405,6 +433,8 @@ func TopRatedMovies(ctx *gin.Context) {
 
 // IMDBTop250 ...
 func IMDBTop250(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	movies, total := tmdb.GetIMDBList("522effe419c2955e9922fcf3", config.Get().Language, page)
 	renderMovies(ctx, movies, page, total, "")
@@ -412,6 +442,8 @@ func IMDBTop250(ctx *gin.Context) {
 
 // MoviesMostVoted ...
 func MoviesMostVoted(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	movies, total := tmdb.MostVotedMovies("", config.Get().Language, page)
 	renderMovies(ctx, movies, page, total, "")
@@ -419,6 +451,8 @@ func MoviesMostVoted(ctx *gin.Context) {
 
 // SearchMovies ...
 func SearchMovies(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 	query := ctx.Query("q")
 	keyboard := ctx.Query("keyboard")
@@ -454,6 +488,8 @@ func movieLinks(tmdbID string) []*bittorrent.TorrentFile {
 
 // MovieRun ...
 func MovieRun(action string, s *bittorrent.Service) gin.HandlerFunc {
+	defer perf.ScopeTimer()()
+
 	return MovieLinks(detectPlayAction(action), s)
 }
 

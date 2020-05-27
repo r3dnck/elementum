@@ -6,13 +6,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/anacrolix/missinggo/perf"
+	"github.com/gin-gonic/gin"
+	"github.com/sanity-io/litter"
+
 	"github.com/elgatito/elementum/bittorrent"
 	"github.com/elgatito/elementum/database"
 	"github.com/elgatito/elementum/util"
 	"github.com/elgatito/elementum/xbmc"
-
-	"github.com/gin-gonic/gin"
-	"github.com/sanity-io/litter"
 )
 
 // Download ...
@@ -99,6 +100,8 @@ func Play(s *bittorrent.Service) gin.HandlerFunc {
 
 // PlayTorrent ...
 func PlayTorrent(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	retval := xbmc.DialogInsert()
 	if retval["path"] == "" {
 		log.Errorf("No path from insert dialog: %#v", retval)

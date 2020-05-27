@@ -7,6 +7,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/anacrolix/missinggo/perf"
+	"github.com/asdine/storm/q"
+	"github.com/dustin/go-humanize"
+	"github.com/gin-gonic/gin"
+
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/database"
 	"github.com/elgatito/elementum/library"
@@ -14,14 +19,12 @@ import (
 	"github.com/elgatito/elementum/tmdb"
 	"github.com/elgatito/elementum/util"
 	"github.com/elgatito/elementum/xbmc"
-
-	"github.com/asdine/storm/q"
-	"github.com/dustin/go-humanize"
-	"github.com/gin-gonic/gin"
 )
 
 // Changelog display
 func Changelog(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	changelogPath := filepath.Join(config.Get().Info.Path, "whatsnew.txt")
 	if _, err := os.Stat(changelogPath); err != nil {
 		ctx.String(404, err.Error())
@@ -58,6 +61,8 @@ func Settings(ctx *gin.Context) {
 
 // Status display
 func Status(ctx *gin.Context) {
+	defer perf.ScopeTimer()()
+
 	title := "LOCALIZE[30393]"
 	text := ""
 
