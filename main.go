@@ -214,5 +214,7 @@ func main() {
 
 	log.Infof("Prepared in %s", time.Since(now))
 	log.Infof("Starting HTTP server")
-	http.ListenAndServe(":"+strconv.Itoa(config.Args.LocalPort), nil)
+	if err = http.ListenAndServe(":"+strconv.Itoa(config.Args.LocalPort), nil); err != nil {
+		panic(err)
+	}
 }

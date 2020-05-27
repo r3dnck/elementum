@@ -374,7 +374,9 @@ func (as *AddonSearcher) call(method string, searchObject interface{}) []*bittor
 		as.log.Warningf("Provider %s was too slow. Ignored.", as.addonID)
 		RemoveCallback(cid)
 	case result := <-c:
-		json.Unmarshal(result, &torrents)
+		if err := json.Unmarshal(result, &torrents); err != nil {
+			log.Errorf("Failed to unmarshal torrents: %s", err)
+		}
 	}
 
 	return torrents
