@@ -68,7 +68,8 @@ func Routes(s *bittorrent.Service) *gin.Engine {
 		torrents.GET("/delete/:torrentId", RemoveTorrent(s))
 		torrents.GET("/downloadall/:torrentId", DownloadAllTorrent(s))
 		torrents.GET("/undownloadall/:torrentId", UnDownloadAllTorrent(s))
-		torrents.GET("/selectfile/:torrentId", SelectFileTorrent(s))
+		torrents.GET("/selectfile/:torrentId", SelectFileTorrent(s, true))
+		torrents.GET("/downloadfile/:torrentId", SelectFileTorrent(s, false))
 
 		// Web UI json
 		torrents.GET("/list", ListTorrentsWeb(s))

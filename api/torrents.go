@@ -243,6 +243,7 @@ func ListTorrents(s *bittorrent.Service) gin.HandlerFunc {
 
 			if !s.IsMemoryStorage() {
 				item.ContextMenu = append(item.ContextMenu, []string{"LOCALIZE[30573]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/torrents/selectfile/%s", t.InfoHash()))})
+				item.ContextMenu = append(item.ContextMenu, []string{"LOCALIZE[30612]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/torrents/downloadfile/%s", t.InfoHash()))})
 
 				if t.HasAvailableFiles() {
 					item.ContextMenu = append(item.ContextMenu, []string{"LOCALIZE[30531]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/torrents/downloadall/%s", t.InfoHash()))})
@@ -541,7 +542,7 @@ func UnDownloadAllTorrent(s *bittorrent.Service) gin.HandlerFunc {
 }
 
 // SelectFileTorrent ...
-func SelectFileTorrent(s *bittorrent.Service) gin.HandlerFunc {
+func SelectFileTorrent(s *bittorrent.Service, isPlay bool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		defer perf.ScopeTimer()()
 
@@ -554,9 +555,16 @@ func SelectFileTorrent(s *bittorrent.Service) gin.HandlerFunc {
 
 		file, choice, err := torrent.ChooseFile(nil)
 		if err == nil && file != nil {
-			url := torrent.GetPlayURL(strconv.Itoa(choice))
-			log.Debugf("Triggering play for: %s", url)
-			xbmc.PlayURL(url)
+			if isPlay {
+				url := torrent.GetPlayURL(strconv.Itoa(choice))
+				log.Infof("Triggering play for: %s", url)
+				xbmc.PlayURL(url)
+			} else {
+				log.Infof("Triggering download for: %s", file.Path)
+				torrent.DownloadFile(file)
+				torrent.SaveDBFiles()
+				xbmc.Refresh()
+			}
 			return
 		}
 
