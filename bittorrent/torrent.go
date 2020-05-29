@@ -1360,6 +1360,9 @@ func (t *Torrent) updatePieces() error {
 
 	// need to keep a reference to the status or else the pieces bitfield
 	// is at risk of being collected
+	if t.lastStatus != nil && t.lastStatus.Swigcptr() != 0 {
+		lt.DeleteTorrentStatus(t.lastStatus)
+	}
 	t.lastStatus = t.th.Status(uint(lt.WrappedTorrentHandleQueryPieces))
 	// defer lt.DeleteTorrentStatus(t.lastStatus)
 
