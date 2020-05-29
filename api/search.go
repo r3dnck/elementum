@@ -118,7 +118,7 @@ func Search(s *bittorrent.Service) gin.HandlerFunc {
 		}
 
 		choice := -1
-		if detectPlayAction("") == "play" {
+		if detectPlayAction("", searchType) == "play" {
 			choice = 0
 		} else {
 			choice = xbmc.ListDialogLarge("LOCALIZE[30228]", query, choices...)

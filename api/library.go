@@ -24,6 +24,7 @@ const (
 	movieType   = "movie"
 	showType    = "show"
 	episodeType = "episode"
+	searchType  = "search"
 
 	multiType = "\nmulti"
 )
@@ -207,7 +208,7 @@ func UpdateTrakt(ctx *gin.Context) {
 
 // PlayMovie ...
 func PlayMovie(s *bittorrent.Service) gin.HandlerFunc {
-	if config.Get().ChooseStreamAuto {
+	if config.Get().ChooseStreamAutoMovie {
 		return MovieRun("play", s)
 	}
 	return MovieRun("links", s)
@@ -215,7 +216,7 @@ func PlayMovie(s *bittorrent.Service) gin.HandlerFunc {
 
 // PlayShow ...
 func PlayShow(s *bittorrent.Service) gin.HandlerFunc {
-	if config.Get().ChooseStreamAuto {
+	if config.Get().ChooseStreamAutoShow {
 		return ShowEpisodeRun("play", s)
 	}
 	return ShowEpisodeRun("links", s)

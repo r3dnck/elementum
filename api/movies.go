@@ -300,7 +300,7 @@ func renderMovies(ctx *gin.Context, movies tmdb.Movies, page int, total int, que
 		contextLabel := playLabel
 		contextTitle := fmt.Sprintf("%s (%d)", item.Info.OriginalTitle, item.Info.Year)
 		contextURL := contextPlayOppositeURL(thisURL, contextTitle, false)
-		if config.Get().ChooseStreamAuto {
+		if config.Get().ChooseStreamAutoMovie {
 			contextLabel = linksLabel
 		}
 
@@ -490,7 +490,7 @@ func movieLinks(tmdbID string) []*bittorrent.TorrentFile {
 func MovieRun(action string, s *bittorrent.Service) gin.HandlerFunc {
 	defer perf.ScopeTimer()()
 
-	return MovieLinks(detectPlayAction(action), s)
+	return MovieLinks(detectPlayAction(action, movieType), s)
 }
 
 // MovieLinks ...

@@ -60,7 +60,9 @@ type Configuration struct {
 	SilentStreamStart          bool
 	AutoYesEnabled             bool
 	AutoYesTimeout             int
-	ChooseStreamAuto           bool
+	ChooseStreamAutoMovie      bool
+	ChooseStreamAutoShow       bool
+	ChooseStreamAutoSearch     bool
 	ForceLinkType              bool
 	UseOriginalTitle           bool
 	UseAnimeEnTitle            bool
@@ -520,7 +522,9 @@ func Reload() *Configuration {
 		SilentStreamStart:          settings["silent_stream_start"].(bool),
 		AutoYesEnabled:             settings["autoyes_enabled"].(bool),
 		AutoYesTimeout:             settings["autoyes_timeout"].(int),
-		ChooseStreamAuto:           settings["choose_stream_auto"].(bool),
+		ChooseStreamAutoMovie:      settings["choose_stream_auto_movie"].(bool),
+		ChooseStreamAutoShow:       settings["choose_stream_auto_show"].(bool),
+		ChooseStreamAutoSearch:     settings["choose_stream_auto_search"].(bool),
 		ForceLinkType:              settings["force_link_type"].(bool),
 		UseOriginalTitle:           settings["use_original_title"].(bool),
 		UseAnimeEnTitle:            settings["use_anime_en_title"].(bool),

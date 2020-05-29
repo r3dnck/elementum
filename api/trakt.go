@@ -448,7 +448,7 @@ func renderTraktMovies(ctx *gin.Context, movies []*trakt.Movies, total int, page
 			contextLabel := playLabel
 			contextTitle := fmt.Sprintf("%s (%d)", item.Info.OriginalTitle, movieListing.Movie.Year)
 			contextURL := contextPlayOppositeURL(thisURL, contextTitle, false)
-			if config.Get().ChooseStreamAuto {
+			if config.Get().ChooseStreamAutoMovie {
 				contextLabel = linksLabel
 			}
 
@@ -1050,7 +1050,7 @@ func renderCalendarMovies(ctx *gin.Context, movies []*trakt.CalendarMovie, total
 			contextLabel := playLabel
 			contextTitle := fmt.Sprintf("%s (%d)", item.Info.OriginalTitle, movieListing.Movie.Year)
 			contextURL := contextPlayOppositeURL(thisURL, contextTitle, false)
-			if config.Get().ChooseStreamAuto {
+			if config.Get().ChooseStreamAutoMovie {
 				contextLabel = linksLabel
 			}
 
@@ -1389,7 +1389,7 @@ func renderProgressShows(ctx *gin.Context, shows []*trakt.ProgressShow, total in
 			contextLabel := playLabel
 			contextTitle := fmt.Sprintf("%s S%02dE%02d", showListing.Show.Title, seasonNumber, episodeNumber)
 			contextURL := contextPlayOppositeURL(thisURL, contextTitle, false)
-			if config.Get().ChooseStreamAuto {
+			if config.Get().ChooseStreamAutoShow {
 				contextLabel = linksLabel
 			}
 

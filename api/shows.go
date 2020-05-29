@@ -396,7 +396,7 @@ func ShowSeasons(ctx *gin.Context) {
 		contextOppositeLabel := linksLabel
 		contextURL := contextPlayOppositeURL(thisURL, contextTitle, false)
 		contextOppositeURL := contextPlayURL(thisURL, contextTitle, false)
-		if config.Get().ChooseStreamAuto {
+		if config.Get().ChooseStreamAutoShow {
 			contextLabel = linksLabel
 			contextOppositeLabel = playLabel
 		}
@@ -478,7 +478,7 @@ func ShowEpisodes(ctx *gin.Context) {
 			contextLabel := playLabel
 			contextTitle := fmt.Sprintf("%s S%02dE%02d", show.OriginalName, seasonNumber, item.Info.Episode)
 			contextURL := contextPlayOppositeURL(thisURL, contextTitle, false)
-			if config.Get().ChooseStreamAuto {
+			if config.Get().ChooseStreamAutoShow {
 				contextLabel = linksLabel
 			}
 
@@ -534,7 +534,7 @@ func ShowSeasonRun(action string, s *bittorrent.Service) gin.HandlerFunc {
 	defer perf.ScopeTimer()()
 
 	if !strings.Contains(action, "force") && !strings.Contains(action, "download") && config.Get().ForceLinkType {
-		if config.Get().ChooseStreamAuto {
+		if config.Get().ChooseStreamAutoShow {
 			action = "play"
 		} else {
 			action = "links"
@@ -727,7 +727,7 @@ func showEpisodeLinks(showID int, seasonNumber int, episodeNumber int) ([]*bitto
 func ShowEpisodeRun(action string, s *bittorrent.Service) gin.HandlerFunc {
 	defer perf.ScopeTimer()()
 
-	return ShowEpisodeLinks(detectPlayAction(action), s)
+	return ShowEpisodeLinks(detectPlayAction(action, showType), s)
 }
 
 // ShowEpisodeLinks ...

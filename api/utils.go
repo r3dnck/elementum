@@ -63,9 +63,14 @@ func URLQuery(route string, query ...string) string {
 
 func contextPlayURL(f string, title string, forced bool) string {
 	action := "links"
-	if config.Get().ChooseStreamAuto {
+	if strings.Contains(f, "movie") && config.Get().ChooseStreamAutoMovie {
+		action = "play"
+	} else if strings.Contains(f, "show") && config.Get().ChooseStreamAutoShow {
+		action = "play"
+	} else if strings.Contains(f, "search") && config.Get().ChooseStreamAutoSearch {
 		action = "play"
 	}
+
 	if forced {
 		action = "force" + action
 	}
@@ -75,7 +80,11 @@ func contextPlayURL(f string, title string, forced bool) string {
 
 func contextPlayOppositeURL(f string, title string, forced bool) string {
 	action := "links"
-	if !config.Get().ChooseStreamAuto {
+	if strings.Contains(f, "movie") && !config.Get().ChooseStreamAutoMovie {
+		action = "play"
+	} else if strings.Contains(f, "show") && !config.Get().ChooseStreamAutoShow {
+		action = "play"
+	} else if strings.Contains(f, "search") && !config.Get().ChooseStreamAutoSearch {
 		action = "play"
 	}
 	if forced {
@@ -85,9 +94,13 @@ func contextPlayOppositeURL(f string, title string, forced bool) string {
 	return fmt.Sprintf(f, action, url.PathEscape(title))
 }
 
-func detectPlayAction(action string) string {
+func detectPlayAction(action, media string) string {
 	if !strings.Contains(action, "force") && !strings.Contains(action, "download") && (action == "" || config.Get().ForceLinkType) {
-		if config.Get().ChooseStreamAuto {
+		if media == movieType && config.Get().ChooseStreamAutoMovie {
+			return "play"
+		} else if media == showType && config.Get().ChooseStreamAutoShow {
+			return "play"
+		} else if media == searchType && config.Get().ChooseStreamAutoSearch {
 			return "play"
 		} else {
 			return "links"
