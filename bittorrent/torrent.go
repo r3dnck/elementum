@@ -1775,3 +1775,89 @@ func (t *Torrent) GetPlayURL(fileIndex string) string {
 		"episode", episode,
 		"query", query)
 }
+
+// TorrentInfo writes torrent status to io.Writer
+func (t *Torrent) TorrentInfo(w io.Writer) {
+	st := t.th.Status()
+	defer lt.DeleteTorrentStatus(st)
+
+	if st == nil || st.Swigcptr() == 0 {
+		return
+	}
+
+	fmt.Fprintf(w, "    Name:               %s \n", st.GetName())
+	fmt.Fprintf(w, "    Infohash:           %s \n", hex.EncodeToString([]byte(st.GetInfoHash().ToString())))
+	fmt.Fprintf(w, "    Status:             %s \n", StatusStrings[st.GetState()])
+	fmt.Fprintf(w, "    Piece size:         %d \n", t.ti.NumPieces())
+	fmt.Fprintf(w, "    Piece length:       %s \n", humanize.Bytes(uint64(t.ti.PieceLength())))
+	fmt.Fprint(w, "\n")
+	fmt.Fprint(w, "    Speed:\n")
+	fmt.Fprintf(w, "        Download:   %s/s \n", humanize.Bytes(uint64(st.GetDownloadRate())))
+	fmt.Fprintf(w, "        Upload:     %s/s \n", humanize.Bytes(uint64(st.GetUploadRate())))
+	fmt.Fprint(w, "\n")
+	fmt.Fprint(w, "    Size:\n")
+	fmt.Fprintf(w, "        Total:                  %v \n", humanize.Bytes(uint64(t.ti.TotalSize())))
+	fmt.Fprintf(w, "        Done:                   %v (%.2f%%) \n", humanize.Bytes(uint64(st.GetTotalDone())), 100*(float64(st.GetTotalDone())/float64(t.ti.TotalSize())))
+	fmt.Fprintf(w, "        Wanted:                 %v \n", humanize.Bytes(uint64(st.GetTotalWanted())))
+	fmt.Fprintf(w, "        Wanted done:            %v (%.2f%%) \n", humanize.Bytes(uint64(st.GetTotalWantedDone())), 100*(float64(st.GetTotalWantedDone())/float64(st.GetTotalWanted())))
+	fmt.Fprint(w, "\n")
+	fmt.Fprint(w, "    Connections:\n")
+	fmt.Fprintf(w, "        Connected:              %d \n", st.GetNumConnections())
+	fmt.Fprintf(w, "        Connected seeds:        %d \n", st.GetNumSeeds())
+	fmt.Fprintf(w, "        Connected peers:        %d \n", st.GetNumPeers())
+	fmt.Fprintf(w, "        Seeds:                  %d \n", st.GetListSeeds())
+	fmt.Fprintf(w, "        Peers:                  %d \n", st.GetListPeers())
+
+	fmt.Fprint(w, "    Flags:\n")
+	fmt.Fprintf(w, "        paused: %v \n", st.GetPaused())
+	fmt.Fprintf(w, "        auto_managed: %v \n", st.GetAutoManaged())
+	fmt.Fprintf(w, "        sequential_download: %v \n", st.GetSequentialDownload())
+	fmt.Fprintf(w, "        need_save_resume: %v \n", st.GetNeedSaveResume())
+	fmt.Fprintf(w, "        is_seeding: %v \n", st.GetIsSeeding())
+	fmt.Fprintf(w, "        is_finished: %v \n", st.GetIsFinished())
+	fmt.Fprintf(w, "        has_metadata: %v \n", st.GetHasMetadata())
+	fmt.Fprintf(w, "        has_incoming: %v \n", st.GetHasIncoming())
+	fmt.Fprintf(w, "        moving_storage: %v \n", st.GetMovingStorage())
+	fmt.Fprintf(w, "        announcing_to_trackers: %v \n", st.GetAnnouncingToTrackers())
+	fmt.Fprintf(w, "        announcing_to_lsd: %v \n", st.GetAnnouncingToLsd())
+	fmt.Fprintf(w, "        announcing_to_dht: %v \n", st.GetAnnouncingToDht())
+	fmt.Fprint(w, "\n")
+
+	fmt.Fprint(w, "    Files (Priority):\n")
+	filePriorities := t.th.FilePriorities()
+	for _, f := range slices.Sort(t.files, byPath).([]*File) {
+		if pr := filePriorities.Get(f.Index); pr > 0 {
+			fmt.Fprintf(w, "        %s (%s): %d \n", f.Path, humanize.Bytes(uint64(f.Size)), pr)
+		} else {
+			fmt.Fprintf(w, "        %s (%s): - \n", f.Path, humanize.Bytes(uint64(f.Size)))
+		}
+	}
+	lt.DeleteStdVectorInt(filePriorities)
+
+	fmt.Fprint(w, "\n")
+
+	// TODO: Do we need pieces into?
+	// Emulate piece status get to update pieces states
+	t.hasPiece(0)
+
+	piecesStatus := bytebufferpool.Get()
+	piecesStatus.Reset()
+	piecesStatus.WriteString("    ")
+	for i := 0; i < t.ti.NumPieces(); i++ {
+		if t.hasPiece(i) {
+			piecesStatus.WriteString("+")
+		} else if pr := t.th.PiecePriority(i).(int); pr == 0 {
+			piecesStatus.WriteString("-")
+		} else {
+			piecesStatus.WriteString(strconv.Itoa(pr))
+		}
+
+		if i > 0 && (i+1)%100 == 0 {
+			piecesStatus.WriteString("\n    ")
+		}
+	}
+	fmt.Fprint(w, "    Pieces:\n")
+	fmt.Fprint(w, piecesStatus.String())
+	bytebufferpool.Put(piecesStatus)
+	fmt.Fprint(w, "\n")
+}

@@ -1503,23 +1503,18 @@ func (s *Service) PlayerSeek() {
 
 // ClientInfo ...
 func (s *Service) ClientInfo(_w io.Writer) {
-	// TODO: Print any client info here
-	// w := bufio.NewWriter(_w)
+	w := bufio.NewWriter(_w)
+	defer w.Flush()
 
-	// for _, t := range s.q.All() {
-	// 	if t == nil || t.th == nil {
-	// 		continue
-	// 	}
+	for _, t := range s.q.All() {
+		if t == nil || t.th == nil {
+			continue
+		}
 
-	// 	st := t.th.Status()
-	// 	defer lt.DeleteTorrentStatus(st)
+		t.TorrentInfo(w)
 
-	// 	if st == nil || st.Swigcptr() == 0 {
-	// 		continue
-	// 	}
-
-	// }
-
+		fmt.Fprint(w, "\n\n")
+	}
 }
 
 // AttachPlayer adds Player instance to service
