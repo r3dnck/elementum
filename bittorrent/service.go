@@ -258,7 +258,7 @@ func (s *Service) configure() {
 	settings.SetInt("upload_rate_limit", 0)
 
 	// For Android external storage / OS-mounted NAS setups
-	if s.config.TunedStorage {
+	if s.config.TunedStorage && !s.IsMemoryStorage() {
 		settings.SetBool("use_read_cache", true)
 		settings.SetBool("coalesce_reads", true)
 		settings.SetBool("coalesce_writes", true)
