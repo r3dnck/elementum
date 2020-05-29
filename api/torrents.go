@@ -401,15 +401,20 @@ func AddTorrent(s *bittorrent.Service) gin.HandlerFunc {
 			return
 		}
 
+		// Create initial BTItem entry
+		database.GetStorm().UpdateBTItem(t.InfoHash(), 0, "", []string{}, t.Name(), 0, 0, 0)
+
 		torrentsLog.Infof("Downloading %s", uri)
 		if allFiles == "1" {
 			// Selecting all files
 			torrentsLog.Infof("Selecting all files for download")
 			t.DownloadAllFiles()
+			t.SaveDBFiles()
 		} else {
 			file, _, err := t.ChooseFile(nil)
 			if err == nil && file != nil {
 				t.DownloadFile(file)
+				t.SaveDBFiles()
 			} else {
 				torrentsLog.Errorf("File was not selected")
 			}
@@ -514,6 +519,7 @@ func DownloadAllTorrent(s *bittorrent.Service) gin.HandlerFunc {
 		}
 
 		torrent.DownloadAllFiles()
+		torrent.SaveDBFiles()
 
 		xbmc.Refresh()
 		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -534,6 +540,7 @@ func UnDownloadAllTorrent(s *bittorrent.Service) gin.HandlerFunc {
 		}
 
 		torrent.UnDownloadAllFiles()
+		torrent.SaveDBFiles()
 
 		xbmc.Refresh()
 		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")

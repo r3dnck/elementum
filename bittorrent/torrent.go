@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 	"net/url"
@@ -20,6 +21,7 @@ import (
 	lt "github.com/ElementumOrg/libtorrent-go"
 	"github.com/RoaringBitmap/roaring"
 	"github.com/anacrolix/missinggo/perf"
+	"github.com/anacrolix/missinggo/slices"
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/valyala/bytebufferpool"
@@ -55,7 +57,6 @@ type Torrent struct {
 	demandPieces   *roaring.Bitmap
 
 	ChosenFiles []*File
-	TorrentPath string
 
 	Service *Service
 
@@ -114,7 +115,7 @@ func NewTorrent(service *Service, handle lt.TorrentHandle, info lt.TorrentInfo, 
 		files:       []*File{},
 		th:          handle,
 		ti:          info,
-		TorrentPath: path,
+		torrentFile: path,
 
 		readers:        map[int64]*TorrentFSEntry{},
 		reservedPieces: []int{},
@@ -451,42 +452,26 @@ func (t *Torrent) Buffer(file *File, isStartup bool) {
 
 	// Properly set the pieces priority vector
 	curPiece := 0
-	defaultPriority := 0
-	if !t.Service.IsMemoryStorage() {
-		defaultPriority = 1
-	}
 
 	if isStartup {
-		piecesPriorities := lt.NewStdVectorInt()
+		piecesPriorities := t.th.PiecePriorities()
 		defer lt.DeleteStdVectorInt(piecesPriorities)
 
-		for _ = 0; curPiece < preBufferStart; curPiece++ {
-			piecesPriorities.Add(defaultPriority)
+		for curPiece = preBufferStart; curPiece <= preBufferEnd; curPiece++ { // get this part
+			piecesPriorities.Set(curPiece, 7)
 		}
-		for _ = 0; curPiece <= preBufferEnd; curPiece++ { // get this part
-			piecesPriorities.Add(7)
-		}
-		for _ = 0; curPiece < postBufferStart; curPiece++ {
-			piecesPriorities.Add(defaultPriority)
-		}
-		for _ = 0; curPiece <= postBufferEnd; curPiece++ { // get this part
-			piecesPriorities.Add(7)
-		}
-		numPieces := t.ti.NumPieces()
-		for _ = 0; curPiece < numPieces; curPiece++ {
-			piecesPriorities.Add(defaultPriority)
+		for curPiece = postBufferStart; curPiece <= postBufferEnd; curPiece++ { // get this part
+			piecesPriorities.Set(curPiece, 7)
 		}
 		t.th.PrioritizePieces(piecesPriorities)
 	} else {
 		for curPiece = preBufferStart; curPiece <= preBufferEnd; curPiece++ { // get this part
 			t.demandPieces.AddInt(curPiece)
 			t.th.PiecePriority(curPiece, 3)
-			t.th.SetPieceDeadline(curPiece, 0, 0)
 		}
 		for curPiece = postBufferStart; curPiece <= postBufferEnd; curPiece++ { // get this part
 			t.demandPieces.AddInt(curPiece)
 			t.th.PiecePriority(curPiece, 3)
-			t.th.SetPieceDeadline(curPiece, 0, 0)
 		}
 	}
 
@@ -915,41 +900,61 @@ func (t *Torrent) GetRealProgress() float64 {
 	return t.lastProgress
 }
 
+// DownloadFiles sets priority 1 to list of files
+func (t *Torrent) DownloadFiles(files []*File) {
+	filePriorities := t.th.FilePriorities()
+	for _, f := range files {
+		log.Debugf("Choosing file for download: %s", f.Path)
+
+		f.Selected = true
+		filePriorities.Set(f.Index, 1)
+	}
+	defer lt.DeleteStdVectorInt(filePriorities)
+
+	t.th.PrioritizeFiles(filePriorities)
+}
+
+// UndownloadFiles sets priority 0 to list of files
+func (t *Torrent) UndownloadFiles(files []*File) {
+	filePriorities := t.th.FilePriorities()
+	for _, f := range files {
+		log.Debugf("UnChoosing file for download: %s", f.Path)
+
+		f.Selected = false
+		filePriorities.Set(f.Index, 0)
+	}
+	defer lt.DeleteStdVectorInt(filePriorities)
+
+	t.th.PrioritizeFiles(filePriorities)
+}
+
 // DownloadAllFiles ...
 func (t *Torrent) DownloadAllFiles() {
-	selected := []string{}
-	for _, f := range t.files {
-		t.DownloadFile(f)
-		selected = append(selected, f.Path)
-	}
-
-	database.GetStorm().UpdateBTItemFiles(t.infoHash, selected)
-	t.FetchDBItem()
+	t.DownloadFiles(t.files)
 }
 
 // UnDownloadAllFiles ...
 func (t *Torrent) UnDownloadAllFiles() {
-	selected := []string{}
-
-	chosenFiles := make([]*File, len(t.ChosenFiles))
-	copy(chosenFiles[:], t.ChosenFiles)
-
-	for _, f := range chosenFiles {
-		t.UnDownloadFile(f)
-	}
-
-	database.GetStorm().UpdateBTItemFiles(t.infoHash, selected)
-	t.FetchDBItem()
+	t.UndownloadFiles(t.files)
 }
 
-// SaveDBFiles ...
-func (t *Torrent) SaveDBFiles() {
+// SyncSelectedFiles iterates through torrent files and choosing selected files
+func (t *Torrent) SyncSelectedFiles() []string {
+	t.ChosenFiles = []*File{}
 	selected := []string{}
 	for _, f := range t.files {
 		if f.Selected {
 			selected = append(selected, f.Path)
+			t.ChosenFiles = append(t.ChosenFiles, f)
 		}
 	}
+
+	return selected
+}
+
+// SaveDBFiles ...
+func (t *Torrent) SaveDBFiles() {
+	selected := t.SyncSelectedFiles()
 
 	database.GetStorm().UpdateBTItemFiles(t.infoHash, selected)
 	t.FetchDBItem()
@@ -958,7 +963,18 @@ func (t *Torrent) SaveDBFiles() {
 // DownloadFile ...
 func (t *Torrent) DownloadFile(addFile *File) {
 	addFile.Selected = true
-	t.ChosenFiles = append(t.ChosenFiles, addFile)
+
+	idx := -1
+	for i, f := range t.ChosenFiles {
+		if f.Index == addFile.Index {
+			idx = i
+			break
+		}
+	}
+
+	if idx == -1 {
+		t.ChosenFiles = append(t.ChosenFiles, addFile)
+	}
 
 	if t.Service.IsMemoryStorage() {
 		return
@@ -971,6 +987,9 @@ func (t *Torrent) DownloadFile(addFile *File) {
 
 		log.Debugf("Choosing file for download: %s", f.Path)
 		t.th.FilePriority(f.Index, 1)
+
+		// Need to sleep because file_priority is executed async
+		time.Sleep(50 * time.Millisecond)
 	}
 }
 
@@ -998,6 +1017,10 @@ func (t *Torrent) UnDownloadFile(addFile *File) bool {
 	}
 
 	t.th.FilePriority(addFile.Index, 0)
+
+	// Need to sleep because file_priority is executed async
+	time.Sleep(50 * time.Millisecond)
+
 	return true
 }
 
@@ -1138,30 +1161,30 @@ func (t *Torrent) FetchDBItem() *database.BTItem {
 }
 
 // SaveMetainfo ...
-func (t *Torrent) SaveMetainfo(path string) error {
+func (t *Torrent) SaveMetainfo(path string) (string, error) {
 	defer perf.ScopeTimer()()
 
 	// Not saving torrent for memory storage
 	if t.Service.IsMemoryStorage() {
-		return nil
+		return path, nil
 	}
 	if t.th == nil {
-		return fmt.Errorf("Torrent is not available")
+		return path, fmt.Errorf("Torrent is not available")
 	}
 	if _, err := os.Stat(path); err != nil {
-		return fmt.Errorf("Directory %s does not exist", path)
+		return path, fmt.Errorf("Directory %s does not exist", path)
 	}
 
 	path = filepath.Join(path, t.InfoHash()+".torrent")
 	// If .torrent file is already created - do not modify it, to avoid breaking the sorting.
 	if _, err := os.Stat(path); err == nil {
-		return nil
+		return path, nil
 	}
 
 	bEncodedTorrent := t.GetMetadata()
 	ioutil.WriteFile(path, bEncodedTorrent, 0644)
 
-	return nil
+	return path, nil
 }
 
 // GetReadaheadSize ...
@@ -1393,8 +1416,19 @@ func (t *Torrent) onMetadataReceived() {
 	t.partsFile = filepath.Join(t.Service.config.DownloadPath, fmt.Sprintf(".%s.parts", infoHash))
 
 	go func() {
-		t.SaveMetainfo(t.Service.config.TorrentsPath)
-		t.SaveMetainfo(filepath.Join(config.Get().Info.TempPath, fmt.Sprintf("%s.torrent", t.InfoHash)))
+		// After metadata is fetched for a torrent, we should
+		// save it to torrent file for re-adding after program restart.
+		if p, err := t.SaveMetainfo(t.Service.config.TorrentsPath); err == nil {
+			// Removing .torrent file
+			if _, err := os.Stat(t.torrentFile); err == nil && t.torrentFile != p {
+				log.Infof("Deleting old torrent file at %s", t.torrentFile)
+				os.Remove(t.torrentFile)
+			}
+
+			t.torrentFile = p
+		}
+
+		t.SaveMetainfo(config.Get().Info.TempPath)
 	}()
 }
 
@@ -1490,7 +1524,7 @@ func (t *Torrent) HasAvailableFiles() bool {
 
 // GetFilePieces ...
 func (t *Torrent) GetFilePieces(files lt.FileStorage, idx int) (ret PieceRange) {
-	ret.Begin, ret.End = t.byteRegionPieces(files.FileOffset(idx), files.FileOffset(idx)+files.FileSize(idx))
+	ret.Begin, ret.End = t.byteRegionPieces(files.FileOffset(idx), files.FileSize(idx))
 	return
 }
 

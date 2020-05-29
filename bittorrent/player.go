@@ -280,13 +280,6 @@ func (btp *Player) waitCheckAvailableSpace() {
 func (btp *Player) processMetadata() {
 	defer perf.ScopeTimer()()
 
-	// TODO: Do we need it?
-	// if btp.p.ResumeHash != "" {
-	// 	btp.t.th.AutoManaged(false)
-	// 	btp.t.Pause()
-	// 	defer btp.t.th.AutoManaged(true)
-	// }
-
 	var err error
 	btp.chosenFile, btp.p.FileIndex, err = btp.t.ChooseFile(btp)
 	if err != nil {
@@ -335,35 +328,27 @@ func (btp *Player) processMetadata() {
 		return
 	}
 
-	// Set all file priorities to 0 except chosen file,
-	// or all to 0 for Memory storage
-	log.Info("Setting file priorities")
-	filesPriorities := lt.NewStdVectorInt()
-	defer lt.DeleteStdVectorInt(filesPriorities)
+	// For non-memory storage prioritize current files
+	if !btp.s.IsMemoryStorage() {
+		filePriorities := btp.t.th.FilePriorities()
+		defer lt.DeleteStdVectorInt(filePriorities)
 
-	for _, f := range btp.t.files {
-		if btp.s.IsMemoryStorage() {
-			filesPriorities.Add(0)
-		} else if f == btp.chosenFile {
-			filesPriorities.Add(4)
-		} else if f == btp.subtitlesFile {
-			filesPriorities.Add(4)
-		} else {
-			filesPriorities.Add(0)
+		if btp.chosenFile != nil {
+			filePriorities.Set(btp.chosenFile.Index, 4)
 		}
+		if btp.subtitlesFile != nil {
+			filePriorities.Set(btp.subtitlesFile.Index, 4)
+		}
+
+		btp.t.th.PrioritizeFiles(filePriorities)
+		btp.t.SaveDBFiles()
 	}
-	btp.t.th.PrioritizeFiles(filesPriorities)
 
 	log.Info("Setting piece priorities")
 
 	if !btp.p.Background {
 		go btp.t.Buffer(btp.chosenFile, btp.p.ResumeHash == "")
 	}
-
-	// TODO find usage of resumeIndex. Do we need pause/resume for it?
-	// if btp.resumeIndex < 0 {
-	// 	btp.Torrent.Pause()
-	// }
 }
 
 func (btp *Player) statusStrings(progress float64, status lt.TorrentStatus) (string, string, string) {

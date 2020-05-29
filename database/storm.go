@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/anacrolix/missinggo/perf"
 	"github.com/asdine/storm"
 	"github.com/asdine/storm/q"
 
@@ -97,6 +98,8 @@ func (d *StormDatabase) MaintenanceRefreshHandler() {
 
 // CreateBackup ...
 func (d *StormDatabase) CreateBackup(backupPath string) {
+	defer perf.ScopeTimer()()
+
 	d.db.Bolt.View(func(tx *bolt.Tx) error {
 		tx.CopyFile(backupPath, 0600)
 		log.Debugf("Database backup saved at: %s", backupPath)
@@ -118,6 +121,8 @@ func (d *StormDatabase) GetFilename() string {
 
 // AddSearchHistory adds query to search history, according to media type
 func (d *StormDatabase) AddSearchHistory(historyType, query string) {
+	defer perf.ScopeTimer()()
+
 	var qh QueryHistory
 
 	if err := d.db.One("ID", fmt.Sprintf("%s|%s", historyType, query), &qh); err == nil {
@@ -144,6 +149,8 @@ func (d *StormDatabase) AddSearchHistory(historyType, query string) {
 
 // CleanSearchHistory cleans search history for selected media type
 func (d *StormDatabase) CleanSearchHistory(historyType string) {
+	defer perf.ScopeTimer()()
+
 	var qs []QueryHistory
 	d.db.Select(q.Eq("Type", historyType)).Find(&qs)
 	for _, q := range qs {
@@ -154,6 +161,8 @@ func (d *StormDatabase) CleanSearchHistory(historyType string) {
 
 // RemoveSearchHistory removes query from the history
 func (d *StormDatabase) RemoveSearchHistory(historyType, query string) {
+	defer perf.ScopeTimer()()
+
 	var qs []QueryHistory
 	d.db.Select(q.Eq("Type", historyType), q.Eq("Query", query)).Find(&qs)
 	for _, q := range qs {
@@ -164,6 +173,8 @@ func (d *StormDatabase) RemoveSearchHistory(historyType, query string) {
 
 // CleanupTorrentLink ...
 func (d *StormDatabase) CleanupTorrentLink(infoHash string) {
+	defer perf.ScopeTimer()()
+
 	var tiOld TorrentAssignItem
 	if err := d.db.Select(q.Eq("InfoHash", infoHash)).First(&tiOld); err != nil {
 		if err := d.db.Delete(TorrentAssignMetadataBucket, infoHash); err != nil {
@@ -178,6 +189,8 @@ func (d *StormDatabase) AddTorrentLink(tmdbID, infoHash string, b []byte) {
 	if len(infoHash) == 0 || infoHash == "0000000000000000000000000000000000000000" {
 		return
 	}
+
+	defer perf.ScopeTimer()()
 
 	log.Debugf("Saving torrent entry for TMDB %s with infohash %s", tmdbID, infoHash)
 
@@ -216,6 +229,8 @@ func (d *StormDatabase) AddTorrentLink(tmdbID, infoHash string, b []byte) {
 
 // GetBTItem ...
 func (d *StormDatabase) GetBTItem(infoHash string) *BTItem {
+	defer perf.ScopeTimer()()
+
 	item := &BTItem{}
 	if err := d.db.One("InfoHash", infoHash, item); err != nil {
 		return nil
@@ -226,6 +241,8 @@ func (d *StormDatabase) GetBTItem(infoHash string) *BTItem {
 
 // UpdateBTItemStatus ...
 func (d *StormDatabase) UpdateBTItemStatus(infoHash string, status int) error {
+	defer perf.ScopeTimer()()
+
 	item := BTItem{}
 	if err := d.db.One("InfoHash", infoHash, &item); err != nil {
 		return err
@@ -237,6 +254,8 @@ func (d *StormDatabase) UpdateBTItemStatus(infoHash string, status int) error {
 
 // UpdateBTItem ...
 func (d *StormDatabase) UpdateBTItem(infoHash string, mediaID int, mediaType string, files []string, query string, infos ...int) error {
+	defer perf.ScopeTimer()()
+
 	item := BTItem{
 		ID:       mediaID,
 		Type:     mediaType,
@@ -265,6 +284,8 @@ func (d *StormDatabase) UpdateBTItem(infoHash string, mediaID int, mediaType str
 
 // UpdateBTItemFiles ...
 func (d *StormDatabase) UpdateBTItemFiles(infoHash string, files []string) error {
+	defer perf.ScopeTimer()()
+
 	item := BTItem{}
 	if err := d.db.One("InfoHash", infoHash, &item); err != nil {
 		return err
@@ -276,11 +297,15 @@ func (d *StormDatabase) UpdateBTItemFiles(infoHash string, files []string) error
 
 // DeleteBTItem ...
 func (d *StormDatabase) DeleteBTItem(infoHash string) error {
+	defer perf.ScopeTimer()()
+
 	return d.db.Delete(BTItemBucket, infoHash)
 }
 
 // AddTorrentHistory saves last used torrent
 func (d *StormDatabase) AddTorrentHistory(infoHash, name string, b []byte) {
+	defer perf.ScopeTimer()()
+
 	if !config.Get().UseTorrentHistory {
 		return
 	}

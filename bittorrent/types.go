@@ -141,3 +141,7 @@ const (
 	storedResumeExpiration      = 60 * 60 * 60 * 24
 	storedWatchedFileExpiration = 60 * 60 * 60 * 24
 )
+
+func byPath(l, r *File) bool {
+	return l.Path < r.Path
+}

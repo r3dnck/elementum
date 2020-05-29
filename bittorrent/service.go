@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/anacrolix/missinggo/perf"
 	"github.com/cespare/xxhash"
 	"github.com/dustin/go-humanize"
 	"github.com/radovskyb/watcher"
@@ -619,6 +620,8 @@ func (s *Service) checkAvailableSpace(t *Torrent) bool {
 
 // AddTorrent ...
 func (s *Service) AddTorrent(uri string, paused bool) (*Torrent, error) {
+	defer perf.ScopeTimer()()
+
 	// To make sure no spaces coming from Web UI
 	uri = strings.TrimSpace(uri)
 
@@ -696,6 +699,7 @@ func (s *Service) AddTorrent(uri string, paused bool) (*Torrent, error) {
 	log.Infof("Setting save path to %s", s.config.DownloadPath)
 	torrentParams.SetSavePath(s.config.DownloadPath)
 
+	skipPriorities := false
 	if !s.IsMemoryStorage() {
 		log.Infof("Checking for fast resume data in %s.fastresume", infoHash)
 		fastResumeFile := filepath.Join(s.config.TorrentsPath, fmt.Sprintf("%s.fastresume", infoHash))
@@ -712,16 +716,20 @@ func (s *Service) AddTorrent(uri string, paused bool) (*Torrent, error) {
 				fastResumeVector.Add(c)
 			}
 			torrentParams.SetResumeData(fastResumeVector)
+
+			skipPriorities = true
 		}
 	}
 
-	// Setting default priorities to 0 to avoid downloading non-wanted files
-	filesPriorities := lt.NewStdVectorInt()
-	defer lt.DeleteStdVectorInt(filesPriorities)
-	for i := 0; i <= 500; i++ {
-		filesPriorities.Add(0)
+	if !skipPriorities {
+		// Setting default priorities to 0 to avoid downloading non-wanted files
+		filesPriorities := lt.NewStdVectorInt()
+		defer lt.DeleteStdVectorInt(filesPriorities)
+		for i := 0; i <= 500; i++ {
+			filesPriorities.Add(0)
+		}
+		torrentParams.SetFilePriorities(filesPriorities)
 	}
-	torrentParams.SetFilePriorities(filesPriorities)
 
 	// Call torrent creation
 	th, err = s.Session.AddTorrent(torrentParams)
@@ -774,7 +782,7 @@ func (s *Service) RemoveTorrent(t *Torrent, forceDrop, forceDelete, isWatched bo
 	keepDownloading := false
 	if forceDrop || config.Get().KeepDownloading == 2 || len(t.ChosenFiles) == 0 {
 		keepDownloading = false
-	} else if config.Get().KeepDownloading == 0 || xbmc.DialogConfirm("Elementum", fmt.Sprintf("LOCALIZE[30146];;%s", t.Name())) {
+	} else if config.Get().KeepDownloading == 0 || xbmc.DialogConfirmFocused("Elementum", fmt.Sprintf("LOCALIZE[30146];;%s", t.Name())) {
 		keepDownloading = true
 	}
 
@@ -1031,6 +1039,8 @@ func (s *Service) loadTorrentFiles() {
 		return
 	}
 
+	defer perf.ScopeTimer()()
+
 	log.Infof("Loading torrents from: %s", s.config.TorrentsPath)
 	files, err := ioutil.ReadDir(s.config.TorrentsPath)
 	if err != nil {
@@ -1053,22 +1063,31 @@ func (s *Service) loadTorrentFiles() {
 		filePath := filepath.Join(s.config.TorrentsPath, torrentFile.Name())
 		log.Infof("Loading torrent file %s", torrentFile.Name())
 
-		torrentParams := lt.NewAddTorrentParams()
-		defer lt.DeleteAddTorrentParams(torrentParams)
+		t, err := s.AddTorrent(filePath, s.config.AutoloadTorrentsPaused)
+		if err != nil {
+			log.Warningf("Cannot add torrent from existing file %s: %s", filePath, err)
+			continue
+		} else if t == nil {
+			continue
+		}
 
-		t, _ := s.AddTorrent(filePath, s.config.AutoloadTorrentsPaused)
-		if t != nil {
-			i := database.GetStorm().GetBTItem(t.InfoHash())
-			if i != nil {
-				t.DBItem = i
+		i := database.GetStorm().GetBTItem(t.InfoHash())
+		if i == nil {
+			continue
+		}
 
-				for _, p := range i.Files {
-					if f := t.GetFileByPath(p); f != nil {
-						t.DownloadFile(f)
-					}
-				}
+		t.DBItem = i
+
+		files := []*File{}
+		for _, p := range i.Files {
+			if f := t.GetFileByPath(p); f != nil {
+				files = append(files, f)
 			}
 		}
+		if len(files) > 0 {
+			t.DownloadFiles(files)
+		}
+		t.SyncSelectedFiles()
 	}
 
 	s.cleanStaleFiles(s.config.DownloadPath, ".parts")
