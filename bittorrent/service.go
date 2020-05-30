@@ -369,7 +369,8 @@ func (s *Service) configure() {
 		lt.AlertStatusNotification|
 			lt.AlertStorageNotification|
 			lt.AlertErrorNotification|
-			lt.AlertPerformanceWarning))
+			lt.AlertPerformanceWarning|
+			lt.AlertTrackerNotification))
 
 	if s.config.UseLibtorrentLogging {
 		settings.SetInt("alert_mask", int(lt.AlertAllCategories))
@@ -980,6 +981,20 @@ func (s *Service) alertsConsumer() {
 							t.gotMetainfo.Set()
 						}
 					}
+				case lt.TrackerReplyAlertAlertType:
+					ta := lt.SwigcptrTrackerReplyAlert(alertPtr)
+					for _, t := range s.q.All() {
+						if t.th != nil && ta.GetHandle().Equal(t.th) {
+							t.trackers.Store(ta.TrackerUrl(), ta.GetNumPeers())
+						}
+					}
+				case lt.DhtReplyAlertAlertType:
+					ta := lt.SwigcptrDhtReplyAlert(alertPtr)
+					for _, t := range s.q.All() {
+						if t.th != nil && ta.GetHandle().Equal(t.th) {
+							t.trackers.Store("DHT", ta.GetNumPeers())
+						}
+					}
 				}
 
 				alert := &Alert{
@@ -1015,7 +1030,11 @@ func (s *Service) logAlerts() {
 	for alert := range alerts {
 		// Skipping Tracker communication, Save_Resume, UDP errors
 		// No need to spam logs.
-		if alert.Category&int(lt.SaveResumeDataAlertAlertType) != 0 || alert.Category&int(lt.UdpErrorAlertAlertType) != 0 || alert.Category&int(lt.AlertBlockProgressNotification) != 0 {
+		if alert.Category&int(lt.SaveResumeDataAlertAlertType) != 0 ||
+			alert.Category&int(lt.UdpErrorAlertAlertType) != 0 ||
+			alert.Category&int(lt.AlertBlockProgressNotification) != 0 ||
+			alert.Category&int(lt.TrackerReplyAlertAlertType) != 0 ||
+			alert.Category&int(lt.DhtReplyAlertAlertType) != 0 {
 			continue
 		} else if alert.Category&int(lt.AlertErrorNotification) != 0 {
 			log.Errorf("%s: %s", alert.What, alert.Message)

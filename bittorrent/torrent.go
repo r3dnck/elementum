@@ -52,6 +52,7 @@ type Torrent struct {
 	readers            map[int64]*TorrentFSEntry
 	reservedPieces     []int
 	lastPrioritization string
+	trackers           sync.Map
 
 	awaitingPieces *roaring.Bitmap
 	demandPieces   *roaring.Bitmap
@@ -1404,6 +1405,10 @@ func average(xs []int64) float64 {
 }
 
 func (t *Torrent) onMetadataReceived() {
+	if t.Service.Closer.IsSet() || t.Closer.IsSet() {
+		return
+	}
+
 	defer t.gotMetainfo.Set()
 
 	t.ti = t.th.TorrentFile()
@@ -1871,6 +1876,12 @@ func (t *Torrent) TorrentInfo(w io.Writer) {
 	}
 	lt.DeleteStdVectorInt(filePriorities)
 
+	fmt.Fprint(w, "\n")
+	fmt.Fprint(w, "    Trackers:\n")
+	t.trackers.Range(func(t, p interface{}) bool {
+		fmt.Fprintf(w, "        %s: %d peers\n", t, p)
+		return true
+	})
 	fmt.Fprint(w, "\n")
 
 	// TODO: Do we need pieces into?
