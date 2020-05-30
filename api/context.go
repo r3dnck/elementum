@@ -30,7 +30,7 @@ func ContextPlaySelector(s *bittorrent.Service) gin.HandlerFunc {
 		} else if kodiID == 0 && config.Get().ChooseStreamAutoSearch {
 			mediaAction = "forceplay"
 		}
-		
+
 		if action == "download" {
 			mediaAction = action
 		}

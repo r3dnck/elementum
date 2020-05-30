@@ -297,7 +297,7 @@ func (btp *Player) processMetadata() {
 	log.Infof("Saving torrent to database")
 
 	btp.FetchStoredResume()
-	if btp.p.StoredResume != nil && btp.p.StoredResume.Position > 0 {
+	if btp.p.StoredResume != nil && btp.p.StoredResume.Position > 0 && !btp.p.Background {
 		if !config.Get().StoreResume || config.Get().StoreResumeAction == 0 || !(config.Get().SilentStreamStart || config.Get().StoreResumeAction == 2 || xbmc.DialogConfirmFocused("Elementum", fmt.Sprintf("LOCALIZE[30535];;%s", btp.p.StoredResume.ToString()))) {
 			log.Infof("Resetting stored resume")
 			btp.p.StoredResume.Reset()
