@@ -79,7 +79,7 @@ func ProviderList(ctx *gin.Context) {
 			IsPlayable: false,
 		}
 		item.ContextMenu = [][]string{
-			[]string{"LOCALIZE[30242]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/provider/%s/check", provider.ID))},
+			{"LOCALIZE[30242]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/provider/%s/check", provider.ID))},
 		}
 		if provider.Enabled {
 			item.ContextMenu = append(item.ContextMenu,

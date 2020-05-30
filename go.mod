@@ -11,6 +11,7 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/anacrolix/envpprof v1.1.1
 	github.com/anacrolix/log v0.7.0 // indirect
+	github.com/anacrolix/missinggo v1.2.1
 	github.com/anacrolix/missinggo/perf v1.0.0
 	github.com/anacrolix/sync v0.2.0
 	github.com/anacrolix/tagflag v1.1.0

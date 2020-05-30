@@ -36,13 +36,13 @@ type PasteFields struct {
 }
 
 var pasteProjects = []PasteProject{
-	PasteProject{
+	{
 		URL:     "https://paste.kodi.tv/documents",
 		BaseURL: "https://paste.kodi.tv",
 		Name:    "Kodi.tv Hastebin",
 		IsRAW:   true,
 	},
-	PasteProject{
+	{
 		URL:     "https://paste.ubuntu.com/",
 		BaseURL: "https://paste.ubuntu.com",
 		Name:    "Ubuntu Pastebin",
@@ -56,7 +56,7 @@ var pasteProjects = []PasteProject{
 			Syntax: "text",
 		},
 	},
-	PasteProject{
+	{
 		URL:     "https://paste.fedoraproject.org/api/paste/submit",
 		BaseURL: "https://paste.fedoraproject.org",
 		Name:    "Fedora Pastebin",

@@ -36,7 +36,7 @@ func History(ctx *gin.Context) {
 			Label: th.Name,
 			Path:  torrentHistoryGetXbmcURL(th.InfoHash),
 			ContextMenu: [][]string{
-				[]string{"LOCALIZE[30406]", fmt.Sprintf("XBMC.RunPlugin(%s)",
+				{"LOCALIZE[30406]", fmt.Sprintf("XBMC.RunPlugin(%s)",
 					URLQuery(URLForXBMC("/history/remove"),
 						"infohash", th.InfoHash,
 					))},

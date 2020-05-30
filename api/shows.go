@@ -29,8 +29,8 @@ func TVIndex(ctx *gin.Context) {
 
 		{Label: "LOCALIZE[30360]", Path: URLForXBMC("/shows/trakt/progress"), Thumbnail: config.AddonResource("img", "trakt.png"), TraktAuth: true},
 		{Label: "LOCALIZE[30263]", Path: URLForXBMC("/shows/trakt/lists/"), Thumbnail: config.AddonResource("img", "trakt.png"), TraktAuth: true},
-		{Label: "LOCALIZE[30254]", Path: URLForXBMC("/shows/trakt/watchlist"), Thumbnail: config.AddonResource("img", "trakt.png"), ContextMenu: [][]string{[]string{"LOCALIZE[30252]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/library/show/list/add/watchlist"))}}, TraktAuth: true},
-		{Label: "LOCALIZE[30257]", Path: URLForXBMC("/shows/trakt/collection"), Thumbnail: config.AddonResource("img", "trakt.png"), ContextMenu: [][]string{[]string{"LOCALIZE[30252]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/library/show/list/add/collection"))}}, TraktAuth: true},
+		{Label: "LOCALIZE[30254]", Path: URLForXBMC("/shows/trakt/watchlist"), Thumbnail: config.AddonResource("img", "trakt.png"), ContextMenu: [][]string{{"LOCALIZE[30252]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/library/show/list/add/watchlist"))}}, TraktAuth: true},
+		{Label: "LOCALIZE[30257]", Path: URLForXBMC("/shows/trakt/collection"), Thumbnail: config.AddonResource("img", "trakt.png"), ContextMenu: [][]string{{"LOCALIZE[30252]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/library/show/list/add/collection"))}}, TraktAuth: true},
 		{Label: "LOCALIZE[30290]", Path: URLForXBMC("/shows/trakt/calendars/"), Thumbnail: config.AddonResource("img", "most_anticipated.png"), TraktAuth: true},
 		{Label: "LOCALIZE[30423]", Path: URLForXBMC("/shows/trakt/recommendations"), Thumbnail: config.AddonResource("img", "tv.png"), TraktAuth: true},
 		{Label: "LOCALIZE[30246]", Path: URLForXBMC("/shows/trakt/trending"), Thumbnail: config.AddonResource("img", "trending.png")},
@@ -58,7 +58,7 @@ func TVIndex(ctx *gin.Context) {
 	}
 	for _, item := range items {
 		item.ContextMenu = [][]string{
-			[]string{"LOCALIZE[30143]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/menus_tvshows"))},
+			{"LOCALIZE[30143]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/menus_tvshows"))},
 		}
 	}
 
@@ -68,7 +68,7 @@ func TVIndex(ctx *gin.Context) {
 		for _, i := range TVMenu.AddItems {
 			item := &xbmc.ListItem{Label: i.Name, Path: i.Link, Thumbnail: config.AddonResource("img", "genre_tv.png")}
 			item.ContextMenu = [][]string{
-				[]string{"LOCALIZE[30521]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLQuery(URLForXBMC("/menu/tv/remove"), "name", i.Name, "link", i.Link))},
+				{"LOCALIZE[30521]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLQuery(URLForXBMC("/menu/tv/remove"), "name", i.Name, "link", i.Link))},
 			}
 
 			items = append(items[:index], append([]*xbmc.ListItem{item}, items[index:]...)...)
@@ -91,9 +91,9 @@ func TVGenres(ctx *gin.Context) {
 			Path:      URLForXBMC("/shows/popular/genre/%s", strconv.Itoa(genre.ID)),
 			Thumbnail: config.AddonResource("img", fmt.Sprintf("genre_%s.png", slug)),
 			ContextMenu: [][]string{
-				[]string{"LOCALIZE[30237]", fmt.Sprintf("Container.Update(%s)", URLForXBMC("/shows/recent/shows/genre/%s", strconv.Itoa(genre.ID)))},
-				[]string{"LOCALIZE[30238]", fmt.Sprintf("Container.Update(%s)", URLForXBMC("/shows/recent/episodes/genre/%s", strconv.Itoa(genre.ID)))},
-				[]string{"LOCALIZE[30144]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/menus_tvshows_genres"))},
+				{"LOCALIZE[30237]", fmt.Sprintf("Container.Update(%s)", URLForXBMC("/shows/recent/shows/genre/%s", strconv.Itoa(genre.ID)))},
+				{"LOCALIZE[30238]", fmt.Sprintf("Container.Update(%s)", URLForXBMC("/shows/recent/episodes/genre/%s", strconv.Itoa(genre.ID)))},
+				{"LOCALIZE[30144]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/menus_tvshows_genres"))},
 			},
 		})
 	}
@@ -110,9 +110,9 @@ func TVLanguages(ctx *gin.Context) {
 			Label: language.Name,
 			Path:  URLForXBMC("/shows/popular/language/%s", language.Iso639_1),
 			ContextMenu: [][]string{
-				[]string{"LOCALIZE[30237]", fmt.Sprintf("Container.Update(%s)", URLForXBMC("/shows/recent/shows/language/%s", language.Iso639_1))},
-				[]string{"LOCALIZE[30238]", fmt.Sprintf("Container.Update(%s)", URLForXBMC("/shows/recent/episodes/language/%s", language.Iso639_1))},
-				[]string{"LOCALIZE[30144]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/menus_tvshows_languages"))},
+				{"LOCALIZE[30237]", fmt.Sprintf("Container.Update(%s)", URLForXBMC("/shows/recent/shows/language/%s", language.Iso639_1))},
+				{"LOCALIZE[30238]", fmt.Sprintf("Container.Update(%s)", URLForXBMC("/shows/recent/episodes/language/%s", language.Iso639_1))},
+				{"LOCALIZE[30144]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/menus_tvshows_languages"))},
 			},
 		})
 	}
@@ -129,9 +129,9 @@ func TVCountries(ctx *gin.Context) {
 			Label: country.EnglishName,
 			Path:  URLForXBMC("/shows/popular/country/%s", country.Iso31661),
 			ContextMenu: [][]string{
-				[]string{"LOCALIZE[30237]", fmt.Sprintf("Container.Update(%s)", URLForXBMC("/shows/recent/shows/country/%s", country.Iso31661))},
-				[]string{"LOCALIZE[30238]", fmt.Sprintf("Container.Update(%s)", URLForXBMC("/shows/recent/episodes/country/%s", country.Iso31661))},
-				[]string{"LOCALIZE[30144]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/menus_tvshows_countries"))},
+				{"LOCALIZE[30237]", fmt.Sprintf("Container.Update(%s)", URLForXBMC("/shows/recent/shows/country/%s", country.Iso31661))},
+				{"LOCALIZE[30238]", fmt.Sprintf("Container.Update(%s)", URLForXBMC("/shows/recent/episodes/country/%s", country.Iso31661))},
+				{"LOCALIZE[30144]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/menus_tvshows_countries"))},
 			},
 		})
 	}
@@ -254,7 +254,7 @@ func renderShows(ctx *gin.Context, shows tmdb.Shows, page int, total int, query 
 		item.ContextMenu = [][]string{
 			watchlistAction,
 			collectionAction,
-			[]string{"LOCALIZE[30035]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/tvshows"))},
+			{"LOCALIZE[30035]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/tvshows"))},
 		}
 		item.ContextMenu = append(libraryActions, item.ContextMenu...)
 
@@ -403,9 +403,9 @@ func ShowSeasons(ctx *gin.Context) {
 
 		item.Path = URLForXBMC("/show/%d/season/%d/episodes", show.ID, item.Info.Season)
 		item.ContextMenu = [][]string{
-			[]string{contextLabel, fmt.Sprintf("XBMC.PlayMedia(%s)", contextURL)},
-			[]string{contextOppositeLabel, fmt.Sprintf("XBMC.PlayMedia(%s)", contextOppositeURL)},
-			[]string{"LOCALIZE[30036]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/seasons"))},
+			{contextLabel, fmt.Sprintf("XBMC.PlayMedia(%s)", contextURL)},
+			{contextOppositeLabel, fmt.Sprintf("XBMC.PlayMedia(%s)", contextOppositeURL)},
+			{"LOCALIZE[30036]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/seasons"))},
 		}
 
 		reversedItems = append(reversedItems, item)
@@ -416,7 +416,7 @@ func ShowSeasons(ctx *gin.Context) {
 			Label: "LOCALIZE[30571]",
 			Path:  URLForXBMC("/show/%d/season/all/episodes", show.ID),
 			ContextMenu: [][]string{
-				[]string{"LOCALIZE[30036]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/seasons"))},
+				{"LOCALIZE[30036]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/seasons"))},
 			},
 		}
 
@@ -486,15 +486,15 @@ func ShowEpisodes(ctx *gin.Context) {
 
 			if config.Get().Platform.Kodi < 17 {
 				item.ContextMenu = [][]string{
-					[]string{contextLabel, fmt.Sprintf("XBMC.PlayMedia(%s)", contextURL)},
-					[]string{"LOCALIZE[30203]", "XBMC.Action(Info)"},
-					[]string{"LOCALIZE[30268]", "XBMC.Action(ToggleWatched)"},
-					[]string{"LOCALIZE[30037]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/episodes"))},
+					{contextLabel, fmt.Sprintf("XBMC.PlayMedia(%s)", contextURL)},
+					{"LOCALIZE[30203]", "XBMC.Action(Info)"},
+					{"LOCALIZE[30268]", "XBMC.Action(ToggleWatched)"},
+					{"LOCALIZE[30037]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/episodes"))},
 				}
 			} else {
 				item.ContextMenu = [][]string{
-					[]string{contextLabel, fmt.Sprintf("XBMC.PlayMedia(%s)", contextURL)},
-					[]string{"LOCALIZE[30037]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/episodes"))},
+					{contextLabel, fmt.Sprintf("XBMC.PlayMedia(%s)", contextURL)},
+					{"LOCALIZE[30037]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/setviewmode/episodes"))},
 				}
 			}
 			item.IsPlayable = true
