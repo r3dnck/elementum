@@ -213,7 +213,7 @@ func (s *Service) configure() {
 	// settings.SetInt("peer_tos", ipToSLowCost)
 	// settings.SetInt("torrent_connect_boost", 20)
 	// settings.SetInt("torrent_connect_boost", 100)
-	// settings.SetInt("torrent_connect_boost", 0)
+	settings.SetInt("torrent_connect_boost", 0)
 	settings.SetInt("aio_threads", runtime.NumCPU()*4)
 	settings.SetInt("cache_size", -1)
 	settings.SetInt("mixed_mode_algorithm", int(lt.SettingsPackPreferTcp))
@@ -273,7 +273,7 @@ func (s *Service) configure() {
 	}
 
 	if s.config.ConnTrackerLimitAuto || s.config.ConnTrackerLimit == 0 {
-		settings.SetInt("connection_speed", 200)
+		settings.SetInt("connection_speed", 500)
 	} else {
 		settings.SetInt("connection_speed", s.config.ConnTrackerLimit)
 	}
