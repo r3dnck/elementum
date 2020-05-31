@@ -1751,6 +1751,7 @@ func (t *Torrent) ChooseFile(btp *Player) (*File, int, error) {
 		}
 
 		choice := xbmc.ListDialog("LOCALIZE[30560];;"+searchTitle, items...)
+		log.Debugf("Choice selected: %d", choice)
 		if choice >= 0 {
 			if btp == nil {
 				t.DownloadFile(files[choices[choice].Index])
