@@ -1432,7 +1432,7 @@ func (t *Torrent) onMetadataReceived() {
 		// save it to torrent file for re-adding after program restart.
 		if p, err := t.SaveMetainfo(t.Service.config.TorrentsPath); err == nil {
 			// Removing .torrent file
-			if _, err := os.Stat(t.torrentFile); err == nil && t.torrentFile != p {
+			if _, err := os.Stat(t.torrentFile); err == nil && t.torrentFile != p && strings.Contains(t.torrentFile, t.Service.config.TorrentsPath) {
 				log.Infof("Deleting old torrent file at %s", t.torrentFile)
 				os.Remove(t.torrentFile)
 			}
