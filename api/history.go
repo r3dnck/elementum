@@ -19,7 +19,7 @@ func History(ctx *gin.Context) {
 
 	infohash := ctx.Query("infohash")
 	if torrent := InTorrentsHistory(infohash); torrent != nil {
-		xbmc.PlayURLWithTimeout(URLQuery(
+		ctx.Redirect(302, URLQuery(
 			URLForXBMC("/play"), "uri", torrent.URI,
 		))
 		return
@@ -41,6 +41,10 @@ func History(ctx *gin.Context) {
 						"infohash", th.InfoHash,
 					))},
 			},
+			Info: &xbmc.ListItemInfo{
+				Mediatype: "video",
+			},
+			IsPlayable: true,
 		})
 	}
 
