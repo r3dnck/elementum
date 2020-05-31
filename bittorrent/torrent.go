@@ -36,16 +36,17 @@ import (
 
 // Torrent ...
 type Torrent struct {
-	files          []*File
-	th             lt.TorrentHandle
-	ti             lt.TorrentInfo
-	lastStatus     lt.TorrentStatus
-	lastProgress   float64
-	ms             lt.MemoryStorage
-	fastResumeFile string
-	torrentFile    string
-	partsFile      string
-	addedTime      time.Time
+	files           []*File
+	th              lt.TorrentHandle
+	ti              lt.TorrentInfo
+	lastStatus      lt.TorrentStatus
+	lastProgress    float64
+	ms              lt.MemoryStorage
+	fastResumeFile  string
+	torrentFile     string
+	partsFile       string
+	addedTime       time.Time
+	DownloadStorage int
 
 	name               string
 	infoHash           string
@@ -102,7 +103,9 @@ type Torrent struct {
 }
 
 // NewTorrent ...
-func NewTorrent(service *Service, handle lt.TorrentHandle, info lt.TorrentInfo, path string) *Torrent {
+func NewTorrent(service *Service, handle lt.TorrentHandle, info lt.TorrentInfo, path string, downloadStorage int) *Torrent {
+	log.Infof("Adding torrent with storage: %s", Storages[downloadStorage])
+
 	ts := handle.Status()
 	defer lt.DeleteTorrentStatus(ts)
 
@@ -112,11 +115,12 @@ func NewTorrent(service *Service, handle lt.TorrentHandle, info lt.TorrentInfo, 
 	t := &Torrent{
 		infoHash: infoHash,
 
-		Service:     service,
-		files:       []*File{},
-		th:          handle,
-		ti:          info,
-		torrentFile: path,
+		Service:         service,
+		files:           []*File{},
+		th:              handle,
+		ti:              info,
+		torrentFile:     path,
+		DownloadStorage: downloadStorage,
 
 		readers:        map[int64]*TorrentFSEntry{},
 		reservedPieces: []int{},
@@ -336,7 +340,7 @@ func (t *Torrent) Buffer(file *File, isStartup bool) {
 
 	defer perf.ScopeTimer()()
 
-	if isStartup && t.Service.IsMemoryStorage() && t.MemorySize < t.pieceLength*10 {
+	if isStartup && t.IsMemoryStorage() && t.MemorySize < t.pieceLength*10 {
 		t.AdjustMemorySize(t.pieceLength * 10)
 	}
 
@@ -377,7 +381,7 @@ func (t *Torrent) Buffer(file *File, isStartup bool) {
 	// 	}
 	// }
 
-	if t.Service.IsMemoryStorage() {
+	if t.IsMemoryStorage() {
 		if isStartup {
 			t.ms = t.th.GetMemoryStorage().(lt.MemoryStorage)
 			t.ms.SetTorrentHandle(t.th)
@@ -489,7 +493,7 @@ func (t *Torrent) Buffer(file *File, isStartup bool) {
 	}
 
 	// As long as file storage has many enabled pieces, we make sure buffer pieces are sent immediately
-	if !t.Service.IsMemoryStorage() {
+	if !t.IsMemoryStorage() {
 		for curPiece = preBufferStart; curPiece <= preBufferEnd; curPiece++ { // get this part
 			t.th.SetPieceDeadline(curPiece, 0, 0)
 		}
@@ -697,13 +701,13 @@ func (t *Torrent) PrioritizePieces() {
 		return
 	}
 
-	if t.Service.IsMemoryStorage() && t.th != nil && t.ms != nil {
+	if t.IsMemoryStorage() && t.th != nil && t.ms != nil {
 		t.ms.UpdateReaderPieces(readerVector)
 		t.ms.UpdateReservedPieces(reservedVector)
 	}
 
 	defaultPriority := 0
-	if !t.Service.IsMemoryStorage() {
+	if !t.IsMemoryStorage() {
 		for _, f := range t.ChosenFiles {
 			for i := f.PieceStart; i <= f.PieceEnd; i++ {
 				if len(readerPieces) > i && readerPieces[i] == 0 {
@@ -770,7 +774,7 @@ func (t *Torrent) GetState() int {
 func (t *Torrent) GetStateString() string {
 	defer perf.ScopeTimer()()
 
-	if t.Service.IsMemoryStorage() {
+	if t.IsMemoryStorage() {
 		if t.IsBuffering {
 			return StatusStrings[StatusBuffering]
 		} else if t.IsPlaying {
@@ -797,7 +801,7 @@ func (t *Torrent) GetStateString() string {
 
 		return StatusStrings[StatusPaused]
 	} else if !torrentStatus.GetPaused() && (state == StatusFinished || progress == 100) {
-		if t.Service.IsMemoryStorage() {
+		if t.IsMemoryStorage() {
 			return StatusStrings[StatusQueued]
 		}
 	} else if state != StatusQueued && t.IsBuffering {
@@ -880,7 +884,7 @@ func (t *Torrent) GetProgress() float64 {
 
 	// For memory storage let's show playback progress,
 	// because we can't know real progress of download
-	if t.Service.IsMemoryStorage() {
+	if t.IsMemoryStorage() {
 		if player := t.Service.GetActivePlayer(); player != nil && player.p.VideoDuration != 0 {
 			t.GetRealProgress()
 			return player.p.WatchedTime / player.p.VideoDuration * 100
@@ -977,7 +981,7 @@ func (t *Torrent) DownloadFile(addFile *File) {
 		t.ChosenFiles = append(t.ChosenFiles, addFile)
 	}
 
-	if t.Service.IsMemoryStorage() {
+	if t.IsMemoryStorage() {
 		return
 	}
 
@@ -1013,7 +1017,7 @@ func (t *Torrent) UnDownloadFile(addFile *File) bool {
 	log.Debugf("UnChoosing file for download: %s", addFile.Path)
 	t.ChosenFiles = append(t.ChosenFiles[:idx], t.ChosenFiles[idx+1:]...)
 
-	if t.Service.IsMemoryStorage() {
+	if t.IsMemoryStorage() {
 		return true
 	}
 
@@ -1106,7 +1110,7 @@ func (t *Torrent) Drop(removeFiles bool) {
 			defer os.Remove(t.torrentFile)
 		}
 
-		if removeFiles || t.Service.IsMemoryStorage() {
+		if removeFiles || t.IsMemoryStorage() {
 			// Removing .fastresume file
 			if _, err := os.Stat(t.fastResumeFile); err == nil {
 				log.Infof("Deleting fast resume data at %s", t.fastResumeFile)
@@ -1166,7 +1170,7 @@ func (t *Torrent) SaveMetainfo(path string) (string, error) {
 	defer perf.ScopeTimer()()
 
 	// Not saving torrent for memory storage
-	if t.Service.IsMemoryStorage() {
+	if t.IsMemoryStorage() {
 		return path, nil
 	}
 	if t.th == nil {
@@ -1193,7 +1197,7 @@ func (t *Torrent) GetReadaheadSize() (ret int64) {
 	defer perf.ScopeTimer()()
 
 	defaultRA := int64(50 * 1024 * 1024)
-	if !t.Service.IsMemoryStorage() {
+	if !t.IsMemoryStorage() {
 		return defaultRA
 	}
 
@@ -1890,7 +1894,7 @@ func (t *Torrent) TorrentInfo(w io.Writer) {
 
 	piecesStatus := bytebufferpool.Get()
 	piecesStatus.Reset()
-	piecesStatus.WriteString("    ")
+	piecesStatus.WriteString("        ")
 	for i := 0; i < t.ti.NumPieces(); i++ {
 		if t.hasPiece(i) {
 			piecesStatus.WriteString("+")
@@ -1901,11 +1905,16 @@ func (t *Torrent) TorrentInfo(w io.Writer) {
 		}
 
 		if i > 0 && (i+1)%100 == 0 {
-			piecesStatus.WriteString("\n    ")
+			piecesStatus.WriteString("\n        ")
 		}
 	}
 	fmt.Fprint(w, "    Pieces:\n")
 	fmt.Fprint(w, piecesStatus.String())
 	bytebufferpool.Put(piecesStatus)
 	fmt.Fprint(w, "\n")
+}
+
+// IsMemoryStorage is a shortcut for checking whether we run memory storage
+func (t *Torrent) IsMemoryStorage() bool {
+	return t.DownloadStorage == StorageMemory
 }

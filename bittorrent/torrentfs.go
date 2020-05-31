@@ -70,25 +70,26 @@ func (tfs *TorrentFS) Open(uname string) (http.File, error) {
 	var file http.File
 	var err error
 
-	if tfs.s.config.DownloadStorage == StorageFile {
-		file, err = os.Open(filepath.Join(string(tfs.Dir), name))
-		if err != nil {
-			return nil, err
-		}
-
-		// make sure we don't open a file that's locked, as it can happen
-		// on BSD systems (darwin included)
-		if err := unlockFile(file.(*os.File)); err != nil {
-			log.Errorf("Unable to unlock file because: %s", err)
-		}
-	}
-
 	log.Infof("Opening %s", name)
 
 	for _, t := range tfs.s.q.All() {
 		for _, f := range t.files {
 			if name[1:] == f.Path {
 				log.Noticef("%s belongs to torrent %s", name, t.Name())
+
+				if !t.IsMemoryStorage() {
+					file, err = os.Open(filepath.Join(string(tfs.Dir), name))
+					if err != nil {
+						return nil, err
+					}
+
+					// make sure we don't open a file that's locked, as it can happen
+					// on BSD systems (darwin included)
+					if err := unlockFile(file.(*os.File)); err != nil {
+						log.Errorf("Unable to unlock file because: %s", err)
+					}
+				}
+
 				return NewTorrentFSEntry(file, tfs, t, f, name)
 			}
 		}
@@ -112,7 +113,7 @@ func NewTorrentFSEntry(file http.File, tfs *TorrentFS, t *Torrent, f *File, name
 		totalLength: t.ti.TotalSize(),
 		pieceLength: t.ti.PieceLength(),
 		numPieces:   t.ti.NumPieces(),
-		storageType: tfs.s.config.DownloadStorage,
+		storageType: t.DownloadStorage,
 		id:          time.Now().UTC().UnixNano(),
 
 		lastUsed: time.Now(),

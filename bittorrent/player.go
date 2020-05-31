@@ -163,7 +163,12 @@ func (btp *Player) SetTorrent(t *Torrent) {
 
 func (btp *Player) addTorrent() error {
 	if btp.t == nil {
-		torrent, err := btp.s.AddTorrent(btp.p.URI, false)
+		storage := config.Get().DownloadStorage
+		if btp.p.Background {
+			storage = StorageFile
+		}
+
+		torrent, err := btp.s.AddTorrent(btp.p.URI, false, storage)
 		if err != nil {
 			log.Errorf("Error adding torrent to player: %s", err)
 			return err
@@ -255,7 +260,7 @@ func (btp *Player) Buffer() error {
 }
 
 func (btp *Player) waitCheckAvailableSpace() {
-	if btp.s.IsMemoryStorage() {
+	if btp.t.IsMemoryStorage() {
 		return
 	}
 
@@ -329,7 +334,7 @@ func (btp *Player) processMetadata() {
 	}
 
 	// For non-memory storage prioritize current files
-	if !btp.s.IsMemoryStorage() {
+	if !btp.t.IsMemoryStorage() {
 		filePriorities := btp.t.th.FilePriorities()
 		defer lt.DeleteStdVectorInt(filePriorities)
 
@@ -761,7 +766,7 @@ playbackLoop:
 }
 
 func (btp *Player) isReadyForNextFile() bool {
-	if btp.s.IsMemoryStorage() {
+	if btp.t.IsMemoryStorage() {
 		ra := btp.t.GetReadaheadSize()
 		sum := btp.t.ReadersReadaheadSum()
 

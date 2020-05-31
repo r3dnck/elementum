@@ -110,9 +110,7 @@ func NewService() *Service {
 
 	go s.watchConfig()
 	go s.saveResumeDataConsumer()
-	if !s.IsMemoryStorage() {
-		go s.saveResumeDataLoop()
-	}
+	go s.saveResumeDataLoop()
 
 	go tmdb.CheckAPIKey()
 
@@ -296,7 +294,7 @@ func (s *Service) configure() {
 	// 	s.Session.AddUploadExtension()
 	// }
 
-	if !s.config.SeedForever && !s.IsMemoryStorage() {
+	if !s.config.SeedForever {
 		if s.config.ShareRatioLimit > 0 {
 			settings.SetInt("share_ratio_limit", s.config.ShareRatioLimit)
 		}
@@ -573,7 +571,7 @@ func (s *Service) stopServices() {
 // CheckAvailableSpace ...
 func (s *Service) checkAvailableSpace(t *Torrent) bool {
 	// For memory storage we don't need to check available space
-	if s.IsMemoryStorage() {
+	if t.IsMemoryStorage() {
 		return true
 	}
 
@@ -620,7 +618,7 @@ func (s *Service) checkAvailableSpace(t *Torrent) bool {
 }
 
 // AddTorrent ...
-func (s *Service) AddTorrent(uri string, paused bool) (*Torrent, error) {
+func (s *Service) AddTorrent(uri string, paused bool, downloadStorage int) (*Torrent, error) {
 	defer perf.ScopeTimer()()
 
 	// To make sure no spaces coming from Web UI
@@ -628,7 +626,7 @@ func (s *Service) AddTorrent(uri string, paused bool) (*Torrent, error) {
 
 	log.Infof("Adding torrent from %s", uri)
 
-	if !s.IsMemoryStorage() && s.config.DownloadPath == "." {
+	if downloadStorage != StorageMemory && s.config.DownloadPath == "." {
 		log.Warningf("Cannot add torrent since download path is not set")
 		xbmc.Notify("Elementum", "LOCALIZE[30113]", config.AddonIcon())
 		return nil, fmt.Errorf("Download path empty")
@@ -637,7 +635,7 @@ func (s *Service) AddTorrent(uri string, paused bool) (*Torrent, error) {
 	torrentParams := lt.NewAddTorrentParams()
 	defer lt.DeleteAddTorrentParams(torrentParams)
 
-	if s.IsMemoryStorage() {
+	if downloadStorage == StorageMemory {
 		torrentParams.SetMemoryStorage(s.GetMemorySize())
 	}
 
@@ -701,7 +699,7 @@ func (s *Service) AddTorrent(uri string, paused bool) (*Torrent, error) {
 	torrentParams.SetSavePath(s.config.DownloadPath)
 
 	skipPriorities := false
-	if !s.IsMemoryStorage() {
+	if downloadStorage != StorageMemory {
 		log.Infof("Checking for fast resume data in %s.fastresume", infoHash)
 		fastResumeFile := filepath.Join(s.config.TorrentsPath, fmt.Sprintf("%s.fastresume", infoHash))
 		if _, err := os.Stat(fastResumeFile); err == nil {
@@ -741,13 +739,13 @@ func (s *Service) AddTorrent(uri string, paused bool) (*Torrent, error) {
 		th.Resume()
 	}
 
-	log.Infof("Setting sequential download to: %v", !s.IsMemoryStorage())
-	th.SetSequentialDownload(!s.IsMemoryStorage())
+	log.Infof("Setting sequential download to: %v", downloadStorage != StorageMemory)
+	th.SetSequentialDownload(downloadStorage != StorageMemory)
 
 	log.Infof("Adding new torrent item with url: %s", uri)
-	t := NewTorrent(s, th, th.TorrentFile(), uri)
+	t := NewTorrent(s, th, th.TorrentFile(), uri, downloadStorage)
 
-	if s.IsMemoryStorage() {
+	if downloadStorage == StorageMemory {
 		t.MemorySize = s.GetMemorySize()
 	}
 
@@ -780,16 +778,26 @@ func (s *Service) RemoveTorrent(t *Torrent, forceDrop, forceDelete, isWatched bo
 		return false
 	}
 
+	configKeepDownloading := config.Get().KeepDownloading
+	configKeepFilesFinished := config.Get().KeepFilesFinished
+	configKeepFilesPlaying := config.Get().KeepFilesPlaying
+
+	if t.IsMemoryStorage() {
+		configKeepDownloading = 2
+		configKeepFilesPlaying = 2
+		configKeepFilesFinished = 2
+	}
+
 	keepDownloading := false
-	if forceDrop || config.Get().KeepDownloading == 2 || len(t.ChosenFiles) == 0 {
+	if forceDrop || configKeepDownloading == 2 || len(t.ChosenFiles) == 0 {
 		keepDownloading = false
-	} else if config.Get().KeepDownloading == 0 || xbmc.DialogConfirmFocused("Elementum", fmt.Sprintf("LOCALIZE[30146];;%s", t.Name())) {
+	} else if configKeepDownloading == 0 || xbmc.DialogConfirmFocused("Elementum", fmt.Sprintf("LOCALIZE[30146];;%s", t.Name())) {
 		keepDownloading = true
 	}
 
-	keepSetting := config.Get().KeepFilesPlaying
+	keepSetting := configKeepFilesPlaying
 	if isWatched {
-		keepSetting = config.Get().KeepFilesFinished
+		keepSetting = configKeepFilesFinished
 	}
 
 	deleteAnswer := false
@@ -803,7 +811,7 @@ func (s *Service) RemoveTorrent(t *Torrent, forceDrop, forceDelete, isWatched bo
 		}
 	}
 
-	if keepDownloading == false || s.IsMemoryStorage() {
+	if keepDownloading == false || t.IsMemoryStorage() {
 		// Delete torrent file
 		if len(t.torrentFile) > 0 {
 			if _, err := os.Stat(t.torrentFile); err == nil {
@@ -874,23 +882,19 @@ func (s *Service) saveResumeDataLoop() {
 		case <-closing:
 			return
 		case <-saveResumeWait.C:
-			torrentsVector := s.Session.GetTorrents()
-			torrentsVectorSize := int(torrentsVector.Size())
-
-			for i := 0; i < torrentsVectorSize; i++ {
-				torrentHandle := torrentsVector.Get(i)
-				if torrentHandle.IsValid() == false {
+			for _, t := range s.q.All() {
+				if t == nil || t.th == nil || t.th.Swigcptr() == 0 || !t.th.IsValid() {
 					continue
 				}
 
-				status := torrentHandle.Status()
+				status := t.th.Status()
 				defer lt.DeleteTorrentStatus(status)
 
 				if status.GetHasMetadata() == false || status.GetNeedSaveResume() == false {
 					continue
 				}
 
-				torrentHandle.SaveResumeData(1)
+				t.th.SaveResumeData(1)
 			}
 		}
 	}
@@ -1082,7 +1086,7 @@ func (s *Service) loadTorrentFiles() {
 		filePath := filepath.Join(s.config.TorrentsPath, torrentFile.Name())
 		log.Infof("Loading torrent file %s", torrentFile.Name())
 
-		t, err := s.AddTorrent(filePath, s.config.AutoloadTorrentsPaused)
+		t, err := s.AddTorrent(filePath, s.config.AutoloadTorrentsPaused, config.Get().DownloadStorage)
 		if err != nil {
 			log.Warningf("Cannot add torrent from existing file %s: %s", filePath, err)
 			continue
@@ -1188,7 +1192,8 @@ func (s *Service) downloadProgress() {
 				status := StatusStrings[int(ts.GetState())]
 				isPaused := ts.GetPaused()
 
-				if t := s.GetTorrentByHash(infoHash); t != nil {
+				t := s.GetTorrentByHash(infoHash)
+				if t != nil {
 					status = t.GetStateString()
 				}
 
@@ -1217,7 +1222,7 @@ func (s *Service) downloadProgress() {
 					seedingTime = finishedTime
 				}
 
-				if !s.IsMemoryStorage() && s.config.SeedTimeLimit > 0 {
+				if !t.IsMemoryStorage() && s.config.SeedTimeLimit > 0 {
 					if seedingTime >= s.config.SeedTimeLimit {
 						if !isPaused {
 							log.Warningf("Seeding time limit reached, pausing %s", torrentName)
@@ -1228,7 +1233,7 @@ func (s *Service) downloadProgress() {
 						status = "Seeded"
 					}
 				}
-				if !s.IsMemoryStorage() && s.config.SeedTimeRatioLimit > 0 {
+				if !t.IsMemoryStorage() && s.config.SeedTimeRatioLimit > 0 {
 					timeRatio := 0
 					downloadTime := ts.GetActiveTime() - seedingTime
 					if downloadTime > 1 {
@@ -1244,7 +1249,7 @@ func (s *Service) downloadProgress() {
 						status = "Seeded"
 					}
 				}
-				if !s.IsMemoryStorage() && s.config.ShareRatioLimit > 0 {
+				if !t.IsMemoryStorage() && s.config.ShareRatioLimit > 0 {
 					ratio := int64(0)
 					allTimeDownload := ts.GetAllTimeDownload()
 					if allTimeDownload > 0 {
@@ -1268,7 +1273,7 @@ func (s *Service) downloadProgress() {
 				//
 				// Handle moving completed downloads
 				//
-				if !s.config.CompletedMove || status != "Seeded" || s.anyPlayerIsPlaying() {
+				if t.IsMemoryStorage() || !s.config.CompletedMove || status != "Seeded" || s.anyPlayerIsPlaying() {
 					continue
 				}
 				if xbmc.PlayerIsPlaying() {

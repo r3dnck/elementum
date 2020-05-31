@@ -697,11 +697,6 @@ func Reload() *Configuration {
 	// For memory storage we are changing configuration
 	// 	to stop downloading after playback has stopped and so on
 	if newConfig.DownloadStorage == 1 {
-		newConfig.CompletedMove = false
-		newConfig.KeepDownloading = 2
-		newConfig.KeepFilesFinished = 2
-		newConfig.KeepFilesPlaying = 2
-
 		// TODO: Do we need this?
 		// newConfig.SeedTimeLimit = 24 * 60 * 60
 		// newConfig.SeedTimeRatioLimit = 10000

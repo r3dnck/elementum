@@ -241,7 +241,7 @@ func ListTorrents(s *bittorrent.Service) gin.HandlerFunc {
 				sessionAction,
 			}
 
-			if !s.IsMemoryStorage() {
+			if !t.IsMemoryStorage() {
 				item.ContextMenu = append(item.ContextMenu, []string{"LOCALIZE[30573]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/torrents/selectfile/%s", t.InfoHash()))})
 				item.ContextMenu = append(item.ContextMenu, []string{"LOCALIZE[30612]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/torrents/downloadfile/%s", t.InfoHash()))})
 
@@ -395,7 +395,7 @@ func AddTorrent(s *bittorrent.Service) gin.HandlerFunc {
 		}
 		torrentsLog.Infof("Adding torrent from %s", uri)
 
-		t, err := s.AddTorrent(uri, false)
+		t, err := s.AddTorrent(uri, false, config.Get().DownloadStorage)
 		if err != nil {
 			ctx.String(404, err.Error())
 			return
