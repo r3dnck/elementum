@@ -1195,6 +1195,8 @@ func (s *Service) downloadProgress() {
 				t := s.GetTorrentByHash(infoHash)
 				if t != nil {
 					status = t.GetStateString()
+				} else {
+					continue
 				}
 
 				downloadRate := float64(ts.GetDownloadPayloadRate())
