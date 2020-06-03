@@ -1105,7 +1105,7 @@ func (t *Torrent) Drop(removeFiles bool) {
 		}
 
 		// Removing .torrent file
-		if _, err := os.Stat(t.torrentFile); err == nil {
+		if i, err := os.Stat(t.torrentFile); err == nil && !i.IsDir() {
 			log.Infof("Deleting torrent file at %s", t.torrentFile)
 			defer os.Remove(t.torrentFile)
 		}
@@ -1171,7 +1171,7 @@ func (t *Torrent) SaveMetainfo(path string) (string, error) {
 
 	// Not saving torrent for memory storage
 	if t.IsMemoryStorage() {
-		return path, nil
+		return path, fmt.Errorf("Torrent uses memory storage")
 	}
 	if t.th == nil {
 		return path, fmt.Errorf("Torrent is not available")
@@ -1432,7 +1432,7 @@ func (t *Torrent) onMetadataReceived() {
 		// save it to torrent file for re-adding after program restart.
 		if p, err := t.SaveMetainfo(t.Service.config.TorrentsPath); err == nil {
 			// Removing .torrent file
-			if _, err := os.Stat(t.torrentFile); err == nil && t.torrentFile != p && strings.Contains(t.torrentFile, t.Service.config.TorrentsPath) {
+			if i, err := os.Stat(t.torrentFile); err == nil && !i.IsDir() && t.torrentFile != p && strings.Contains(t.torrentFile, t.Service.config.TorrentsPath) {
 				log.Infof("Deleting old torrent file at %s", t.torrentFile)
 				os.Remove(t.torrentFile)
 			}

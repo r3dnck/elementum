@@ -814,7 +814,7 @@ func (s *Service) RemoveTorrent(t *Torrent, forceDrop, forceDelete, isWatched bo
 	if keepDownloading == false || t.IsMemoryStorage() {
 		// Delete torrent file
 		if len(t.torrentFile) > 0 {
-			if _, err := os.Stat(t.torrentFile); err == nil {
+			if i, err := os.Stat(t.torrentFile); err == nil && !i.IsDir() {
 				log.Infof("Deleting torrent file at %s", t.torrentFile)
 				defer os.Remove(t.torrentFile)
 			}
