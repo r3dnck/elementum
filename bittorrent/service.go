@@ -421,6 +421,7 @@ func (s *Service) configure() {
 		// Adjust timeouts to avoid disconnect due to idling connections
 		settings.SetInt("inactivity_timeout", 60*30)
 		settings.SetInt("peer_timeout", 60*10)
+		settings.SetInt("min_reconnect_time", 20)
 	}
 
 	var listenPorts []string
