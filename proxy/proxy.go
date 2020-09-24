@@ -29,6 +29,12 @@ var (
 	hostMatch = "^.*$"
 )
 
+// CustomProxy stores http.Server with field showing there was an error while listening.
+type CustomProxy struct {
+	http.Server
+	IsErrored bool
+}
+
 // AlwaysHTTPMitm ...
 var AlwaysHTTPMitm goproxy.FuncHttpsHandler = func(host string, ctx *goproxy.ProxyCtx) (*goproxy.ConnectAction, string) {
 	return &goproxy.ConnectAction{Action: goproxy.ConnectMitm, TLSConfig: CustomTLS(&goproxy.GoproxyCa)}, host
@@ -132,7 +138,7 @@ func dumpResponse(resp *http.Response, ctx *goproxy.ProxyCtx, details bool, body
 }
 
 // StartProxy starts HTTP/HTTPS proxy for debugging
-func StartProxy() *http.Server {
+func StartProxy() *CustomProxy {
 	Proxy.OnRequest(goproxy.ReqHostMatches(regexp.MustCompile(hostMatch))).
 		HandleConnect(AlwaysHTTPMitm)
 
@@ -157,14 +163,18 @@ func StartProxy() *http.Server {
 	cfbypass.LogEnabled = config.Get().InternalProxyLogging
 	cfbypass.LogBodyEnabled = config.Get().InternalProxyLoggingBody
 
-	srv := &http.Server{
-		Addr:    ":" + strconv.Itoa(ProxyPort),
-		Handler: Proxy,
+	srv := &CustomProxy{
+		http.Server{
+			Addr:    ":" + strconv.Itoa(ProxyPort),
+			Handler: Proxy,
+		},
+		false,
 	}
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
 			log.Warningf("Could not start internal proxy: %s", err)
+			srv.IsErrored = true
 		}
 	}()
 

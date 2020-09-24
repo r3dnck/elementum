@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"math/rand"
-	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -51,7 +50,7 @@ type Service struct {
 
 	mappedPorts map[string]int
 
-	InternalProxy *http.Server
+	InternalProxy *proxy.CustomProxy
 
 	Players      map[string]*Player
 	SpaceChecked map[string]bool
@@ -518,7 +517,7 @@ func (s *Service) startServices() {
 }
 
 func (s *Service) stopServices() {
-	if s.InternalProxy != nil {
+	if s.InternalProxy != nil && !s.InternalProxy.IsErrored {
 		log.Infof("Stopping internal proxy")
 		s.InternalProxy.Shutdown(nil)
 		s.InternalProxy = nil
