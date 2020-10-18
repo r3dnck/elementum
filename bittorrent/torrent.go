@@ -1095,6 +1095,11 @@ func (t *Torrent) Drop(removeFiles bool) {
 
 	// Removing in background to avoid blocking UI
 	go func() {
+		// Initiating memory release after torrent is removed
+		if t.IsMemoryStorage() {
+			defer util.FreeMemoryGC()
+		}
+
 		toRemove := 0
 		if removeFiles {
 			toRemove = 1
