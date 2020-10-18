@@ -31,7 +31,7 @@ var (
 
 // CustomProxy stores http.Server with field showing there was an error while listening.
 type CustomProxy struct {
-	http.Server
+	Server    *http.Server
 	IsErrored bool
 }
 
@@ -164,7 +164,7 @@ func StartProxy() *CustomProxy {
 	cfbypass.LogBodyEnabled = config.Get().InternalProxyLoggingBody
 
 	srv := &CustomProxy{
-		http.Server{
+		&http.Server{
 			Addr:    ":" + strconv.Itoa(ProxyPort),
 			Handler: Proxy,
 		},
@@ -172,7 +172,7 @@ func StartProxy() *CustomProxy {
 	}
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil {
+		if err := srv.Server.ListenAndServe(); err != nil {
 			log.Warningf("Could not start internal proxy: %s", err)
 			srv.IsErrored = true
 		}

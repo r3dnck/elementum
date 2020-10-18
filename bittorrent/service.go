@@ -517,9 +517,9 @@ func (s *Service) startServices() {
 }
 
 func (s *Service) stopServices() {
-	if s.InternalProxy != nil && !s.InternalProxy.IsErrored {
+	if s.InternalProxy != nil && !s.InternalProxy.IsErrored && s.InternalProxy.Server != nil {
 		log.Infof("Stopping internal proxy")
-		s.InternalProxy.Shutdown(nil)
+		s.InternalProxy.Server.Shutdown(nil)
 		s.InternalProxy = nil
 	}
 
