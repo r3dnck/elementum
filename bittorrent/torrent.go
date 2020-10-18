@@ -1376,7 +1376,7 @@ func (t *Torrent) updatePieces() error {
 	}
 
 	piecesBits := t.lastStatus.GetPieces()
-	piecesBitsSize := piecesBits.Size()
+	piecesBitsSize := piecesBits.Size() + 1
 	piecesSliceSize := piecesBitsSize / 8
 
 	if piecesBitsSize%8 > 0 {

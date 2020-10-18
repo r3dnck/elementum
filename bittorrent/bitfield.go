@@ -29,6 +29,10 @@ type Bitfield []byte
 
 // SetBit ...
 func (b Bitfield) SetBit(idx int, value bool) {
+	if int(idx/8) >= len(b) {
+		return
+	}
+
 	if value {
 		b[uint(idx/8)] |= 0x80 >> (uint(idx) & 7)
 	} else {
@@ -38,6 +42,10 @@ func (b Bitfield) SetBit(idx int, value bool) {
 
 // GetBit ...
 func (b Bitfield) GetBit(idx int) bool {
+	if int(idx/8) >= len(b) {
+		return false
+	}
+
 	return b[uint(idx/8)]&(0x80>>(uint(idx)&7)) != 0
 }
 
