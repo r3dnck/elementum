@@ -700,7 +700,7 @@ playbackLoop:
 			if btp.p.Seeked {
 				btp.p.Seeked = false
 				if btp.scrobble {
-					trakt.Scrobble("start", btp.p.ContentType, btp.p.TMDBId, btp.p.WatchedTime, btp.p.VideoDuration)
+					go trakt.Scrobble("start", btp.p.ContentType, btp.p.TMDBId, btp.p.WatchedTime, btp.p.VideoDuration)
 				}
 			} else if xbmc.PlayerIsPaused() {
 				if btp.overlayStatusEnabled && btp.p.Playing {
@@ -719,7 +719,7 @@ playbackLoop:
 				if playing == true {
 					playing = false
 					if btp.scrobble {
-						trakt.Scrobble("pause", btp.p.ContentType, btp.p.TMDBId, btp.p.WatchedTime, btp.p.VideoDuration)
+						go trakt.Scrobble("pause", btp.p.ContentType, btp.p.TMDBId, btp.p.WatchedTime, btp.p.VideoDuration)
 					}
 				}
 			} else {
@@ -730,7 +730,7 @@ playbackLoop:
 				if playing == false {
 					playing = true
 					if btp.scrobble {
-						trakt.Scrobble("start", btp.p.ContentType, btp.p.TMDBId, btp.p.WatchedTime, btp.p.VideoDuration)
+						go trakt.Scrobble("start", btp.p.ContentType, btp.p.TMDBId, btp.p.WatchedTime, btp.p.VideoDuration)
 					}
 				}
 			}
