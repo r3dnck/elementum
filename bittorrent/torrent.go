@@ -55,8 +55,10 @@ type Torrent struct {
 	lastPrioritization string
 	trackers           sync.Map
 
-	awaitingPieces *roaring.Bitmap
-	demandPieces   *roaring.Bitmap
+	awaitingPieces   *roaring.Bitmap
+	demandPieces     *roaring.Bitmap
+	muAwaitingPieces *sync.RWMutex
+	muDemandPieces   *sync.RWMutex
 
 	ChosenFiles []*File
 
@@ -131,9 +133,11 @@ func NewTorrent(service *Service, handle lt.TorrentHandle, info lt.TorrentInfo, 
 		BufferPiecesProgress: map[int]float64{},
 		BufferProgress:       -1,
 
-		mu:        &sync.Mutex{},
-		muBuffer:  &sync.RWMutex{},
-		muReaders: &sync.Mutex{},
+		mu:               &sync.Mutex{},
+		muBuffer:         &sync.RWMutex{},
+		muReaders:        &sync.Mutex{},
+		muAwaitingPieces: &sync.RWMutex{},
+		muDemandPieces:   &sync.RWMutex{},
 	}
 
 	return t
@@ -202,7 +206,9 @@ func (t *Torrent) startNextTimer() {
 	t.IsNextFile = true
 
 	t.nextTimer.Reset(15 * time.Minute)
+	t.muDemandPieces.Lock()
 	t.demandPieces.Clear()
+	t.muDemandPieces.Unlock()
 }
 
 func (t *Torrent) stopNextTimer() {
@@ -458,6 +464,7 @@ func (t *Torrent) Buffer(file *File, isStartup bool) {
 	// Properly set the pieces priority vector
 	curPiece := 0
 
+	t.muDemandPieces.Lock()
 	if isStartup {
 		piecesPriorities := t.th.PiecePriorities()
 		defer lt.DeleteStdVectorInt(piecesPriorities)
@@ -479,6 +486,7 @@ func (t *Torrent) Buffer(file *File, isStartup bool) {
 			t.th.PiecePriority(curPiece, 3)
 		}
 	}
+	t.muDemandPieces.Unlock()
 
 	// Using libtorrent hack to pause and resume the torrent
 	if config.Get().UseLibtorrentPauseResume && isStartup {
@@ -553,6 +561,9 @@ func (t *Torrent) getBufferSize(fileOffset int64, off, length int64) (startPiece
 
 // PrioritizePiece ...
 func (t *Torrent) PrioritizePiece(piece int) {
+	t.muAwaitingPieces.Lock()
+	defer t.muAwaitingPieces.Unlock()
+
 	if t.IsBuffering || t.th == nil || t.Closer.IsSet() || t.awaitingPieces.ContainsInt(piece) {
 		return
 	}
@@ -572,12 +583,18 @@ func (t *Torrent) PrioritizePiece(piece int) {
 
 // ClearDeadlines ...
 func (t *Torrent) ClearDeadlines() {
+	t.muAwaitingPieces.Lock()
 	t.awaitingPieces.Clear()
+	t.muAwaitingPieces.Unlock()
+
 	t.th.ClearPieceDeadlines()
 }
 
 // PrioritizePieces ...
 func (t *Torrent) PrioritizePieces() {
+	t.muDemandPieces.RLock()
+	defer t.muDemandPieces.RUnlock()
+
 	if (t.IsBuffering && t.demandPieces.IsEmpty()) || t.IsSeeding || (!t.IsPlaying && !t.IsNextFile) || t.th == nil || t.Closer.IsSet() {
 		return
 	}
@@ -612,6 +629,7 @@ func (t *Torrent) PrioritizePieces() {
 		readerProgress[idx] = 0
 	}
 
+	t.muAwaitingPieces.RLock()
 	for _, r := range t.readers {
 		pr := r.ReaderPiecesRange()
 		log.Debugf("Reader range: %+v, last: %s", pr, r.lastUsed.Format(time.RFC3339))
@@ -639,6 +657,7 @@ func (t *Torrent) PrioritizePieces() {
 			readerProgress[curPiece] = 0
 		}
 	}
+	t.muAwaitingPieces.RUnlock()
 	t.muReaders.Unlock()
 
 	// Update progress for piece completion
@@ -845,6 +864,7 @@ func (t *Torrent) piecesProgress(pieces map[int]float64) {
 	defer lt.DeleteStdVectorPartialPieceInfo(queue)
 
 	t.th.GetDownloadQueue(queue)
+	t.muAwaitingPieces.Lock()
 	for piece := range pieces {
 		if t.hasPiece(piece) {
 			pieces[piece] = 1.0
@@ -854,6 +874,7 @@ func (t *Torrent) piecesProgress(pieces map[int]float64) {
 			}
 		}
 	}
+	t.muAwaitingPieces.Unlock()
 
 	queueSize := queue.Size()
 	for i := 0; i < int(queueSize); i++ {
@@ -1081,7 +1102,7 @@ func (t *Torrent) Length() int64 {
 }
 
 // Drop ...
-func (t *Torrent) Drop(removeFiles bool) {
+func (t *Torrent) Drop(removeFiles, removeData bool) {
 	defer perf.ScopeTimer()()
 
 	log.Infof("Dropping torrent: %s", t.Name())
@@ -1101,18 +1122,33 @@ func (t *Torrent) Drop(removeFiles bool) {
 		}
 
 		toRemove := 0
-		if removeFiles {
+		if removeData {
 			toRemove = 1
+			log.Info("Removing the torrent and deleting files after playing ...")
+		} else {
+			log.Info("Removing the torrent without deleting files after playing ...")
 		}
 
 		if err := t.Service.Session.RemoveTorrent(t.th, toRemove); err != nil {
 			log.Errorf("Could not remove torrent: %s", err)
 		}
 
-		// Removing .torrent file
-		if i, err := os.Stat(t.torrentFile); err == nil && !i.IsDir() {
-			log.Infof("Deleting torrent file at %s", t.torrentFile)
-			defer os.Remove(t.torrentFile)
+		if removeFiles {
+			// Delete torrent file if it is located in temporary path
+			if len(t.torrentFile) > 0 && strings.HasPrefix(t.torrentFile, config.Get().TemporaryPath) {
+				if i, err := os.Stat(t.torrentFile); err == nil && !i.IsDir() {
+					log.Infof("Deleting torrent file at %s", t.torrentFile)
+					defer os.Remove(t.torrentFile)
+				}
+			}
+
+			// Delete InfoHash torrent file
+			infoHash := t.InfoHash()
+			savedFilePath := filepath.Join(config.Get().TorrentsPath, fmt.Sprintf("%s.torrent", infoHash))
+			if _, err := os.Stat(savedFilePath); err == nil {
+				log.Infof("Deleting saved torrent file at %s", savedFilePath)
+				defer os.Remove(savedFilePath)
+			}
 		}
 
 		if removeFiles || t.IsMemoryStorage() {
@@ -1128,6 +1164,8 @@ func (t *Torrent) Drop(removeFiles bool) {
 				defer os.Remove(t.partsFile)
 			}
 		}
+
+		log.Infof("Removed %s from database", t.Name())
 	}()
 }
 

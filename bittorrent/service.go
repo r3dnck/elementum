@@ -801,40 +801,21 @@ func (s *Service) RemoveTorrent(t *Torrent, forceDrop, forceDelete, isWatched bo
 		keepSetting = configKeepFilesFinished
 	}
 
-	deleteAnswer := false
+	deleteTorrentFiles := false
+	deleteTorrentData := false
+
 	if keepDownloading == false {
 		if forceDelete || len(t.ChosenFiles) == 0 {
-			deleteAnswer = true
+			deleteTorrentData = true
 		} else if keepSetting == 0 {
-			deleteAnswer = false
+			deleteTorrentData = false
 		} else if keepSetting == 2 || xbmc.DialogConfirm("Elementum", fmt.Sprintf("LOCALIZE[30269];;%s", t.Name())) {
-			deleteAnswer = true
+			deleteTorrentData = true
 		}
 	}
 
 	if keepDownloading == false || t.IsMemoryStorage() {
-		// Delete torrent file
-		if len(t.torrentFile) > 0 {
-			if i, err := os.Stat(t.torrentFile); err == nil && !i.IsDir() {
-				log.Infof("Deleting torrent file at %s", t.torrentFile)
-				defer os.Remove(t.torrentFile)
-			}
-		}
-
-		infoHash := t.InfoHash()
-		savedFilePath := filepath.Join(s.config.TorrentsPath, fmt.Sprintf("%s.torrent", infoHash))
-		if _, err := os.Stat(savedFilePath); err == nil {
-			log.Infof("Deleting saved torrent file at %s", savedFilePath)
-			defer os.Remove(savedFilePath)
-		}
-
-		log.Infof("Removed %s from database", t.Name())
-
-		if deleteAnswer == true {
-			log.Info("Removing the torrent and deleting files after playing ...")
-		} else {
-			log.Info("Removing the torrent without deleting files after playing ...")
-		}
+		deleteTorrentFiles = true
 	}
 
 	if !keepDownloading {
@@ -844,7 +825,7 @@ func (s *Service) RemoveTorrent(t *Torrent, forceDrop, forceDelete, isWatched bo
 
 		s.q.Delete(t)
 
-		t.Drop(deleteAnswer)
+		t.Drop(deleteTorrentFiles, deleteTorrentData)
 	}
 
 	return true

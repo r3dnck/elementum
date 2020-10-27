@@ -235,12 +235,19 @@ func (tf *TorrentFSEntry) Seek(offset int64, whence int) (int64, error) {
 
 	switch whence {
 	case io.SeekStart:
+		toUpdate := false
+		tf.t.muReaders.Lock()
 		for _, r := range tf.t.readers {
 			if r.id == tf.id {
 				continue
 			}
 
-			r.SetActive(false)
+			toUpdate = r.SetActive(false) || toUpdate
+		}
+		tf.t.muReaders.Unlock()
+
+		if toUpdate {
+			tf.t.ResetReaders()
 		}
 
 		tf.t.PrioritizePieces()
@@ -272,7 +279,9 @@ func (tf *TorrentFSEntry) waitForPiece(piece int) error {
 	now := time.Now()
 	defer func() {
 		log.Warningf("Waiting for piece %d finished in %s", piece, time.Since(now))
+		tf.t.muAwaitingPieces.Lock()
 		tf.t.awaitingPieces.Remove(uint32(piece))
+		tf.t.muAwaitingPieces.Unlock()
 	}()
 
 	tf.t.PrioritizePiece(piece)
@@ -306,6 +315,11 @@ func (tf *TorrentFSEntry) pieceFromOffset(offset int64) (int, int) {
 
 	piece := (tf.f.Offset + offset) / int64(tf.pieceLength)
 	pieceOffset := (tf.f.Offset + offset) % int64(tf.pieceLength)
+
+	if int(piece) > tf.t.pieceCount {
+		piece = int64(tf.t.pieceCount)
+	}
+
 	return int(piece), int(pieceOffset)
 }
 
@@ -372,10 +386,8 @@ func (tf *TorrentFSEntry) IsActive() bool {
 }
 
 // SetActive ...
-func (tf *TorrentFSEntry) SetActive(is bool) {
-	if is != tf.isActive {
-		defer tf.t.ResetReaders()
-	}
+func (tf *TorrentFSEntry) SetActive(is bool) (res bool) {
+	res = is != tf.isActive
 
 	if is {
 		tf.lastUsed = time.Now()
@@ -383,4 +395,6 @@ func (tf *TorrentFSEntry) SetActive(is bool) {
 	} else {
 		tf.isActive = false
 	}
+
+	return
 }
