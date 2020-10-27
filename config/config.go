@@ -26,6 +26,12 @@ var log = logging.MustGetLogger("config")
 var privacyRegex = regexp.MustCompile(`(?i)(pass|password): "(.+?)"`)
 
 const maxMemorySize = 300 * 1024 * 1024
+const defaultAutoMemorySize = 40 * 1024 * 1024
+const defaultTraktClientID = "de468dfafbb2f7e35bc3f6fe82bfb4ea37c17d8a949c032445e613fb7e7d1b02"
+const defaultTraktClientSecret = "d9c3601b034703e7c570d7921c6fef9bdbcab31d8d8d8344ac2b7efacf36ce75"
+const defaultTraktSyncFrequencyMin = 5
+const defaultEndBufferSize = 1 * 1024 * 1024
+const defaultDiskCacheSize = 12 * 1024 * 1024
 
 // Configuration ...
 type Configuration struct {
@@ -683,10 +689,10 @@ func Reload() *Configuration {
 	}
 
 	if newConfig.TraktClientID == "" {
-		newConfig.TraktClientID = "f37e372ec0fb7331c808a613b025ea175b771afee972c13b19ff9d7e583532bd"
+		newConfig.TraktClientID = defaultTraktClientID
 	}
 	if newConfig.TraktClientSecret == "" {
-		newConfig.TraktClientSecret = "4897369f643ce492ffac809cee110ff3563ef9e92e110b84c6cbeb771b583bba"
+		newConfig.TraktClientSecret = defaultTraktClientSecret
 	}
 
 	// Fallback for old configuration with additional storage variants
@@ -705,7 +711,7 @@ func Reload() *Configuration {
 		// Calculate possible memory size, depending of selected strategy
 		if newConfig.AutoMemorySize {
 			if newConfig.AutoMemorySizeStrategy == 0 {
-				newConfig.MemorySize = 40 * 1024 * 1024
+				newConfig.MemorySize = defaultAutoMemorySize
 			} else {
 				pct := uint64(8)
 				if newConfig.AutoMemorySizeStrategy == 2 {
@@ -728,7 +734,7 @@ func Reload() *Configuration {
 
 	// Set default Trakt Frequency
 	if newConfig.TraktToken != "" && newConfig.TraktSyncFrequencyMin == 0 {
-		newConfig.TraktSyncFrequencyMin = 5
+		newConfig.TraktSyncFrequencyMin = defaultTraktSyncFrequencyMin
 	}
 
 	// Setup OSDB language
@@ -753,8 +759,8 @@ func Reload() *Configuration {
 		newConfig.BufferSize = newConfig.KodiBufferSize
 		log.Debugf("Adjusting buffer size according to Kodi advancedsettings.xml configuration to %s", humanize.Bytes(uint64(newConfig.BufferSize)))
 	}
-	if newConfig.EndBufferSize < 1*1024*1024 {
-		newConfig.EndBufferSize = 1 * 1024 * 1024
+	if newConfig.EndBufferSize < defaultEndBufferSize {
+		newConfig.EndBufferSize = defaultEndBufferSize
 	}
 
 	// Read Strm Language settings and cut-off ISO value
@@ -774,7 +780,7 @@ func Reload() *Configuration {
 	}
 
 	if newConfig.DiskCacheSize == 0 {
-		newConfig.DiskCacheSize = 12 * 1024 * 1024
+		newConfig.DiskCacheSize = defaultDiskCacheSize
 	}
 
 	if newConfig.AutoYesEnabled {
