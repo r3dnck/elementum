@@ -149,8 +149,8 @@ func (season *Season) ToListItem(show *Show) *xbmc.ListItem {
 	}
 
 	if season.Poster != "" {
-		item.Art.Poster = ImageURL(season.Poster, "w500")
-		item.Art.Thumbnail = ImageURL(season.Poster, "w500")
+		item.Art.Poster = ImageURL(season.Poster, "w1280")
+		item.Art.Thumbnail = ImageURL(season.Poster, "w1280")
 	}
 
 	fanarts := make([]string, 0)

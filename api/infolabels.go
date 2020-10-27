@@ -181,7 +181,7 @@ func GetEpisodeLabels(showID, seasonNumber, episodeNumber int) (item *xbmc.ListI
 			item.Art.FanArt = fanarts[rand.Intn(len(fanarts))]
 		}
 	}
-	item.Art.Poster = tmdb.ImageURL(season.Poster, "w500")
+	item.Art.Poster = tmdb.ImageURL(season.Poster, "w1280")
 
 	return
 }

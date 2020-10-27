@@ -70,7 +70,7 @@ func (episodes EpisodeList) ToListItems(show *Show, season *Season) []*xbmc.List
 		}
 
 		if item.Art.FanArt == "" && season.Poster != "" {
-			item.Art.Poster = ImageURL(season.Poster, "w500")
+			item.Art.Poster = ImageURL(season.Poster, "w1280")
 		}
 
 		items = append(items, item)
@@ -115,10 +115,10 @@ func (episode *Episode) ToListItem(show *Show, season *Season) *xbmc.ListItem {
 	}
 
 	if show.PosterPath != "" {
-		item.Art.TvShowPoster = ImageURL(show.PosterPath, "w500")
+		item.Art.TvShowPoster = ImageURL(show.PosterPath, "w1280")
 		item.Art.FanArt = ImageURL(show.BackdropPath, "w1280")
-		item.Art.Thumbnail = ImageURL(show.PosterPath, "w500")
-		item.Thumbnail = ImageURL(show.PosterPath, "w500")
+		item.Art.Thumbnail = ImageURL(show.PosterPath, "w1280")
+		item.Thumbnail = ImageURL(show.PosterPath, "w1280")
 	} else if show.Images != nil {
 		fanarts := []string{}
 		for _, backdrop := range show.Images.Backdrops {
@@ -130,7 +130,7 @@ func (episode *Episode) ToListItem(show *Show, season *Season) *xbmc.ListItem {
 
 		fanarts = []string{}
 		for _, poster := range show.Images.Posters {
-			fanarts = append(fanarts, ImageURL(poster.FilePath, "w500"))
+			fanarts = append(fanarts, ImageURL(poster.FilePath, "w1280"))
 		}
 		if len(fanarts) > 0 {
 			item.Art.TvShowPoster = fanarts[rand.Intn(len(fanarts))]
@@ -145,9 +145,9 @@ func (episode *Episode) ToListItem(show *Show, season *Season) *xbmc.ListItem {
 
 	if episode.StillPath != "" {
 		item.Art.FanArt = ImageURL(episode.StillPath, "w1280")
-		item.Art.Thumbnail = ImageURL(episode.StillPath, "w500")
-		item.Art.Poster = ImageURL(episode.StillPath, "w500")
-		item.Thumbnail = ImageURL(episode.StillPath, "w500")
+		item.Art.Thumbnail = ImageURL(episode.StillPath, "w1280")
+		item.Art.Poster = ImageURL(episode.StillPath, "w1280")
+		item.Thumbnail = ImageURL(episode.StillPath, "w1280")
 	}
 
 	genres := make([]string, 0, len(show.Genres))

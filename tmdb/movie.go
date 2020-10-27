@@ -444,8 +444,9 @@ func (movie *Movie) ToListItem() *xbmc.ListItem {
 			Mediatype:     "movie",
 		},
 		Art: &xbmc.ListItemArt{
-			FanArt: ImageURL(movie.BackdropPath, "w1280"),
-			Poster: ImageURL(movie.PosterPath, "w500"),
+			FanArt:    ImageURL(movie.BackdropPath, "w1280"),
+			Poster:    ImageURL(movie.PosterPath, "w1280"),
+			Thumbnail: ImageURL(movie.PosterPath, "w300"),
 		},
 	}
 

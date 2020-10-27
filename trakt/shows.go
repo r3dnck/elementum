@@ -49,10 +49,10 @@ func setShowFanart(show *Show) *Show {
 	}
 
 	if len(tmdbImages.Posters) > 0 {
-		posterImage := tmdb.ImageURL(tmdbImages.Posters[0].FilePath, "w500")
+		posterImage := tmdb.ImageURL(tmdbImages.Posters[0].FilePath, "w1280")
 		for _, image := range tmdbImages.Posters {
 			if image.Iso639_1 == config.Get().Language {
-				posterImage = tmdb.ImageURL(image.FilePath, "w500")
+				posterImage = tmdb.ImageURL(image.FilePath, "w1280")
 			}
 		}
 		show.Images.Poster.Full = posterImage
@@ -884,9 +884,9 @@ func (episode *Episode) ToListItem(show *Show) *xbmc.ListItem {
 		item.Thumbnail = episode.Images.ScreenShot.Full
 	} else if epi := tmdb.GetEpisode(show.IDs.TMDB, episode.Season, episode.Number, config.Get().Language); epi != nil && epi.StillPath != "" {
 		item.Art.FanArt = tmdb.ImageURL(epi.StillPath, "w1280")
-		item.Art.Thumbnail = tmdb.ImageURL(epi.StillPath, "w500")
-		item.Art.Poster = tmdb.ImageURL(epi.StillPath, "w500")
-		item.Thumbnail = tmdb.ImageURL(epi.StillPath, "w500")
+		item.Art.Thumbnail = tmdb.ImageURL(epi.StillPath, "w1280")
+		item.Art.Poster = tmdb.ImageURL(epi.StillPath, "w1280")
+		item.Thumbnail = tmdb.ImageURL(epi.StillPath, "w1280")
 	}
 
 	return item

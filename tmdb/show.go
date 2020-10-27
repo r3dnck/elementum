@@ -537,7 +537,7 @@ func (show *Show) ToListItem() *xbmc.ListItem {
 		},
 		Art: &xbmc.ListItemArt{
 			FanArt: ImageURL(show.BackdropPath, "w1280"),
-			Poster: ImageURL(show.PosterPath, "w500"),
+			Poster: ImageURL(show.PosterPath, "w1280"),
 		},
 	}
 

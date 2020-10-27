@@ -49,10 +49,10 @@ func setFanart(movie *Movie) *Movie {
 	}
 
 	if len(tmdbImages.Posters) > 0 {
-		posterImage := tmdb.ImageURL(tmdbImages.Posters[0].FilePath, "w500")
+		posterImage := tmdb.ImageURL(tmdbImages.Posters[0].FilePath, "w1280")
 		for _, image := range tmdbImages.Posters {
 			if image.Iso639_1 == config.Get().Language {
-				posterImage = tmdb.ImageURL(image.FilePath, "w500")
+				posterImage = tmdb.ImageURL(image.FilePath, "w1280")
 			}
 		}
 		movie.Images.Poster.Full = posterImage
