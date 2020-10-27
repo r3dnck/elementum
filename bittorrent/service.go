@@ -3,6 +3,7 @@ package bittorrent
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -519,7 +520,7 @@ func (s *Service) startServices() {
 func (s *Service) stopServices() {
 	if s.InternalProxy != nil && !s.InternalProxy.IsErrored && s.InternalProxy.Server != nil {
 		log.Infof("Stopping internal proxy")
-		s.InternalProxy.Server.Shutdown(nil)
+		s.InternalProxy.Server.Shutdown(context.Background())
 		s.InternalProxy = nil
 	}
 

@@ -172,7 +172,7 @@ func StartProxy() *CustomProxy {
 	}
 
 	go func() {
-		if err := srv.Server.ListenAndServe(); err != nil {
+		if err := srv.Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Warningf("Could not start internal proxy: %s", err)
 			srv.IsErrored = true
 		}
