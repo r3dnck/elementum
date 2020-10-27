@@ -108,6 +108,10 @@ func NewOverlayStatus() *OverlayStatus {
 
 // Update ...
 func (ov *OverlayStatus) Update(percent int, line1, line2, line3 string) {
+	if ov == nil {
+		return
+	}
+
 	retVal := -1
 	executeJSONRPCEx("OverlayStatus_Update", &retVal, Args{ov.hWnd, percent, line1, line2, line3})
 }
