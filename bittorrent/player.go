@@ -703,7 +703,7 @@ playbackLoop:
 					trakt.Scrobble("start", btp.p.ContentType, btp.p.TMDBId, btp.p.WatchedTime, btp.p.VideoDuration)
 				}
 			} else if xbmc.PlayerIsPaused() {
-				if btp.overlayStatusEnabled == true {
+				if btp.overlayStatusEnabled && btp.p.Playing {
 					status := btp.t.GetStatus()
 					defer lt.DeleteTorrentStatus(status)
 
@@ -715,6 +715,7 @@ playbackLoop:
 						overlayStatusActive = true
 					}
 				}
+
 				if playing == true {
 					playing = false
 					if btp.scrobble {
@@ -769,6 +770,9 @@ func (btp *Player) isReadyForNextFile() bool {
 	if btp.t.IsMemoryStorage() {
 		ra := btp.t.GetReadaheadSize()
 		sum := btp.t.ReadersReadaheadSum()
+
+		btp.t.muAwaitingPieces.RLock()
+		defer btp.t.muAwaitingPieces.RUnlock()
 
 		return ra > 0 && sum > 0 && ra > sum+btp.next.bufferSize && btp.t.awaitingPieces.IsEmpty() && btp.t.lastProgress > 90
 	}
