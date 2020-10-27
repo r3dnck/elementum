@@ -1019,7 +1019,7 @@ func renderCalendarMovies(ctx *gin.Context, movies []*trakt.CalendarMovie, total
 			var movie *tmdb.Movie
 			movieName := movieListing.Movie.Title
 			airDate := movieListing.Movie.Released
-			if len(airDate) > 10 {
+			if len(airDate) > 10 && strings.Contains(airDate, "T") {
 				airDate = airDate[0:strings.Index(airDate, "T")]
 			}
 
@@ -1200,7 +1200,7 @@ func renderCalendarShows(ctx *gin.Context, shows []*trakt.CalendarShow, total in
 			if epi.FirstAired != "" {
 				airDate = epi.FirstAired
 			}
-			if len(airDate) > 10 {
+			if len(airDate) > 10 && strings.Contains(airDate, "T") {
 				airDate = airDate[0:strings.Index(airDate, "T")]
 			}
 
@@ -1340,7 +1340,7 @@ func renderProgressShows(ctx *gin.Context, shows []*trakt.ProgressShow, total in
 			if airDate == "" {
 				episodes := trakt.GetSeasonEpisodes(showListing.Show.IDs.Trakt, seasonNumber)
 				for _, e := range episodes {
-					if e != nil && e.Number == epi.Number {
+					if e != nil && e.Number == epi.Number && strings.Contains(e.FirstAired, "T") {
 						airDate = e.FirstAired[0:strings.Index(e.FirstAired, "T")]
 						break
 					}

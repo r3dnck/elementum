@@ -355,7 +355,7 @@ func CollectionMovies(isUpdateNeeded bool) (movies []*Movies, err error) {
 // Userlists ...
 func Userlists() (lists []*List) {
 	traktUsername := config.Get().TraktUsername
-	if traktUsername == "" {
+	if traktUsername == "" || config.Get().TraktToken == "" {
 		xbmc.Notify("Elementum", "LOCALIZE[30149]", config.AddonIcon())
 		return lists
 	}
@@ -398,7 +398,7 @@ func Userlists() (lists []*List) {
 // Likedlists ...
 func Likedlists() (lists []*List) {
 	traktUsername := config.Get().TraktUsername
-	if traktUsername == "" {
+	if traktUsername == "" || config.Get().TraktToken == "" {
 		xbmc.Notify("Elementum", "LOCALIZE[30149]", config.AddonIcon())
 		return lists
 	}
@@ -614,7 +614,7 @@ func WatchedMovies(isUpdateNeeded bool) ([]*WatchedMovie, error) {
 			NewDBStore().
 			Set(watchedMoviesKey, &movies, cacheExpiration)
 	}
-	
+
 	return movies, err
 }
 

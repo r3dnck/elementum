@@ -622,7 +622,7 @@ func GetWithAuth(endPoint string, params url.Values) (resp *napping.Response, er
 			return err
 		} else if resp.Status() == 401 {
 			err = fmt.Errorf("Trakt access token is not valid, please, re-authorize Trakt")
-			log.Warning(err)
+			log.Warningf("Request: %s, Error: %s", endPoint, err)
 			xbmc.Notify("Elementum", "LOCALIZE[30576]", config.AddonIcon())
 			return err
 		} else if resp.Status() == 429 {
