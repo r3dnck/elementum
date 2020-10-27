@@ -118,18 +118,30 @@ func (ov *OverlayStatus) Update(percent int, line1, line2, line3 string) {
 
 // Show ...
 func (ov *OverlayStatus) Show() {
+	if ov == nil {
+		return
+	}
+
 	retVal := -1
 	executeJSONRPCEx("OverlayStatus_Show", &retVal, Args{ov.hWnd})
 }
 
 // Hide ...
 func (ov *OverlayStatus) Hide() {
+	if ov == nil {
+		return
+	}
+
 	retVal := -1
 	executeJSONRPCEx("OverlayStatus_Hide", &retVal, Args{ov.hWnd})
 }
 
 // Close ...
 func (ov *OverlayStatus) Close() {
+	if ov == nil {
+		return
+	}
+
 	retVal := -1
 	executeJSONRPCEx("OverlayStatus_Close", &retVal, Args{ov.hWnd})
 }
