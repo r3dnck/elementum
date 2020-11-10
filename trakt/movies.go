@@ -212,7 +212,7 @@ func TopMovies(topCategory string, page string) (movies []*Movies, total int, er
 		var resp *napping.Response
 		var err error
 
-		if config.Get().TraktToken == "" {
+		if !config.Get().TraktAuthorized {
 			resp, err = Get(endPoint, params)
 		} else {
 			resp, err = GetWithAuth(endPoint, params)
@@ -355,7 +355,7 @@ func CollectionMovies(isUpdateNeeded bool) (movies []*Movies, err error) {
 // Userlists ...
 func Userlists() (lists []*List) {
 	traktUsername := config.Get().TraktUsername
-	if traktUsername == "" || config.Get().TraktToken == "" {
+	if traktUsername == "" || config.Get().TraktToken == "" || !config.Get().TraktAuthorized {
 		xbmc.Notify("Elementum", "LOCALIZE[30149]", config.AddonIcon())
 		return lists
 	}
@@ -366,7 +366,7 @@ func Userlists() (lists []*List) {
 	var resp *napping.Response
 	var err error
 
-	if config.Get().TraktToken == "" {
+	if !config.Get().TraktAuthorized {
 		resp, err = Get(endPoint, params)
 	} else {
 		resp, err = GetWithAuth(endPoint, params)
@@ -408,7 +408,7 @@ func Likedlists() (lists []*List) {
 	var resp *napping.Response
 	var err error
 
-	if config.Get().TraktToken == "" {
+	if !config.Get().TraktAuthorized {
 		resp, err = Get(endPoint, params)
 	} else {
 		resp, err = GetWithAuth(endPoint, params)
@@ -455,7 +455,7 @@ func TopLists(page string) (lists []*ListContainer, hasNext bool) {
 	var resp *napping.Response
 	var err error
 
-	if config.Get().TraktToken == "" {
+	if !config.Get().TraktAuthorized {
 		resp, err = Get(endPoint, params)
 	} else {
 		resp, err = GetWithAuth(endPoint, params)
@@ -509,7 +509,7 @@ func ListItemsMovies(user string, listID string, isUpdateNeeded bool) (movies []
 	}
 
 	var errGet error
-	if config.Get().TraktToken == "" {
+	if !config.Get().TraktAuthorized {
 		resp, errGet = Get(endPoint, params)
 	} else {
 		resp, errGet = GetWithAuth(endPoint, params)

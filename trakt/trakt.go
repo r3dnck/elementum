@@ -582,7 +582,7 @@ func getIntFromHeader(headers http.Header, key string) (res int) {
 func Get(endPoint string, params url.Values) (resp *napping.Response, err error) {
 	header := http.Header{
 		"Content-type":      []string{"application/json"},
-		"trakt-api-key":     []string{config.Get().TraktClientID},
+		"trakt-api-key":     []string{config.TraktReadClientID},
 		"trakt-api-version": []string{APIVersion},
 		"User-Agent":        []string{UserAgent},
 		"Cookie":            []string{Cookies},
@@ -618,7 +618,7 @@ func GetWithAuth(endPoint string, params url.Values) (resp *napping.Response, er
 	header := http.Header{
 		"Content-type":      []string{"application/json"},
 		"Authorization":     []string{fmt.Sprintf("Bearer %s", config.Get().TraktToken)},
-		"trakt-api-key":     []string{config.Get().TraktClientID},
+		"trakt-api-key":     []string{config.TraktWriteClientID},
 		"trakt-api-version": []string{APIVersion},
 		"User-Agent":        []string{UserAgent},
 		"Cookie":            []string{Cookies},
@@ -671,7 +671,7 @@ func Post(endPoint string, payload *bytes.Buffer) (resp *napping.Response, err e
 	header := http.Header{
 		"Content-type":      []string{"application/json"},
 		"Authorization":     []string{fmt.Sprintf("Bearer %s", config.Get().TraktToken)},
-		"trakt-api-key":     []string{config.Get().TraktClientID},
+		"trakt-api-key":     []string{config.TraktWriteClientID},
 		"trakt-api-version": []string{APIVersion},
 		"User-Agent":        []string{UserAgent},
 		"Cookie":            []string{Cookies},
@@ -712,7 +712,7 @@ func GetCode() (code *Code, err error) {
 		"Cookie":       []string{Cookies},
 	}
 	params := napping.Params{
-		"client_id": config.Get().TraktClientID,
+		"client_id": config.TraktWriteClientID,
 	}.AsUrlValues()
 
 	req := napping.Request{
@@ -757,8 +757,8 @@ func GetToken(code string) (resp *napping.Response, err error) {
 	}
 	params := napping.Params{
 		"code":          code,
-		"client_id":     config.Get().TraktClientID,
-		"client_secret": config.Get().TraktClientSecret,
+		"client_id":     config.TraktWriteClientID,
+		"client_secret": config.TraktWriteClientSecret,
 	}.AsUrlValues()
 
 	req := napping.Request{
@@ -842,8 +842,8 @@ func RefreshToken() (resp *napping.Response, err error) {
 	}
 	params := napping.Params{
 		"refresh_token": config.Get().TraktRefreshToken,
-		"client_id":     config.Get().TraktClientID,
-		"client_secret": config.Get().TraktClientSecret,
+		"client_id":     config.TraktWriteClientID,
+		"client_secret": config.TraktWriteClientSecret,
 		"redirect_uri":  "urn:ietf:wg:oauth:2.0:oob",
 		"grant_type":    "refresh_token",
 	}.AsUrlValues()
@@ -1291,6 +1291,8 @@ func GetLastActivities() (a *UserActivities, err error) {
 
 	if err := resp.Unmarshal(&a); err != nil {
 		log.Warning(err)
+	} else {
+		config.Get().TraktAuthorized = true
 	}
 
 	return

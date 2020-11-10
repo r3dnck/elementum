@@ -25,13 +25,22 @@ import (
 var log = logging.MustGetLogger("config")
 var privacyRegex = regexp.MustCompile(`(?i)(pass|password): "(.+?)"`)
 
-const maxMemorySize = 300 * 1024 * 1024
-const defaultAutoMemorySize = 40 * 1024 * 1024
-const defaultTraktClientID = "de468dfafbb2f7e35bc3f6fe82bfb4ea37c17d8a949c032445e613fb7e7d1b02"
-const defaultTraktClientSecret = "d9c3601b034703e7c570d7921c6fef9bdbcab31d8d8d8344ac2b7efacf36ce75"
-const defaultTraktSyncFrequencyMin = 5
-const defaultEndBufferSize = 1 * 1024 * 1024
-const defaultDiskCacheSize = 12 * 1024 * 1024
+const (
+	maxMemorySize                = 300 * 1024 * 1024
+	defaultAutoMemorySize        = 40 * 1024 * 1024
+	defaultTraktSyncFrequencyMin = 5
+	defaultEndBufferSize         = 1 * 1024 * 1024
+	defaultDiskCacheSize         = 12 * 1024 * 1024
+
+	// TraktReadClientID ...
+	TraktReadClientID = "eb8839a79fb2af4ebfb93f993a8a539abd4d9674a7638497bbc662d2a4b22346"
+	// TraktReadClientSecret ...
+	TraktReadClientSecret = "338cfda318c5879c9d7d0888bf1875e303576d4ad7e72a2230addf5db326c791"
+	// TraktWriteClientID ...
+	TraktWriteClientID = "4de209b3d5d2e751002239b8ce0cd757c1a25beb4c7a33c27074e42c8369dbbc"
+	// TraktWriteClientSecret ...
+	TraktWriteClientSecret = "2d60d554251bd416fd86a46a74a8152ad52e8909d3ffa4a41c39c52427441f4a"
+)
 
 // Configuration ...
 type Configuration struct {
@@ -150,8 +159,7 @@ type Configuration struct {
 	AutoScrapeLimitMovies    int
 	AutoScrapeInterval       int
 
-	TraktClientID                  string
-	TraktClientSecret              string
+	TraktAuthorized                bool
 	TraktUsername                  string
 	TraktToken                     string
 	TraktRefreshToken              string
@@ -591,8 +599,6 @@ func Reload() *Configuration {
 		AutoScrapeLimitMovies:    settings["autoscrape_limit_movies"].(int),
 		AutoScrapeInterval:       settings["autoscrape_interval"].(int),
 
-		TraktClientID:                  settings["trakt_client_id"].(string),
-		TraktClientSecret:              settings["trakt_client_secret"].(string),
 		TraktUsername:                  settings["trakt_username"].(string),
 		TraktToken:                     settings["trakt_token"].(string),
 		TraktRefreshToken:              settings["trakt_refresh_token"].(string),
@@ -686,13 +692,6 @@ func Reload() *Configuration {
 		CompletedShowsPath:  settings["completed_shows_path"].(string),
 
 		LocalOnlyClient: settings["local_only_client"].(bool),
-	}
-
-	if newConfig.TraktClientID == "" {
-		newConfig.TraktClientID = defaultTraktClientID
-	}
-	if newConfig.TraktClientSecret == "" {
-		newConfig.TraktClientSecret = defaultTraktClientSecret
 	}
 
 	// Fallback for old configuration with additional storage variants

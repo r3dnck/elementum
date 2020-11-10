@@ -22,7 +22,7 @@ import (
 )
 
 func inMoviesWatchlist(tmdbID int) bool {
-	if config.Get().TraktToken == "" {
+	if !config.Get().TraktAuthorized {
 		return false
 	}
 
@@ -43,7 +43,7 @@ func inMoviesWatchlist(tmdbID int) bool {
 }
 
 func inShowsWatchlist(tmdbID int) bool {
-	if config.Get().TraktToken == "" {
+	if !config.Get().TraktAuthorized {
 		return false
 	}
 
@@ -64,7 +64,7 @@ func inShowsWatchlist(tmdbID int) bool {
 }
 
 func inMoviesCollection(tmdbID int) bool {
-	if config.Get().TraktToken == "" {
+	if !config.Get().TraktAuthorized {
 		return false
 	}
 
@@ -88,7 +88,7 @@ func inMoviesCollection(tmdbID int) bool {
 }
 
 func inShowsCollection(tmdbID int) bool {
-	if config.Get().TraktToken == "" {
+	if !config.Get().TraktAuthorized {
 		return false
 	}
 

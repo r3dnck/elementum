@@ -363,7 +363,7 @@ func TopShows(topCategory string, page string) (shows []*Shows, total int, err e
 		var resp *napping.Response
 		var err error
 
-		if config.Get().TraktToken == "" {
+		if !config.Get().TraktAuthorized {
 			resp, err = Get(endPoint, params)
 		} else {
 			resp, err = GetWithAuth(endPoint, params)
@@ -541,7 +541,7 @@ func ListItemsShows(listID string, isUpdateNeeded bool) (shows []*Shows, err err
 	}
 
 	var errGet error
-	if config.Get().TraktToken == "" {
+	if !config.Get().TraktAuthorized {
 		resp, errGet = Get(endPoint, params)
 	} else {
 		resp, errGet = GetWithAuth(endPoint, params)
