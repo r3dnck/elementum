@@ -460,7 +460,7 @@ func (btp *Player) Close() {
 		go btp.s.PlayerStop()
 	}()
 
-	if btp.t.HasNextFile {
+	if btp.t.HasNextFile && btp.IsWatched() {
 		log.Infof("Leaving torrent '%s' awaiting for next file playback", btp.t.Name())
 		btp.t.startNextTimer()
 		return
@@ -1006,8 +1006,11 @@ func (btp *Player) findNextFile() {
 	if btp.p.ShowID != 0 {
 		// Searching if we have next episode in the torrent
 		if btp.next.f = btp.t.GetNextEpisodeFile(btp.p.Season, btp.p.Episode+1); btp.next.f == nil || btp.chosenFile == nil || btp.chosenFile.Size == 0 {
-			btp.t.HasNextFile = false
-			return
+			// If next episode not matched, try to find first episode of next season
+			if btp.next.f = btp.t.GetNextEpisodeFile(btp.p.Season+1, 1); btp.next.f == nil || btp.chosenFile == nil || btp.chosenFile.Size == 0 {
+				btp.t.HasNextFile = false
+				return
+			}
 		}
 	} else {
 		// Selecting next file from available choices as the next file
