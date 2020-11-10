@@ -33,9 +33,6 @@ const (
 
 	trueType  = "true"
 	falseType = "false"
-
-	resolveExpiration     = 7 * 24 * time.Hour
-	resolveFileExpiration = 60 * 24 * time.Hour
 )
 
 const (
@@ -1024,7 +1021,7 @@ func ClearCacheKey(key string) {
 func ClearTraktCache() {
 	cacheDB := database.GetCache()
 	if cacheDB != nil {
-		cacheDB.DeleteWithPrefix(database.CommonBucket, []byte("com.trakt."))
+		cacheDB.DeleteWithPrefix(database.CommonBucket, []byte(cache.TraktKey))
 	}
 	xbmc.Refresh()
 }
@@ -1033,7 +1030,7 @@ func ClearTraktCache() {
 func ClearTmdbCache() {
 	cacheDB := database.GetCache()
 	if cacheDB != nil {
-		cacheDB.DeleteWithPrefix(database.CommonBucket, []byte("com.tmdb."))
+		cacheDB.DeleteWithPrefix(database.CommonBucket, []byte(cache.TMDBKey))
 	}
 	xbmc.Refresh()
 }
@@ -1198,9 +1195,9 @@ func SyncShowsList(listID string, updating bool, isUpdateNeeded bool) (err error
 	showsLastUpdates := map[int]time.Time{}
 
 	// Keep tracking of processed shows to avoid re-writing and checking all of them again.
-	cacheStore.Get("showsLastUpdates", &showsLastUpdates)
+	cacheStore.Get(cache.LibraryShowsLastUpdatesKey, &showsLastUpdates)
 	defer func() {
-		cacheStore.Set("showsLastUpdates", &showsLastUpdates, 7*24*time.Hour)
+		cacheStore.Set(cache.LibraryShowsLastUpdatesKey, &showsLastUpdates, cache.LibraryShowsLastUpdatesExpire)
 	}()
 
 	var showIDs []int

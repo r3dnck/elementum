@@ -30,7 +30,7 @@ func GetSeason(showID int, seasonNumber int, language string, seasonsCount int) 
 		updateFrequency = 1440
 	}
 
-	key := fmt.Sprintf("com.tmdb.season.%d.%d.%s", showID, seasonNumber, language)
+	key := fmt.Sprintf(cache.TMDBSeasonKey, showID, seasonNumber, language)
 	if err := cacheStore.Get(key, &season); err != nil {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/tv/%d/season/%d", tmdbEndpoint, showID, seasonNumber),
@@ -44,7 +44,7 @@ func GetSeason(showID int, seasonNumber int, language string, seasonsCount int) 
 		})
 
 		if season == nil && err != nil && err == util.ErrNotFound {
-			cacheStore.Set(key, &season, cacheHalfExpiration)
+			cacheStore.Set(key, &season, cache.TMDBSeasonExpire)
 		}
 		if season == nil {
 			return nil
@@ -65,7 +65,7 @@ func GetSeason(showID int, seasonNumber int, language string, seasonsCount int) 
 			}
 		}
 
-		cacheStore.Set(key, &season, time.Duration(updateFrequency)*time.Minute)
+		cacheStore.Set(key, &season, cache.TMDBSeasonExpire)
 	}
 	return season
 }

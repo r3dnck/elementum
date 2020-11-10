@@ -45,10 +45,15 @@ func RefreshTrakt() error {
 	cacheStore := cache.NewDBStore()
 	lastActivities, err := trakt.GetLastActivities()
 	if err != nil {
+		log.Debugf("Cannot get activities: %s", err)
+		if err == trakt.ErrLocked {
+			go trakt.NotifyLocked()
+		}
+
 		return err
 	}
 	var previousActivities trakt.UserActivities
-	_ = cacheStore.Get("com.trakt.last_activities", &previousActivities)
+	_ = cacheStore.Get(cache.TraktActivitiesKey, &previousActivities)
 
 	// If nothing changed from last check - skip everything
 	isFirstRun := !IsTraktInitialized || isKodiUpdated
@@ -60,7 +65,7 @@ func RefreshTrakt() error {
 	isErrored := false
 	defer func() {
 		if !isErrored {
-			_ = cacheStore.Set("com.trakt.last_activities", lastActivities, 30*24*time.Hour)
+			_ = cacheStore.Set(cache.TraktActivitiesKey, lastActivities, cache.TraktActivitiesExpire)
 		}
 	}()
 
@@ -177,7 +182,7 @@ func RefreshTraktWatched(itemType int, isRefreshNeeded bool) error {
 
 	cacheStore := cache.NewDBStore()
 	lastPlaycount := map[uint64]bool{}
-	cacheKey := fmt.Sprintf("WatchedLastPlaycount.%d", itemType)
+	cacheKey := fmt.Sprintf(cache.LibraryWatchedPlaycountKey, itemType)
 
 	if itemType == MovieType {
 		l.Running.IsMovies = true
@@ -210,7 +215,7 @@ func RefreshTraktWatched(itemType int, isRefreshNeeded bool) error {
 
 		cacheStore.Get(cacheKey, &lastPlaycount)
 		for _, m := range current {
-			if m.Plays > 1 && config.Get().TraktSyncWatchedSingle {
+			if m.Plays > 1 && config.Get().TraktSyncWatchedSingle && len(syncSingleMoviesDelete) < 50 {
 				syncSingleMoviesDelete = append(syncSingleMoviesDelete, &trakt.WatchedItem{
 					MediaType: "movie",
 					Movie:     m.Movie.IDs.TMDB,
@@ -243,7 +248,7 @@ func RefreshTraktWatched(itemType int, isRefreshNeeded bool) error {
 				xxhash.Sum64String(fmt.Sprintf("%d_%d_%d", MovieType, TMDBScraper, m.Movie.IDs.TMDB)),
 				xxhash.Sum64String(fmt.Sprintf("%d_%d_%s", MovieType, IMDBScraper, m.Movie.IDs.IMDB)))
 		}
-		cacheStore.Set(cacheKey, &lastPlaycount, 30*24*time.Hour)
+		cacheStore.Set(cacheKey, &lastPlaycount, cache.LibraryWatchedPlaycountExpire)
 
 		for _, m := range watchedMovies {
 			updateMovieWatched(m, true)
@@ -255,8 +260,9 @@ func RefreshTraktWatched(itemType int, isRefreshNeeded bool) error {
 		// If we have items that have multiple "plays", we should leave only 1,
 		// it will take off the load from Trakt API
 		if len(syncSingleMoviesDelete) > 0 && len(syncSingleMoviesAdd) > 0 {
-			trakt.SetMultipleWatched(syncSingleMoviesDelete)
-			trakt.SetMultipleWatched(syncSingleMoviesAdd)
+			if status, err := trakt.SetMultipleWatched(syncSingleMoviesDelete); err == nil && status != nil && status.Deleted.Movies > 0 {
+				trakt.SetMultipleWatched(syncSingleMoviesAdd)
+			}
 		}
 
 		if !config.Get().TraktSyncWatchedBack || len(l.Movies) == 0 {
@@ -332,7 +338,7 @@ func RefreshTraktWatched(itemType int, isRefreshNeeded bool) error {
 				}
 
 				for _, episode := range season.Episodes {
-					if episode.Plays > 1 && config.Get().TraktSyncWatchedSingle {
+					if episode.Plays > 1 && config.Get().TraktSyncWatchedSingle && len(syncSingleShowsDelete) < 50 {
 						syncSingleShowsDelete = append(syncSingleShowsDelete, &trakt.WatchedItem{
 							MediaType: "episode",
 							Show:      s.Show.IDs.TMDB,
@@ -396,8 +402,9 @@ func RefreshTraktWatched(itemType int, isRefreshNeeded bool) error {
 			// If we have items that have multiple "plays", we should leave only 1,
 			// it will take off the load from Trakt API
 			if len(syncSingleShowsDelete) > 0 && len(syncSingleShowsAdd) > 0 {
-				trakt.SetMultipleWatched(syncSingleShowsDelete)
-				trakt.SetMultipleWatched(syncSingleShowsAdd)
+				if status, err := trakt.SetMultipleWatched(syncSingleShowsDelete); err == nil && status != nil && status.Deleted.Episodes > 0 {
+					trakt.SetMultipleWatched(syncSingleShowsAdd)
+				}
 			}
 		}
 		cacheStore.Set(cacheKey, &lastPlaycount, 30*24*time.Hour)
@@ -588,10 +595,10 @@ func RefreshTraktPaused(itemType int, isRefreshNeeded bool) error {
 	cacheStore := cache.NewDBStore()
 	lastUpdates := map[int]time.Time{}
 
-	cacheKey := fmt.Sprintf("PausedLastUpdates.%d", itemType)
+	cacheKey := fmt.Sprintf(cache.TraktPausedLastUpdatesKey, itemType)
 	cacheStore.Get(cacheKey, &lastUpdates)
 	defer func() {
-		cacheStore.Set(cacheKey, &lastUpdates, 30*24*time.Hour)
+		cacheStore.Set(cacheKey, &lastUpdates, cache.TraktPausedLastUpdatesExpire)
 	}()
 
 	started := time.Now()

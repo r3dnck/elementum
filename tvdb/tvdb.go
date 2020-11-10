@@ -23,7 +23,6 @@ const (
 	burstRate               = 30
 	burstTime               = 1 * time.Second
 	simultaneousConnections = 20
-	cacheExpiration         = 2 * time.Hour
 )
 
 // SeasonList ...
@@ -235,14 +234,14 @@ func (s *Season) GetEpisode(number int) *Episode {
 func GetShow(tvdbID int, language string) (*Show, error) {
 	var show *Show
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.tvdb.show.%d.%s", tvdbID, language)
+	key := fmt.Sprintf(cache.TVDBShowByIDKey, tvdbID, language)
 	if err := cacheStore.Get(key, &show); err != nil {
 		newShow, err := getShow(tvdbID, language)
 		if err != nil {
 			return nil, err
 		}
 		if newShow != nil {
-			cacheStore.Set(key, newShow, cacheExpiration)
+			cacheStore.Set(key, newShow, cache.TVDBShowByIDExpire)
 		}
 		show = newShow
 	}

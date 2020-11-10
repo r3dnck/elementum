@@ -30,7 +30,7 @@ func (a ByPopularity) Less(i, j int) bool { return a[i].Popularity < a[j].Popula
 func GetImages(movieID int) *Images {
 	var images *Images
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.tmdb.movie.%d.images", movieID)
+	key := fmt.Sprintf(cache.TMDBMovieImagesKey, movieID)
 	if err := cacheStore.Get(key, &images); err != nil {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/movie/%d/images", tmdbEndpoint, movieID),
@@ -43,7 +43,7 @@ func GetImages(movieID int) *Images {
 		})
 
 		if images != nil {
-			cacheStore.Set(key, images, imagesCacheExpiration)
+			cacheStore.Set(key, images, cache.TMDBMovieImagesExpire)
 		}
 	}
 	return images
@@ -58,7 +58,7 @@ func GetMovie(tmdbID int, language string) *Movie {
 func GetMovieByID(movieID string, language string) *Movie {
 	var movie *Movie
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.tmdb.movie.%s.%s", movieID, language)
+	key := fmt.Sprintf(cache.TMDBMovieByIDKey, movieID, language)
 	if err := cacheStore.Get(key, &movie); err != nil {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/movie/%s", tmdbEndpoint, movieID),
@@ -72,7 +72,7 @@ func GetMovieByID(movieID string, language string) *Movie {
 		})
 
 		if movie != nil {
-			cacheStore.Set(key, movie, cacheExpiration)
+			cacheStore.Set(key, movie, cache.TMDBMovieByIDExpire)
 		}
 	}
 	if movie == nil {
@@ -108,7 +108,7 @@ func GetMovieGenres(language string) []*Genre {
 	genres := GenreList{}
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.tmdb.genres.movies.%s", language)
+	key := fmt.Sprintf(cache.TMDBMovieGenresKey, language)
 	if err := cacheStore.Get(key, &genres); err != nil || true {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/genre/movie/list", tmdbEndpoint),
@@ -143,7 +143,7 @@ func GetMovieGenres(language string) []*Genre {
 				return genres.Genres[i].Name < genres.Genres[j].Name
 			})
 
-			cacheStore.Set(key, genres, cacheExpiration)
+			cacheStore.Set(key, genres, cache.TMDBMovieGenresExpire)
 		}
 	}
 	return genres.Genres
@@ -185,8 +185,8 @@ func GetIMDBList(listID string, language string, page int) (movies Movies, total
 	requestLimitEnd := page*requestPerPage - 1
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.imdb.list.%s.%d.%d", listID, requestPerPage, page)
-	totalKey := fmt.Sprintf("com.imdb.list.%s.total", listID)
+	key := fmt.Sprintf(cache.TMDBMoviesIMDBKey, listID, requestPerPage, page)
+	totalKey := fmt.Sprintf(cache.TMDBMoviesIMDBTotalKey, listID)
 	if err := cacheStore.Get(key, &movies); err != nil {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/list/%s", tmdbEndpoint, listID),
@@ -211,10 +211,10 @@ func GetIMDBList(listID string, language string, page int) (movies Movies, total
 		}
 		movies = GetMovies(tmdbIds, language)
 		if movies != nil && len(movies) > 0 {
-			cacheStore.Set(key, movies, cacheExpiration*4)
+			cacheStore.Set(key, movies, cache.TMDBMoviesIMDBExpire)
 		}
 		totalResults = results.ItemCount
-		cacheStore.Set(totalKey, totalResults, cacheExpiration*4)
+		cacheStore.Set(totalKey, totalResults, cache.TMDBMoviesIMDBTotalExpire)
 	} else {
 		if err := cacheStore.Get(totalKey, &totalResults); err != nil {
 			totalResults = -1
@@ -250,8 +250,8 @@ func listMovies(endpoint string, cacheKey string, params napping.Params, page in
 	movies := make(Movies, requestPerPage)
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.tmdb.topmovies.%s.%s.%s.%s.%d.%d", cacheKey, genre, country, language, requestPerPage, page)
-	totalKey := fmt.Sprintf("com.tmdb.topmovies.%s.%s.%s.%s.total", cacheKey, genre, country, language)
+	key := fmt.Sprintf(cache.TMDBMoviesTopMoviesKey, cacheKey, genre, country, language, requestPerPage, page)
+	totalKey := fmt.Sprintf(cache.TMDBMoviesTopMoviesTotalKey, cacheKey, genre, country, language)
 	if err := cacheStore.Get(key, &movies); err != nil {
 		wg := sync.WaitGroup{}
 		for p := pageStart; p <= pageEnd; p++ {
@@ -279,7 +279,7 @@ func listMovies(endpoint string, cacheKey string, params napping.Params, page in
 
 				if totalResults == -1 {
 					totalResults = results.TotalResults
-					cacheStore.Set(totalKey, totalResults, recentExpiration)
+					cacheStore.Set(totalKey, totalResults, cache.TMDBMoviesTopMoviesTotalExpire)
 				}
 
 				var wgItems sync.WaitGroup
@@ -300,7 +300,7 @@ func listMovies(endpoint string, cacheKey string, params napping.Params, page in
 			}(p)
 		}
 		wg.Wait()
-		cacheStore.Set(key, movies, recentExpiration)
+		cacheStore.Set(key, movies, cache.TMDBMoviesTopMoviesExpire)
 	} else {
 		if err := cacheStore.Get(totalKey, &totalResults); err != nil {
 			totalResults = -1

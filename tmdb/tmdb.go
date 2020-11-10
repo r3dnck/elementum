@@ -365,12 +365,6 @@ const (
 	// burstRate               = 40
 	// burstTime               = 10 * time.Second
 	simultaneousConnections = 20
-	cacheExpiration         = 6 * 24 * time.Hour
-	cacheHalfExpiration     = 3 * 24 * time.Hour
-	recentExpiration        = 15 * time.Minute
-	imagesCacheExpiration   = 14 * 24 * time.Hour
-	resolveCacheExpiration  = 14 * 24 * time.Hour
-	findCacheExpiration     = 14 * 24 * time.Hour
 )
 
 var (
@@ -504,7 +498,7 @@ func Find(externalID string, externalSource string) *FindResult {
 	var result *FindResult
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.tmdb.find.%s.%s", externalSource, externalID)
+	key := fmt.Sprintf(cache.TMDBFindKey, externalSource, externalID)
 	if err := cacheStore.Get(key, &result); err != nil {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/find/%s", tmdbEndpoint, externalID),
@@ -517,7 +511,7 @@ func Find(externalID string, externalSource string) *FindResult {
 		})
 
 		if result != nil {
-			cacheStore.Set(key, result, findCacheExpiration)
+			cacheStore.Set(key, result, cache.TMDBFindExpire)
 		}
 	}
 
@@ -529,7 +523,7 @@ func GetCountries(language string) []*Country {
 	countries := CountryList{}
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.tmdb.countries.%s", language)
+	key := fmt.Sprintf(cache.TMDBCountriesKey, language)
 	if err := cacheStore.Get(key, &countries); err != nil {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/configuration/countries", tmdbEndpoint),
@@ -543,7 +537,7 @@ func GetCountries(language string) []*Country {
 		sort.Slice(countries, func(i, j int) bool {
 			return countries[i].EnglishName < countries[j].EnglishName
 		})
-		cacheStore.Set(key, countries, cacheExpiration)
+		cacheStore.Set(key, countries, cache.TMDBCountriesExpire)
 	}
 	return countries
 }
@@ -553,7 +547,7 @@ func GetLanguages(language string) []*Language {
 	languages := []*Language{}
 	cacheStore := cache.NewDBStore()
 
-	key := fmt.Sprintf("com.tmdb.languages.%s", language)
+	key := fmt.Sprintf(cache.TMDBLanguagesKey, language)
 	if err := cacheStore.Get(key, &languages); err != nil {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/configuration/languages", tmdbEndpoint),
@@ -573,7 +567,7 @@ func GetLanguages(language string) []*Language {
 		sort.Slice(languages, func(i, j int) bool {
 			return languages[i].Name < languages[j].Name
 		})
-		cacheStore.Set(key, languages, cacheExpiration)
+		cacheStore.Set(key, languages, cache.TMDBLanguagesExpire)
 	}
 	return languages
 }

@@ -29,10 +29,9 @@ func inMoviesWatchlist(tmdbID int) bool {
 	var movies []*trakt.Movies
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.watchlist.movies")
+	key := fmt.Sprintf(cache.TraktMoviesWatchlistKey)
 	if err := cacheStore.Get(key, &movies); err != nil {
 		movies, _ = trakt.WatchlistMovies(false)
-		cacheStore.Set(key, movies, 30*time.Second)
 	}
 
 	for _, movie := range movies {
@@ -51,10 +50,9 @@ func inShowsWatchlist(tmdbID int) bool {
 	var shows []*trakt.Shows
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.watchlist.shows")
+	key := fmt.Sprintf(cache.TraktShowsWatchlistKey)
 	if err := cacheStore.Get(key, &shows); err != nil {
 		shows, _ = trakt.WatchlistShows(false)
-		cacheStore.Set(key, shows, 30*time.Second)
 	}
 
 	for _, show := range shows {
@@ -73,10 +71,9 @@ func inMoviesCollection(tmdbID int) bool {
 	var movies []*trakt.Movies
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.collection.movies")
+	key := fmt.Sprintf(cache.TraktMoviesCollectionKey)
 	if err := cacheStore.Get(key, &movies); err != nil {
 		movies, _ = trakt.CollectionMovies(false)
-		cacheStore.Set(key, movies, 30*time.Second)
 	}
 
 	for _, movie := range movies {
@@ -98,10 +95,9 @@ func inShowsCollection(tmdbID int) bool {
 	var shows []*trakt.Shows
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.collection.shows")
+	key := fmt.Sprintf(cache.TraktShowsCollectionKey)
 	if err := cacheStore.Get(key, &shows); err != nil {
 		shows, _ = trakt.CollectionShows(false)
-		cacheStore.Set(key, shows, 30*time.Second)
 	}
 
 	for _, show := range shows {

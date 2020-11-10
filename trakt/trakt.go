@@ -44,22 +44,6 @@ var (
 	burstRate               = 50
 	burstTime               = 10 * time.Second
 	simultaneousConnections = 25
-	cacheExpiration         = 6 * 24 * time.Hour
-	recentExpiration        = 15 * time.Minute
-	userlistExpiration      = 1 * time.Minute
-	watchedExpiration       = 10 * time.Minute
-	watchedLongExpiration   = 7 * 24 * time.Hour
-	activitiesExpiration    = 7 * 24 * time.Hour
-	progressExpiration      = 7 * 24 * time.Hour
-
-	watchedMoviesKey    = "com.trakt.movies.watched.list.2"
-	watchedShowsKey     = "com.trakt.shows.watched.list.2"
-	pausedMoviesKey     = "com.trakt.movies.playback.list"
-	pausedShowsKey      = "com.trakt.shows.playback.list"
-	watchlistMoviesKey  = "com.trakt.movies.watchlist.list"
-	watchlistShowsKey   = "com.trakt.shows.watchlist.list"
-	collectionMoviesKey = "com.trakt.movies.collection.list"
-	collectionShowsKey  = "com.trakt.shows.collection.list"
 )
 
 const (
@@ -71,6 +55,11 @@ const (
 	ProgressSortAiredNewer
 	// ProgressSortAiredOlder ...
 	ProgressSortAiredOlder
+)
+
+var (
+	// ErrLocked reflects Trakt account locked status
+	ErrLocked = errors.New("Account is locked")
 )
 
 var rl = util.NewRateLimiter(burstRate, burstTime, simultaneousConnections)
@@ -524,6 +513,33 @@ type ListItemsPayload struct {
 	Shows  []*Show  `json:"shows,omitempty"`
 }
 
+// HistoryResponseStats refrects stats for each action type
+type HistoryResponseStats struct {
+	Movies   int `json:"movies"`
+	Episodes int `json:"episodes"`
+}
+
+// HistoryResponse reflects response from History remove
+type HistoryResponse struct {
+	Added    HistoryResponseStats `json:"added"`
+	Deleted  HistoryResponseStats `json:"deleted"`
+	NotFound struct {
+		Movies []struct {
+			IDs *IDs `json:"IDs"`
+		} `json:"movies"`
+		Shows []struct {
+			IDs *IDs `json:"IDs"`
+		} `json:"shows"`
+		Seasons []struct {
+			IDs *IDs `json:"IDs"`
+		} `json:"seasons"`
+		Episodes []struct {
+			IDs *IDs `json:"IDs"`
+		} `json:"episodes"`
+		Ids []int `json:"ids"`
+	} `json:"not_found"`
+}
+
 func totalFromHeaders(headers http.Header) (total int, err error) {
 	if len(headers) > 0 {
 		if itemCount, exists := headers["X-Pagination-Item-Count"]; exists {
@@ -913,7 +929,7 @@ func Authorize(fromSettings bool) error {
 
 	// Cleanup last activities to force requesting again
 	cacheStore := cache.NewDBStore()
-	_ = cacheStore.Set("com.trakt.last_activities", "", 1)
+	_ = cacheStore.Set(cache.TraktActivitiesKey, "", 1)
 
 	success := "Woohoo!"
 	if fromSettings {
@@ -1139,7 +1155,7 @@ func SetWatched(item *WatchedItem) (resp *napping.Response, err error) {
 }
 
 // SetMultipleWatched adds and removes from watched history
-func SetMultipleWatched(items []*WatchedItem) (resp *napping.Response, err error) {
+func SetMultipleWatched(items []*WatchedItem) (*HistoryResponse, error) {
 	if err := Authorized(); err != nil || len(items) == 0 {
 		return nil, err
 	}
@@ -1164,10 +1180,28 @@ func SetMultipleWatched(items []*WatchedItem) (resp *napping.Response, err error
 		endPoint = "sync/history/remove"
 	}
 
-	cache.NewDBStore().Delete(fmt.Sprintf("com.trakt.%ss.watched", items[0].MediaType))
+	cache.NewDBStore().Delete(fmt.Sprintf(cache.TraktKey+"%ss.watched", items[0].MediaType))
 
-	log.Debugf("Setting watch state for %d %s items", len(items), items[0].MediaType)
-	return Post(endPoint, bytes.NewBufferString(pre+query+post))
+	log.Debugf("Setting watch state at %s for %d %s items", endPoint, len(items), items[0].MediaType)
+
+	resp, err := Post(endPoint, bytes.NewBufferString(pre+query+post))
+
+	if err != nil {
+		log.Warningf("Error getting watched items: %s", err)
+		return nil, err
+	} else if resp.Status() != 200 {
+		log.Warningf("Error getting watched items. Status: %d", resp.Status())
+		return nil, fmt.Errorf("Bad status setting Trakt watched items: %d", resp.Status())
+	}
+
+	stats := HistoryResponse{}
+	if err = resp.Unmarshal(&stats); err != nil {
+		log.Warning(err)
+	} else {
+		log.Infof("Statistics for watch state at %s for %d %s items: Added: %#v, Deleted: %#v", endPoint, len(items), items[0].MediaType, stats.Added, stats.Deleted)
+	}
+
+	return &stats, err
 }
 
 func (item *WatchedItem) String() (query string) {
@@ -1249,6 +1283,8 @@ func GetLastActivities() (a *UserActivities, err error) {
 
 	if err != nil {
 		return nil, err
+	} else if resp.Status() == 423 {
+		return nil, ErrLocked
 	} else if resp.Status() != 200 {
 		return nil, fmt.Errorf("Bad status getting Trakt activities: %d", resp.Status())
 	}
@@ -1379,4 +1415,17 @@ func DiffMovies(previous, current []*Movies) []*Movies {
 	}
 
 	return ret
+}
+
+// NotifyLocked ...
+func NotifyLocked() {
+	cacheStore := cache.NewDBStore()
+	checked := false
+	if err := cacheStore.Get(cache.TraktLockedAccountKey, &checked); err == nil {
+		return
+	}
+
+	cacheStore.Set(cache.TraktLockedAccountKey, checked, cache.TraktLockedAccountExpire)
+
+	xbmc.Dialog("LOCALIZE[30616]", "LOCALIZE[30617]")
 }

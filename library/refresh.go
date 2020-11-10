@@ -15,6 +15,7 @@ import (
 	"github.com/cespare/xxhash"
 	"github.com/karrick/godirwalk"
 
+	"github.com/elgatito/elementum/cache"
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/playcount"
 	"github.com/elgatito/elementum/tmdb"
@@ -60,10 +61,10 @@ func Refresh() error {
 	l.Running.IsOverall = true
 	defer func() {
 		l.Running.IsOverall = false
+		util.FreeMemoryGC()
 	}()
 
 	now := time.Now()
-	defer util.FreeMemoryGC()
 
 	if err := RefreshMovies(); err != nil {
 		log.Debugf("RefreshMovies got an error: %v", err)
@@ -678,7 +679,7 @@ func findTMDBInFile(fileName string, pattern string) (id int, err error) {
 
 	// Let's cache file search, it's bad to do that, anyway,
 	// but we check only .strm files and do that once per 2 weeks
-	cacheKey := fmt.Sprintf("Resolve_File_%s", fileName)
+	cacheKey := fmt.Sprintf(cache.LibraryResolveFileKey, fileName)
 	if err := cacheStore.Get(cacheKey, &id); err == nil {
 		return id, nil
 	}
@@ -686,7 +687,7 @@ func findTMDBInFile(fileName string, pattern string) (id int, err error) {
 		if id == 0 {
 			log.Debugf("Count not get ID from the file %s with pattern %s", fileName, pattern)
 		}
-		cacheStore.Set(cacheKey, id, resolveFileExpiration)
+		cacheStore.Set(cacheKey, id, cache.LibraryResolveFileExpire)
 	}()
 
 	if _, errStat := os.Stat(fileName); errStat != nil {

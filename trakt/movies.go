@@ -108,7 +108,7 @@ func GetMovie(ID string) (movie *Movie) {
 	}.AsUrlValues()
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.movie.%s", ID)
+	key := fmt.Sprintf(cache.TraktMovieKey, ID)
 	if err := cacheStore.Get(key, &movie); err != nil {
 		resp, err := Get(endPoint, params)
 
@@ -121,7 +121,7 @@ func GetMovie(ID string) (movie *Movie) {
 			log.Warning(err)
 		}
 
-		cacheStore.Set(key, movie, cacheExpiration)
+		cacheStore.Set(key, movie, cache.TraktMovieExpire)
 	}
 
 	return
@@ -134,7 +134,7 @@ func GetMovieByTMDB(tmdbID string) (movie *Movie) {
 	params := napping.Params{}.AsUrlValues()
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.movie.tmdb.%s", tmdbID)
+	key := fmt.Sprintf(cache.TraktMovieByTMDBKey, tmdbID)
 	if err := cacheStore.Get(key, &movie); err != nil {
 		resp, err := Get(endPoint, params)
 		if err != nil {
@@ -150,7 +150,7 @@ func GetMovieByTMDB(tmdbID string) (movie *Movie) {
 		if results != nil && len(results) > 0 && results[0].Movie != nil {
 			movie = results[0].Movie
 		}
-		cacheStore.Set(key, movie, cacheExpiration)
+		cacheStore.Set(key, movie, cache.TraktMovieByTMDBExpire)
 	}
 	return
 }
@@ -206,8 +206,8 @@ func TopMovies(topCategory string, page string) (movies []*Movies, total int, er
 	}.AsUrlValues()
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.movies.%s.%s", topCategory, page)
-	totalKey := fmt.Sprintf("com.trakt.movies.%s.total", topCategory)
+	key := fmt.Sprintf(cache.TraktMoviesByCategoryKey, topCategory, page)
+	totalKey := fmt.Sprintf(cache.TraktMoviesByCategoryTotalKey, topCategory)
 	if err := cacheStore.Get(key, &movies); err != nil || len(movies) == 0 {
 		var resp *napping.Response
 		var err error
@@ -249,10 +249,10 @@ func TopMovies(topCategory string, page string) (movies []*Movies, total int, er
 		if err != nil {
 			log.Warning(err)
 		} else {
-			cacheStore.Set(totalKey, total, recentExpiration)
+			cacheStore.Set(totalKey, total, cache.TraktMoviesByCategoryTotalExpire)
 		}
 
-		cacheStore.Set(key, movies, recentExpiration)
+		cacheStore.Set(key, movies, cache.TraktMoviesByCategoryExpire)
 	} else {
 		if err := cacheStore.Get(totalKey, &total); err != nil {
 			total = -1
@@ -277,7 +277,7 @@ func WatchlistMovies(isUpdateNeeded bool) (movies []*Movies, err error) {
 	cacheStore := cache.NewDBStore()
 
 	if !isUpdateNeeded {
-		if err := cacheStore.Get(watchlistMoviesKey, &movies); err == nil {
+		if err := cacheStore.Get(cache.TraktMoviesWatchlistKey, &movies); err == nil {
 			return movies, nil
 		}
 	}
@@ -304,7 +304,7 @@ func WatchlistMovies(isUpdateNeeded bool) (movies []*Movies, err error) {
 	}
 	movies = movieListing
 
-	cacheStore.Set(watchlistMoviesKey, &movies, userlistExpiration)
+	cacheStore.Set(cache.TraktMoviesWatchlistKey, &movies, cache.TraktMoviesWatchlistExpire)
 	return
 }
 
@@ -323,7 +323,7 @@ func CollectionMovies(isUpdateNeeded bool) (movies []*Movies, err error) {
 	cacheStore := cache.NewDBStore()
 
 	if !isUpdateNeeded {
-		if err := cacheStore.Get(collectionMoviesKey, &movies); err == nil {
+		if err := cacheStore.Get(cache.TraktMoviesCollectionKey, &movies); err == nil {
 			return movies, nil
 		}
 	}
@@ -348,7 +348,7 @@ func CollectionMovies(isUpdateNeeded bool) (movies []*Movies, err error) {
 	}
 	movies = movieListing
 
-	cacheStore.Set(collectionMoviesKey, &movies, userlistExpiration)
+	cacheStore.Set(cache.TraktMoviesCollectionKey, &movies, cache.TraktMoviesCollectionExpire)
 	return movies, err
 }
 
@@ -500,7 +500,7 @@ func ListItemsMovies(user string, listID string, isUpdateNeeded bool) (movies []
 	var resp *napping.Response
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.movies.list.%s", listID)
+	key := fmt.Sprintf(cache.TraktMoviesListKey, listID)
 
 	if !isUpdateNeeded {
 		if err := cacheStore.Get(key, &movies); err == nil {
@@ -557,8 +557,8 @@ func CalendarMovies(endPoint string, page string) (movies []*CalendarMovie, tota
 
 	cacheStore := cache.NewDBStore()
 	endPointKey := strings.Replace(endPoint, "/", ".", -1)
-	key := fmt.Sprintf("com.trakt.mymovies.%s.%s", endPointKey, page)
-	totalKey := fmt.Sprintf("com.trakt.mymovies.%s.total", endPointKey)
+	key := fmt.Sprintf(cache.TraktMoviesCalendarKey, endPointKey, page)
+	totalKey := fmt.Sprintf(cache.TraktMoviesCalendarTotalKey, endPointKey)
 	if err := cacheStore.Get(key, &movies); err != nil {
 		resp, err := GetWithAuth("calendars/"+endPoint, params)
 
@@ -579,10 +579,10 @@ func CalendarMovies(endPoint string, page string) (movies []*CalendarMovie, tota
 		if err != nil {
 			total = -1
 		} else {
-			cacheStore.Set(totalKey, total, recentExpiration)
+			cacheStore.Set(totalKey, total, cache.TraktMoviesCalendarTotalExpire)
 		}
 
-		cacheStore.Set(key, &movies, recentExpiration)
+		cacheStore.Set(key, &movies, cache.TraktMoviesCalendarExpire)
 	} else {
 		if err := cacheStore.Get(totalKey, &total); err != nil {
 			total = -1
@@ -600,8 +600,8 @@ func WatchedMovies(isUpdateNeeded bool) ([]*WatchedMovie, error) {
 		napping.Params{},
 		true,
 		isUpdateNeeded,
-		watchedMoviesKey,
-		cacheExpiration,
+		cache.TraktMoviesWatchedKey,
+		cache.TraktMoviesWatchedExpire,
 		&movies,
 	)
 
@@ -612,7 +612,7 @@ func WatchedMovies(isUpdateNeeded bool) ([]*WatchedMovie, error) {
 	if len(movies) != 0 {
 		cache.
 			NewDBStore().
-			Set(watchedMoviesKey, &movies, cacheExpiration)
+			Set(cache.TraktMoviesWatchedKey, &movies, cache.TraktMoviesWatchedExpire)
 	}
 
 	return movies, err
@@ -622,7 +622,7 @@ func WatchedMovies(isUpdateNeeded bool) ([]*WatchedMovie, error) {
 func PreviousWatchedMovies() (movies []*WatchedMovie, err error) {
 	err = cache.
 		NewDBStore().
-		Get(watchedMoviesKey, &movies)
+		Get(cache.TraktMoviesWatchedKey, &movies)
 
 	return
 }
@@ -637,8 +637,8 @@ func PausedMovies(isUpdateNeeded bool) ([]*PausedMovie, error) {
 		},
 		true,
 		isUpdateNeeded,
-		pausedMoviesKey,
-		cacheExpiration,
+		cache.TraktMoviesPausedKey,
+		cache.TraktMoviesPausedExpire,
 		&movies,
 	)
 

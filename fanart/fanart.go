@@ -32,7 +32,6 @@ var (
 	burstRate               = 50
 	burstTime               = 10 * time.Second
 	simultaneousConnections = 25
-	cacheExpiration         = 14 * 24 * time.Hour
 )
 
 var rl = util.NewRateLimiter(burstRate, burstTime, simultaneousConnections)
@@ -137,7 +136,7 @@ func GetMovie(tmdbID int) (movie *Movie) {
 	params := napping.Params{}.AsUrlValues()
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.fanart.movie.%d", tmdbID)
+	key := fmt.Sprintf(cache.FanartMovieByIDKey, tmdbID)
 	if err := cacheStore.Get(key, &movie); err != nil {
 		resp, err := Get(endPoint, params)
 		if err != nil {
@@ -150,7 +149,7 @@ func GetMovie(tmdbID int) (movie *Movie) {
 			return
 		}
 
-		cacheStore.Set(key, movie, cacheExpiration)
+		cacheStore.Set(key, movie, cache.FanartMovieByIDExpire)
 	}
 
 	return
@@ -166,7 +165,7 @@ func GetShow(tvdbID int) (show *Show) {
 	params := napping.Params{}.AsUrlValues()
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.fanart.show.%d", tvdbID)
+	key := fmt.Sprintf(cache.FanartShowByIDKey, tvdbID)
 	if err := cacheStore.Get(key, &show); err != nil {
 		resp, err := Get(endPoint, params)
 		if err != nil {
@@ -179,7 +178,7 @@ func GetShow(tvdbID int) (show *Show) {
 			return
 		}
 
-		cacheStore.Set(key, show, cacheExpiration)
+		cacheStore.Set(key, show, cache.FanartShowByIDExpire)
 	}
 
 	return

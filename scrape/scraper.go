@@ -25,15 +25,6 @@ import (
 
 const (
 	timeFormat = "2006-01-02T15:04:05.000Z"
-
-	cacheDurationLastExecution = 60 * 60 * 24 * 30
-	cacheKeyLastExecution      = "scraper.last.execution"
-
-	cacheDurationMoviesList = 60 * 60 * 6
-	cacheKeyMoviesList      = "scraper.movies.list.%d"
-
-	cacheDurationMovieExists = 60 * 60 * 24 * 365
-	cacheKeyMovieExists      = "scraper.movie.exists.%d.%d.%t"
 )
 
 const (
@@ -93,7 +84,7 @@ func runUpdater() {
 	cacheDB := database.GetCache()
 
 	// Check if previous execution was in less then N hours, filled in settings.
-	if last, err := cacheDB.GetCached(database.CommonBucket, cacheKeyLastExecution); err == nil && last != "" {
+	if last, err := cacheDB.GetCached(database.CommonBucket, cache.ScraperLastExecutionKey); err == nil && last != "" {
 		if lastTime, err := time.Parse(timeFormat, last); err == nil && lastTime.Add(time.Hour*time.Duration(config.Get().AutoScrapePerHours)).After(time.Now()) {
 			return
 		}
@@ -101,7 +92,7 @@ func runUpdater() {
 
 	defer func() {
 		// Save this execution time
-		cacheDB.SetCached(database.CommonBucket, cacheDurationLastExecution, cacheKeyLastExecution, time.Now().Format(timeFormat))
+		cacheDB.SetCached(database.CommonBucket, cache.ScraperLastExecutionExpire, cache.ScraperLastExecutionKey, time.Now().Format(timeFormat))
 
 		// Update Kodi library if needed
 		if libraryUpdated {
@@ -156,7 +147,7 @@ func runUpdater() {
 		}
 
 		// We checked the strategy and expectation and movie is considered active
-		cacheDB.SetCachedBool(database.CommonBucket, cacheDurationMovieExists, keyExists, true)
+		cacheDB.SetCachedBool(database.CommonBucket, cache.ScraperMovieExistsExpire, keyExists, true)
 		addMovieToLibrary(m.Movie)
 
 		// Just sleep a little
@@ -217,7 +208,7 @@ func addMovieToLibrary(m *trakt.Movie) {
 // GetMovies Gets list of trending movies from Trakt
 func GetMovies() (movies []*trakt.Movies, err error) {
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf(cacheKeyMoviesList, config.Get().AutoScrapeLimitMovies)
+	key := fmt.Sprintf(cache.ScraperMoviesListKey, config.Get().AutoScrapeLimitMovies)
 
 	if err := cacheStore.Get(key, &movies); err != nil || len(movies) == 0 {
 		defer perf.ScopeTimer()()
@@ -239,7 +230,7 @@ func GetMovies() (movies []*trakt.Movies, err error) {
 			log.Warning(errUnm)
 		}
 
-		cacheStore.Set(key, movies, cacheDurationMoviesList)
+		cacheStore.Set(key, movies, cache.ScraperMoviesListExpire)
 	}
 
 	return movies, nil
@@ -259,5 +250,5 @@ func getTorrents(m *trakt.Movie, withAuth bool) []*bittorrent.TorrentFile {
 
 // GetMovieExistsKey ...
 func GetMovieExistsKey(tmdbID int) string {
-	return fmt.Sprintf(cacheKeyMovieExists, tmdbID, config.Get().AutoScrapeStrategy, config.Get().AutoScrapeLibraryEnabled)
+	return fmt.Sprintf(cache.ScraperMovieExistsKey, tmdbID, config.Get().AutoScrapeStrategy, config.Get().AutoScrapeLibraryEnabled)
 }

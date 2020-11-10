@@ -19,7 +19,7 @@ import (
 func GetEpisode(showID int, seasonNumber int, episodeNumber int, language string) *Episode {
 	var episode *Episode
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.tmdb.episode.%d.%d.%d.%s", showID, seasonNumber, episodeNumber, language)
+	key := fmt.Sprintf(cache.TMDBEpisodeKey, showID, seasonNumber, episodeNumber, language)
 	if err := cacheStore.Get(key, &episode); err != nil {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/tv/%d/season/%d/episode/%d", tmdbEndpoint, showID, seasonNumber, episodeNumber),
@@ -33,7 +33,7 @@ func GetEpisode(showID int, seasonNumber int, episodeNumber int, language string
 		})
 
 		if episode != nil {
-			cacheStore.Set(key, episode, cacheExpiration)
+			cacheStore.Set(key, episode, cache.TMDBEpisodeExpire)
 		}
 	}
 	return episode

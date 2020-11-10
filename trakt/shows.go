@@ -123,7 +123,7 @@ func GetShow(ID string) (show *Show) {
 	}.AsUrlValues()
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.show.%s", ID)
+	key := fmt.Sprintf(cache.TraktShowKey, ID)
 	if err := cacheStore.Get(key, &show); err != nil {
 		resp, err := Get(endPoint, params)
 		if err != nil {
@@ -135,7 +135,7 @@ func GetShow(ID string) (show *Show) {
 			log.Warning(err)
 		}
 
-		cacheStore.Set(key, show, cacheExpiration)
+		cacheStore.Set(key, show, cache.TraktShowExpire)
 	}
 
 	return
@@ -148,7 +148,7 @@ func GetShowByTMDB(tmdbID string) (show *Show) {
 	params := napping.Params{}.AsUrlValues()
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.show.tmdb.%s", tmdbID)
+	key := fmt.Sprintf(cache.TraktShowTMDBKey, tmdbID)
 	if err := cacheStore.Get(key, &show); err != nil {
 		resp, err := Get(endPoint, params)
 		if err != nil {
@@ -164,7 +164,7 @@ func GetShowByTMDB(tmdbID string) (show *Show) {
 		if results != nil && len(results) > 0 && results[0].Show != nil {
 			show = results[0].Show
 		}
-		cacheStore.Set(key, show, cacheExpiration)
+		cacheStore.Set(key, show, cache.TraktShowTMDBExpire)
 	}
 	return
 }
@@ -176,7 +176,7 @@ func GetShowByTVDB(tvdbID string) (show *Show) {
 	params := napping.Params{}.AsUrlValues()
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.show.tvdb.%s", tvdbID)
+	key := fmt.Sprintf(cache.TraktShowTVDBKey, tvdbID)
 	if err := cacheStore.Get(key, &show); err != nil {
 		resp, err := Get(endPoint, params)
 		if err != nil {
@@ -187,7 +187,7 @@ func GetShowByTVDB(tvdbID string) (show *Show) {
 		if err := resp.Unmarshal(&show); err != nil {
 			log.Warning(err)
 		}
-		cacheStore.Set(key, show, cacheExpiration)
+		cacheStore.Set(key, show, cache.TraktShowTVDBExpire)
 	}
 	return
 }
@@ -198,7 +198,7 @@ func GetSeasonEpisodes(showID, seasonNumber int) (episodes []*Episode) {
 	params := napping.Params{"extended": "episodes,full"}.AsUrlValues()
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.season.%d.%d", showID, seasonNumber)
+	key := fmt.Sprintf(cache.TraktSeasonKey, showID, seasonNumber)
 	if err := cacheStore.Get(key, &episodes); err != nil {
 		resp, err := Get(endPoint, params)
 		if err != nil {
@@ -208,7 +208,7 @@ func GetSeasonEpisodes(showID, seasonNumber int) (episodes []*Episode) {
 		if err := resp.Unmarshal(&episodes); err != nil {
 			log.Warning(err)
 		}
-		cacheStore.Set(key, episodes, cacheExpiration)
+		cacheStore.Set(key, episodes, cache.TraktSeasonExpire)
 	}
 	return
 }
@@ -219,7 +219,7 @@ func GetEpisode(showID, seasonNumber, episodeNumber int) (episode *Episode) {
 	params := napping.Params{"extended": "full,images"}.AsUrlValues()
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.episode.%d.%d.%d", showID, seasonNumber, episodeNumber)
+	key := fmt.Sprintf(cache.TraktEpisodeKey, showID, seasonNumber, episodeNumber)
 	if err := cacheStore.Get(key, &episode); err != nil {
 		resp, err := Get(endPoint, params)
 		if err != nil {
@@ -229,7 +229,7 @@ func GetEpisode(showID, seasonNumber, episodeNumber int) (episode *Episode) {
 		if err := resp.Unmarshal(&episode); err != nil {
 			log.Warning(err)
 		}
-		cacheStore.Set(key, episode, cacheExpiration)
+		cacheStore.Set(key, episode, cache.TraktEpisodeExpire)
 	}
 	return
 }
@@ -241,7 +241,7 @@ func GetEpisodeByID(id string) (episode *Episode) {
 	params := napping.Params{}.AsUrlValues()
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.episode.%s", id)
+	key := fmt.Sprintf(cache.TraktEpisodeByIDKey, id)
 	if err := cacheStore.Get(key, &episode); err != nil {
 		resp, err := Get(endPoint, params)
 		if err != nil {
@@ -252,7 +252,7 @@ func GetEpisodeByID(id string) (episode *Episode) {
 		if err := resp.Unmarshal(&episode); err != nil {
 			log.Warning(err)
 		}
-		cacheStore.Set(key, episode, cacheExpiration)
+		cacheStore.Set(key, episode, cache.TraktEpisodeByIDExpire)
 	}
 	return
 }
@@ -264,7 +264,7 @@ func GetEpisodeByTMDB(tmdbID string) (episode *Episode) {
 	params := napping.Params{}.AsUrlValues()
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.episode.tmdb.%s", tmdbID)
+	key := fmt.Sprintf(cache.TraktEpisodeByTMDBKey, tmdbID)
 	if err := cacheStore.Get(key, &episode); err != nil {
 		resp, err := Get(endPoint, params)
 		if err != nil {
@@ -280,7 +280,7 @@ func GetEpisodeByTMDB(tmdbID string) (episode *Episode) {
 		if results != nil && len(results) > 0 && results[0].Episode != nil {
 			episode = results[0].Episode
 		}
-		cacheStore.Set(key, episode, cacheExpiration)
+		cacheStore.Set(key, episode, cache.TraktEpisodeByTMDBExpire)
 	}
 	return
 }
@@ -292,7 +292,7 @@ func GetEpisodeByTVDB(tvdbID string) (episode *Episode) {
 	params := napping.Params{}.AsUrlValues()
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.episode.tvdb.%s", tvdbID)
+	key := fmt.Sprintf(cache.TraktEpisodeByTVDBKey, tvdbID)
 	if err := cacheStore.Get(key, &episode); err != nil {
 		resp, err := Get(endPoint, params)
 		if err != nil {
@@ -303,7 +303,7 @@ func GetEpisodeByTVDB(tvdbID string) (episode *Episode) {
 		if err := resp.Unmarshal(&episode); err != nil {
 			log.Warning(err)
 		}
-		cacheStore.Set(key, episode, cacheExpiration)
+		cacheStore.Set(key, episode, cache.TraktEpisodeByTVDBExpire)
 	}
 	return
 }
@@ -357,8 +357,8 @@ func TopShows(topCategory string, page string) (shows []*Shows, total int, err e
 	}.AsUrlValues()
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.shows.%s.%s", topCategory, page)
-	totalKey := fmt.Sprintf("com.trakt.shows.%s.total", topCategory)
+	key := fmt.Sprintf(cache.TraktShowsByCategoryKey, topCategory, page)
+	totalKey := fmt.Sprintf(cache.TraktShowsByCategoryTotalKey, topCategory)
 	if err := cacheStore.Get(key, &shows); err != nil || len(shows) == 0 {
 		var resp *napping.Response
 		var err error
@@ -400,10 +400,10 @@ func TopShows(topCategory string, page string) (shows []*Shows, total int, err e
 		if err != nil {
 			log.Warning(err)
 		} else {
-			cacheStore.Set(totalKey, total, recentExpiration)
+			cacheStore.Set(totalKey, total, cache.TraktShowsByCategoryTotalExpire)
 		}
 
-		cacheStore.Set(key, shows, recentExpiration)
+		cacheStore.Set(key, shows, cache.TraktShowsByCategoryExpire)
 	} else {
 		if err := cacheStore.Get(totalKey, &total); err != nil {
 			total = -1
@@ -428,7 +428,7 @@ func WatchlistShows(isUpdateNeeded bool) (shows []*Shows, err error) {
 	cacheStore := cache.NewDBStore()
 
 	if !isUpdateNeeded {
-		if err := cacheStore.Get(watchlistShowsKey, &shows); err == nil {
+		if err := cacheStore.Get(cache.TraktShowsWatchlistKey, &shows); err == nil {
 			return shows, nil
 		}
 	}
@@ -456,7 +456,7 @@ func WatchlistShows(isUpdateNeeded bool) (shows []*Shows, err error) {
 	}
 	shows = showListing
 
-	cacheStore.Set(watchlistShowsKey, &shows, progressExpiration)
+	cacheStore.Set(cache.TraktShowsWatchlistKey, &shows, cache.TraktShowsWatchlistExpire)
 	return
 }
 
@@ -464,7 +464,7 @@ func WatchlistShows(isUpdateNeeded bool) (shows []*Shows, err error) {
 func PreviousWatchlistShows() (shows []*Shows, err error) {
 	err = cache.
 		NewDBStore().
-		Get(watchlistShowsKey, &shows)
+		Get(cache.TraktShowsWatchlistKey, &shows)
 
 	return shows, err
 }
@@ -484,7 +484,7 @@ func CollectionShows(isUpdateNeeded bool) (shows []*Shows, err error) {
 	cacheStore := cache.NewDBStore()
 
 	if !isUpdateNeeded {
-		if err := cacheStore.Get(collectionShowsKey, &shows); err == nil {
+		if err := cacheStore.Get(cache.TraktShowsCollectionKey, &shows); err == nil {
 			return shows, nil
 		}
 	}
@@ -510,7 +510,7 @@ func CollectionShows(isUpdateNeeded bool) (shows []*Shows, err error) {
 		showListing = append(showListing, &showItem)
 	}
 
-	cacheStore.Set(collectionShowsKey, &showListing, progressExpiration)
+	cacheStore.Set(cache.TraktShowsCollectionKey, &showListing, cache.TraktShowsCollectionExpire)
 	return showListing, err
 }
 
@@ -518,7 +518,7 @@ func CollectionShows(isUpdateNeeded bool) (shows []*Shows, err error) {
 func PreviousCollectionShows() (shows []*Shows, err error) {
 	err = cache.
 		NewDBStore().
-		Get(collectionShowsKey, &shows)
+		Get(cache.TraktShowsCollectionKey, &shows)
 
 	return shows, err
 }
@@ -532,7 +532,7 @@ func ListItemsShows(listID string, isUpdateNeeded bool) (shows []*Shows, err err
 	var resp *napping.Response
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.shows.list.%s", listID)
+	key := fmt.Sprintf(cache.TraktShowsListKey, listID)
 
 	if !isUpdateNeeded {
 		if err := cacheStore.Get(key, &shows); err == nil {
@@ -568,14 +568,14 @@ func ListItemsShows(listID string, isUpdateNeeded bool) (shows []*Shows, err err
 	}
 	shows = showListing
 
-	cacheStore.Set(key, &shows, 1*time.Minute)
+	cacheStore.Set(key, &shows, cache.TraktShowsListExpire)
 	return shows, err
 }
 
 // PreviousListItemsShows ...
 func PreviousListItemsShows(listID string) (shows []*Shows, err error) {
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.trakt.shows.list.%s", listID)
+	key := fmt.Sprintf(cache.TraktShowsListKey, listID)
 	err = cacheStore.Get(key, &shows)
 
 	return
@@ -598,8 +598,8 @@ func CalendarShows(endPoint string, page string) (shows []*CalendarShow, total i
 
 	cacheStore := cache.NewDBStore()
 	endPointKey := strings.Replace(endPoint, "/", ".", -1)
-	key := fmt.Sprintf("com.trakt.myshows.%s.%s", endPointKey, page)
-	totalKey := fmt.Sprintf("com.trakt.myshows.%s.total", endPointKey)
+	key := fmt.Sprintf(cache.TraktShowsCalendarKey, endPointKey, page)
+	totalKey := fmt.Sprintf(cache.TraktShowsCalendarTotalKey, endPointKey)
 	if err := cacheStore.Get(key, &shows); err != nil {
 		resp, err := GetWithAuth("calendars/"+endPoint, params)
 
@@ -618,10 +618,10 @@ func CalendarShows(endPoint string, page string) (shows []*CalendarShow, total i
 		if err != nil {
 			total = -1
 		} else {
-			cacheStore.Set(totalKey, total, recentExpiration)
+			cacheStore.Set(totalKey, total, cache.TraktShowsCalendarTotalExpire)
 		}
 
-		cacheStore.Set(key, &shows, recentExpiration)
+		cacheStore.Set(key, &shows, cache.TraktShowsCalendarExpire)
 	} else {
 		if err := cacheStore.Get(totalKey, &total); err != nil {
 			total = -1
@@ -639,15 +639,15 @@ func WatchedShows(isUpdateNeeded bool) ([]*WatchedShow, error) {
 		napping.Params{"extended": "full,images"},
 		true,
 		isUpdateNeeded,
-		watchedShowsKey,
-		cacheExpiration,
+		cache.TraktShowsWatchedKey,
+		cache.TraktShowsWatchedExpire,
 		&shows,
 	)
 
 	if len(shows) != 0 {
 		cache.
 			NewDBStore().
-			Set(watchedShowsKey, &shows, cacheExpiration)
+			Set(cache.TraktShowsWatchedKey, &shows, cache.TraktShowsWatchedExpire)
 	}
 
 	return shows, err
@@ -657,7 +657,7 @@ func WatchedShows(isUpdateNeeded bool) ([]*WatchedShow, error) {
 func PreviousWatchedShows() (shows []*WatchedShow, err error) {
 	err = cache.
 		NewDBStore().
-		Get(watchedShowsKey, &shows)
+		Get(cache.TraktShowsWatchedKey, &shows)
 
 	return
 }
@@ -672,8 +672,8 @@ func PausedShows(isUpdateNeeded bool) ([]*PausedEpisode, error) {
 		},
 		true,
 		isUpdateNeeded,
-		pausedShowsKey,
-		cacheExpiration,
+		cache.TraktShowsPausedKey,
+		cache.TraktShowsPausedExpire,
 		&shows,
 	)
 
@@ -690,7 +690,7 @@ func WatchedShowsProgress() (shows []*ProgressShow, err error) {
 
 	lastActivities, err := GetLastActivities()
 	var previousActivities UserActivities
-	_ = cacheStore.Get("com.trakt.last_activities", &previousActivities)
+	_ = cacheStore.Get(cache.TraktActivitiesKey, &previousActivities)
 
 	// If last watched time was changed - we should get fresh Watched shows list
 	isRefresh := !lastActivities.Episodes.WatchedAt.Equal(previousActivities.Episodes.WatchedAt)
@@ -699,9 +699,6 @@ func WatchedShowsProgress() (shows []*ProgressShow, err error) {
 		log.Errorf("Error getting the watched shows: %v", errWatched)
 		return nil, errWatched
 	}
-
-	key := "com.trakt.episodes.watched.%d"
-	watchedKey := "com.trakt.progress.episodes.watched.%d"
 
 	params := napping.Params{
 		"hidden":         "false",
@@ -720,7 +717,7 @@ func WatchedShowsProgress() (shows []*ProgressShow, err error) {
 			var cachedWatchedAt time.Time
 
 			defer func() {
-				cacheStore.Set(fmt.Sprintf(watchedKey, show.Show.IDs.Trakt), show.LastWatchedAt, activitiesExpiration)
+				cacheStore.Set(fmt.Sprintf(cache.TraktWatchedShowsProgressWatchedKey, show.Show.IDs.Trakt), show.LastWatchedAt, cache.TraktWatchedShowsProgressWatchedExpire)
 
 				watchedProgressShows[idx] = watchedProgressShow
 
@@ -733,8 +730,8 @@ func WatchedShowsProgress() (shows []*ProgressShow, err error) {
 				wg.Done()
 			}()
 
-			if err := cacheStore.Get(fmt.Sprintf(watchedKey, show.Show.IDs.Trakt), &cachedWatchedAt); err == nil && show.LastWatchedAt.Equal(cachedWatchedAt) {
-				if err := cacheStore.Get(fmt.Sprintf(key, show.Show.IDs.Trakt), &watchedProgressShow); err == nil {
+			if err := cacheStore.Get(fmt.Sprintf(cache.TraktWatchedShowsProgressWatchedKey, show.Show.IDs.Trakt), &cachedWatchedAt); err == nil && show.LastWatchedAt.Equal(cachedWatchedAt) {
+				if err := cacheStore.Get(fmt.Sprintf(cache.TraktWatchedShowsProgressKey, show.Show.IDs.Trakt), &watchedProgressShow); err == nil {
 					return
 				}
 			}
@@ -752,7 +749,7 @@ func WatchedShowsProgress() (shows []*ProgressShow, err error) {
 				log.Warningf("Can't unmarshal response: %#v", err)
 			}
 
-			cacheStore.Set(fmt.Sprintf(key, show.Show.IDs.Trakt), &watchedProgressShow, progressExpiration)
+			cacheStore.Set(fmt.Sprintf(cache.TraktWatchedShowsProgressKey, show.Show.IDs.Trakt), &watchedProgressShow, cache.TraktWatchedShowsProgressExpire)
 		}(i, show)
 	}
 	wg.Wait()

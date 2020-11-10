@@ -32,7 +32,7 @@ func LogError(err error) {
 func GetShowImages(showID int) *Images {
 	var images *Images
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.tmdb.show.%d.images", showID)
+	key := fmt.Sprintf(cache.TMDBShowImagesKey, showID)
 	if err := cacheStore.Get(key, &images); err != nil {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/tv/%d/images", tmdbEndpoint, showID),
@@ -45,7 +45,7 @@ func GetShowImages(showID int) *Images {
 		})
 
 		if images != nil {
-			cacheStore.Set(key, images, imagesCacheExpiration)
+			cacheStore.Set(key, images, cache.TMDBShowImagesExpire)
 		}
 	}
 	return images
@@ -55,7 +55,7 @@ func GetShowImages(showID int) *Images {
 func GetSeasonImages(showID int, season int) *Images {
 	var images *Images
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.tmdb.show.%d.%d.images", showID, season)
+	key := fmt.Sprintf(cache.TMDBSeasonImagesKey, showID, season)
 	if err := cacheStore.Get(key, &images); err != nil {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/tv/%d/season/%d/images", tmdbEndpoint, showID, season),
@@ -68,7 +68,7 @@ func GetSeasonImages(showID int, season int) *Images {
 		})
 
 		if images != nil {
-			cacheStore.Set(key, images, imagesCacheExpiration)
+			cacheStore.Set(key, images, cache.TMDBSeasonImagesExpire)
 		}
 	}
 	return images
@@ -78,7 +78,7 @@ func GetSeasonImages(showID int, season int) *Images {
 func GetEpisodeImages(showID, season, episode int) *Images {
 	var images *Images
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.tmdb.show.%d.%d.%d.images", showID, season, episode)
+	key := fmt.Sprintf(cache.TMDBEpisodeImagesKey, showID, season, episode)
 	if err := cacheStore.Get(key, &images); err != nil {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/tv/%d/season/%d/episode/%d/images", tmdbEndpoint, showID, season, episode),
@@ -91,7 +91,7 @@ func GetEpisodeImages(showID, season, episode int) *Images {
 		})
 
 		if images != nil {
-			cacheStore.Set(key, images, imagesCacheExpiration)
+			cacheStore.Set(key, images, cache.TMDBEpisodeImagesExpire)
 		}
 	}
 	return images
@@ -109,7 +109,7 @@ func GetShow(showID int, language string) (show *Show) {
 		return
 	}
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.tmdb.show.%d.%s", showID, language)
+	key := fmt.Sprintf(cache.TMDBShowByIDKey, showID, language)
 	if err := cacheStore.Get(key, &show); err != nil {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/tv/%d", tmdbEndpoint, showID),
@@ -123,13 +123,13 @@ func GetShow(showID int, language string) (show *Show) {
 		})
 
 		if show == nil && err != nil && err == util.ErrNotFound {
-			cacheStore.Set(key, &show, cacheHalfExpiration)
+			cacheStore.Set(key, &show, cache.TMDBShowByIDExpire)
 		}
 		if show == nil {
 			return nil
 		}
 
-		cacheStore.Set(key, &show, cacheExpiration)
+		cacheStore.Set(key, &show, cache.TMDBShowByIDExpire)
 	}
 	if show == nil {
 		return nil
@@ -214,8 +214,8 @@ func listShows(endpoint string, cacheKey string, params napping.Params, page int
 	shows := make(Shows, requestPerPage)
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.tmdb.topshows.%s.%s.%s.%s.%d.%d", cacheKey, genre, country, language, requestPerPage, page)
-	totalKey := fmt.Sprintf("com.tmdb.topshows.%s.%s.%s.%s.total", cacheKey, genre, country, language)
+	key := fmt.Sprintf(cache.TMDBShowsTopShowsKey, cacheKey, genre, country, language, requestPerPage, page)
+	totalKey := fmt.Sprintf(cache.TMDBShowsTopShowsTotalKey, cacheKey, genre, country, language)
 	if err := cacheStore.Get(key, &shows); err != nil {
 		wg := sync.WaitGroup{}
 		for p := pageStart; p <= pageEnd; p++ {
@@ -243,7 +243,7 @@ func listShows(endpoint string, cacheKey string, params napping.Params, page int
 
 				if totalResults == -1 {
 					totalResults = results.TotalResults
-					cacheStore.Set(totalKey, totalResults, recentExpiration)
+					cacheStore.Set(totalKey, totalResults, cache.TMDBShowsTopShowsTotalExpire)
 				}
 
 				var wgItems sync.WaitGroup
@@ -264,7 +264,7 @@ func listShows(endpoint string, cacheKey string, params napping.Params, page int
 			}(p)
 		}
 		wg.Wait()
-		cacheStore.Set(key, shows, recentExpiration)
+		cacheStore.Set(key, shows, cache.TMDBShowsTopShowsExpire)
 	} else {
 		if err := cacheStore.Get(totalKey, &totalResults); err != nil {
 			totalResults = -1
@@ -399,7 +399,7 @@ func GetTVGenres(language string) []*Genre {
 	genres := GenreList{}
 
 	cacheStore := cache.NewDBStore()
-	key := fmt.Sprintf("com.tmdb.genres.shows.%s", language)
+	key := fmt.Sprintf(cache.TMDBShowGenresKey, language)
 	if err := cacheStore.Get(key, &genres); err != nil {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/genre/tv/list", tmdbEndpoint),
@@ -434,7 +434,7 @@ func GetTVGenres(language string) []*Genre {
 				return genres.Genres[i].Name < genres.Genres[j].Name
 			})
 
-			cacheStore.Set(key, genres, cacheExpiration)
+			cacheStore.Set(key, genres, cache.TMDBShowGenresExpire)
 		}
 	}
 	return genres.Genres
