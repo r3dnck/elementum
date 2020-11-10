@@ -211,6 +211,7 @@ func main() {
 	go db.MaintenanceRefreshHandler()
 	go cacheDb.MaintenanceRefreshHandler()
 	go scrape.Start()
+	go util.FreeMemoryGC()
 
 	log.Infof("Prepared in %s", time.Since(now))
 	log.Infof("Starting HTTP server")
