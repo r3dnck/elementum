@@ -38,6 +38,7 @@ require (
 	github.com/likexian/doh-go v0.6.4
 	github.com/likexian/gokit v0.23.3 // indirect
 	github.com/mattn/go-colorable v0.1.7 // indirect
+	github.com/mdempsky/maligned v0.0.0-20201101000000-d73c43cb16d0 // indirect
 	github.com/miekg/dns v1.1.31 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
@@ -58,9 +59,6 @@ require (
 	github.com/zeebo/bencode v1.0.0
 	go.etcd.io/bbolt v1.3.5
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
-	golang.org/x/net v0.0.0-20200923182212-328152dc79b1 // indirect
-	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
-	golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d // indirect
 	golang.org/x/text v0.3.3 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
