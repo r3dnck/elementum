@@ -210,25 +210,8 @@ func RefreshTraktWatched(itemType int, isRefreshNeeded bool) error {
 
 		watchedTraktMovies := make([]int, 0, len(current))
 
-		syncSingleMoviesDelete := []*trakt.WatchedItem{}
-		syncSingleMoviesAdd := []*trakt.WatchedItem{}
-
 		cacheStore.Get(cacheKey, &lastPlaycount)
 		for _, m := range current {
-			if m.Plays > 1 && config.Get().TraktSyncWatchedSingle && len(syncSingleMoviesDelete) < 50 {
-				syncSingleMoviesDelete = append(syncSingleMoviesDelete, &trakt.WatchedItem{
-					MediaType: "movie",
-					Movie:     m.Movie.IDs.TMDB,
-					Watched:   false,
-				})
-				syncSingleMoviesAdd = append(syncSingleMoviesAdd, &trakt.WatchedItem{
-					MediaType: "movie",
-					Movie:     m.Movie.IDs.TMDB,
-					Watched:   true,
-					WatchedAt: m.LastWatchedAt,
-				})
-			}
-
 			if r := getKodiMovieByTraktIDs(m.Movie.IDs); r != nil {
 				watchedTraktMovies = append(watchedTraktMovies, r.UIDs.TMDB)
 
@@ -255,14 +238,6 @@ func RefreshTraktWatched(itemType int, isRefreshNeeded bool) error {
 		}
 		for _, m := range unwatchedMovies {
 			updateMovieWatched(m, false)
-		}
-
-		// If we have items that have multiple "plays", we should leave only 1,
-		// it will take off the load from Trakt API
-		if len(syncSingleMoviesDelete) > 0 && len(syncSingleMoviesAdd) > 0 {
-			if status, err := trakt.SetMultipleWatched(syncSingleMoviesDelete); err == nil && status != nil && status.Deleted.Movies > 0 {
-				trakt.SetMultipleWatched(syncSingleMoviesAdd)
-			}
 		}
 
 		if !config.Get().TraktSyncWatchedBack || len(l.Movies) == 0 {
@@ -321,9 +296,6 @@ func RefreshTraktWatched(itemType int, isRefreshNeeded bool) error {
 
 		cacheStore.Get(cacheKey, &lastPlaycount)
 		for _, s := range current {
-			syncSingleShowsDelete := []*trakt.WatchedItem{}
-			syncSingleShowsAdd := []*trakt.WatchedItem{}
-
 			tmdbShow := tmdb.GetShowByID(strconv.Itoa(s.Show.IDs.TMDB), config.Get().Language)
 			completedSeasons := 0
 			for _, season := range s.Seasons {
@@ -338,24 +310,6 @@ func RefreshTraktWatched(itemType int, isRefreshNeeded bool) error {
 				}
 
 				for _, episode := range season.Episodes {
-					if episode.Plays > 1 && config.Get().TraktSyncWatchedSingle && len(syncSingleShowsDelete) < 50 {
-						syncSingleShowsDelete = append(syncSingleShowsDelete, &trakt.WatchedItem{
-							MediaType: "episode",
-							Show:      s.Show.IDs.TMDB,
-							Season:    season.Number,
-							Episode:   episode.Number,
-							Watched:   false,
-						})
-						syncSingleShowsAdd = append(syncSingleShowsAdd, &trakt.WatchedItem{
-							MediaType: "episode",
-							Show:      s.Show.IDs.TMDB,
-							Season:    season.Number,
-							Episode:   episode.Number,
-							Watched:   true,
-							WatchedAt: episode.LastWatchedAt,
-						})
-					}
-
 					l.WatchedTrakt = append(l.WatchedTrakt,
 						xxhash.Sum64String(fmt.Sprintf("%d_%d_%d_%d_%d", EpisodeType, TMDBScraper, s.Show.IDs.TMDB, season.Number, episode.Number)),
 						xxhash.Sum64String(fmt.Sprintf("%d_%d_%d_%d_%d", EpisodeType, TraktScraper, s.Show.IDs.Trakt, season.Number, episode.Number)))
@@ -396,14 +350,6 @@ func RefreshTraktWatched(itemType int, isRefreshNeeded bool) error {
 
 				if toRun || r.DateAdded.After(s.LastWatchedAt) {
 					updateShowWatched(s, true)
-				}
-			}
-
-			// If we have items that have multiple "plays", we should leave only 1,
-			// it will take off the load from Trakt API
-			if len(syncSingleShowsDelete) > 0 && len(syncSingleShowsAdd) > 0 {
-				if status, err := trakt.SetMultipleWatched(syncSingleShowsDelete); err == nil && status != nil && status.Deleted.Episodes > 0 {
-					trakt.SetMultipleWatched(syncSingleShowsAdd)
 				}
 			}
 		}

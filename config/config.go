@@ -173,7 +173,6 @@ type Configuration struct {
 	TraktSyncPlaybackProgress      bool
 	TraktSyncHidden                bool
 	TraktSyncWatched               bool
-	TraktSyncWatchedSingle         bool
 	TraktSyncWatchedBack           bool
 	TraktSyncAddedMovies           bool
 	TraktSyncAddedMoviesLocation   int
@@ -612,7 +611,6 @@ func Reload() *Configuration {
 		TraktSyncPlaybackProgress:      settings["trakt_sync_playback_progress"].(bool),
 		TraktSyncHidden:                settings["trakt_sync_hidden"].(bool),
 		TraktSyncWatched:               settings["trakt_sync_watched"].(bool),
-		TraktSyncWatchedSingle:         settings["trakt_sync_watched_single"].(bool),
 		TraktSyncWatchedBack:           settings["trakt_sync_watchedback"].(bool),
 		TraktSyncAddedMovies:           settings["trakt_sync_added_movies"].(bool),
 		TraktSyncAddedMoviesLocation:   settings["trakt_sync_added_movies_location"].(int),
