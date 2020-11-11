@@ -1186,10 +1186,11 @@ func (btp *Player) SaveStoredResume() {
 func TrimChoices(choices []*CandidateFile) {
 	// We are trying to see whether all files belong to the same directory.
 	// If yes - we can remove that directory from printed files list
-	for _, d := range strings.Split(choices[0].DisplayName, "/") {
+	sep := string(os.PathSeparator)
+	for _, d := range strings.Split(choices[0].DisplayName, sep) {
 		ret := true
 		for _, c := range choices {
-			if !strings.HasPrefix(c.DisplayName, d+"/") {
+			if !strings.HasPrefix(c.DisplayName, d+sep) {
 				ret = false
 				break
 			}
@@ -1197,7 +1198,7 @@ func TrimChoices(choices []*CandidateFile) {
 
 		if ret {
 			for _, c := range choices {
-				c.DisplayName = strings.Replace(c.DisplayName, d+"/", "", 1)
+				c.DisplayName = strings.Replace(c.DisplayName, d+sep, "", 1)
 			}
 		} else {
 			break
