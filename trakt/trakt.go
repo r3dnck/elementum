@@ -1189,7 +1189,7 @@ func SetMultipleWatched(items []*WatchedItem) (*HistoryResponse, error) {
 	if err != nil {
 		log.Warningf("Error getting watched items: %s", err)
 		return nil, err
-	} else if resp.Status() != 200 {
+	} else if resp.Status() != 200 && resp.Status() != 201 {
 		log.Warningf("Error getting watched items. Status: %d", resp.Status())
 		return nil, fmt.Errorf("Bad status setting Trakt watched items: %d", resp.Status())
 	}

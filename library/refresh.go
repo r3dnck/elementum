@@ -190,7 +190,6 @@ func RefreshShows() error {
 
 		parseUniqueID(ShowType, l.Shows[len(l.Shows)-1].UIDs, l.Shows[len(l.Shows)-1].XbmcUIDs, "", l.Shows[len(l.Shows)-1].Year)
 	}
-
 	l.mu.Shows.Unlock()
 
 	if err := RefreshSeasons(); err != nil {
@@ -816,6 +815,13 @@ func RefreshLocal() error {
 	if l.Running.IsOverall {
 		return nil
 	}
+
+	l.Pending.IsOverall = false
+	l.Running.IsOverall = true
+	defer func() {
+		l.Running.IsOverall = false
+		util.FreeMemoryGC()
+	}()
 
 	refreshLocalMovies()
 	refreshLocalShows()
