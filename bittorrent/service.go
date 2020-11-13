@@ -761,6 +761,7 @@ func (s *Service) AddTorrent(uri string, paused bool, downloadStorage int) (*Tor
 
 	// Saving torrent file
 	t.onMetadataReceived()
+	t.init()
 
 	go t.Watch()
 

@@ -143,6 +143,18 @@ func NewTorrent(service *Service, handle lt.TorrentHandle, info lt.TorrentInfo, 
 	return t
 }
 
+func (t *Torrent) init() {
+	// Run setters in MemoryStorage
+	if t.IsMemoryStorage() {
+		t.ms = t.th.GetMemoryStorage().(lt.MemoryStorage)
+		t.ms.SetTorrentHandle(t.th)
+
+		if t.MemorySize < t.pieceLength*10 {
+			t.AdjustMemorySize(t.pieceLength * 10)
+		}
+	}
+}
+
 // GotInfo ...
 func (t *Torrent) GotInfo() <-chan struct{} {
 	return t.gotMetainfo.C()
@@ -346,10 +358,6 @@ func (t *Torrent) Buffer(file *File, isStartup bool) {
 
 	defer perf.ScopeTimer()()
 
-	if isStartup && t.IsMemoryStorage() && t.MemorySize < t.pieceLength*10 {
-		t.AdjustMemorySize(t.pieceLength * 10)
-	}
-
 	t.startBufferTicker()
 
 	startBufferSize := t.Service.GetBufferSize()
@@ -388,11 +396,6 @@ func (t *Torrent) Buffer(file *File, isStartup bool) {
 	// }
 
 	if t.IsMemoryStorage() {
-		if isStartup {
-			t.ms = t.th.GetMemoryStorage().(lt.MemoryStorage)
-			t.ms.SetTorrentHandle(t.th)
-		}
-
 		// Try to increase memory size to at most 25 pieces to have more comfortable playback.
 		// Also check for free memory to avoid spending too much!
 		if config.Get().AutoAdjustMemorySize {
