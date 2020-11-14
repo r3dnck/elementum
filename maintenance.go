@@ -96,9 +96,19 @@ func Notification(w http.ResponseWriter, r *http.Request, s *bittorrent.Service)
 		// We should stop torrents, waiting for "next" playback
 		go s.StopNextFiles()
 
-		time.Sleep(400 * time.Millisecond) // Let player get its WatchedTime and VideoDuration
-		p := s.GetActivePlayer()
-		if p == nil {
+		var p *bittorrent.Player
+
+		// Try N times to get active player, maybe it takes more time to find active player
+		for i := 0; i <= 15; i++ {
+			p = s.GetActivePlayer()
+			if p != nil && p.Params().VideoDuration > 0 {
+				break
+			}
+
+			time.Sleep(300 * time.Millisecond) // Let player get its WatchedTime and VideoDuration
+		}
+
+		if p == nil || p.IsClosed() {
 			log.Warningf("OnPlay. No active player found")
 			return
 		}
@@ -153,7 +163,7 @@ func Notification(w http.ResponseWriter, r *http.Request, s *bittorrent.Service)
 					if seekCatched {
 						log.Infof("OnPlay. Seek completed")
 						return
-					} else if p.Params().VideoDuration == 0 {
+					} else if p.Params().VideoDuration <= 0 {
 						log.Infof("OnPlay. Waiting for available duration")
 						continue
 					}
