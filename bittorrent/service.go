@@ -403,8 +403,8 @@ func (s *Service) configure() {
 		// settings.SetInt("request_timeout", 10)
 		// settings.SetInt("peer_connect_timeout", 10)
 
-		settings.SetInt("max_out_request_queue", 50000)
-		settings.SetInt("max_allowed_in_request_queue", 50000)
+		settings.SetInt("max_out_request_queue", 100000)
+		settings.SetInt("max_allowed_in_request_queue", 100000)
 
 		// settings.SetInt("initial_picker_threshold", 20)
 		// settings.SetInt("share_mode_target", 1)
@@ -947,6 +947,10 @@ func (s *Service) alertsConsumer() {
 				alertType := ltAlert.Type()
 				alertPtr := ltAlert.Swigcptr()
 				alertMessage := ltAlert.Message()
+
+				if alertPtr == 0 {
+					continue
+				}
 
 				switch alertType {
 				case lt.SaveResumeDataAlertAlertType:
