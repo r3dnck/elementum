@@ -689,6 +689,10 @@ func WatchedShowsProgress() (shows []*ProgressShow, err error) {
 	cacheStore := cache.NewDBStore()
 
 	lastActivities, err := GetLastActivities()
+	if err != nil {
+		log.Warningf("Cannot get activities: %s", err)
+		return nil, err
+	}
 	var previousActivities UserActivities
 	_ = cacheStore.Get(cache.TraktActivitiesKey, &previousActivities)
 

@@ -47,7 +47,7 @@ func RefreshTrakt() error {
 	cacheStore := cache.NewDBStore()
 	lastActivities, err := trakt.GetLastActivities()
 	if err != nil {
-		log.Debugf("Cannot get activities: %s", err)
+		log.Warningf("Cannot get activities: %s", err)
 		if err == trakt.ErrLocked {
 			go trakt.NotifyLocked()
 		}
@@ -604,7 +604,7 @@ func updateMovieWatched(m *trakt.WatchedMovie, watched bool) {
 		if m.Plays <= 0 {
 			return
 		}
-		
+
 		r.UIDs.Playcount = 1
 		xbmc.SetMovieWatchedWithDate(r.UIDs.Kodi, 1, 0, 0, m.LastWatchedAt)
 		// TODO: There should be a check for allowing resume state, otherwise we always reset it for already searched items
