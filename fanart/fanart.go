@@ -288,7 +288,7 @@ func (fa *Show) ToListItemArt(old *xbmc.ListItemArt) *xbmc.ListItemArt {
 		Banner:    GetBestShowImage("", old.Banner, fa.TVBanner),
 		FanArt:    GetBestShowImage("", old.FanArt, fa.ShowBackground),
 		ClearArt:  GetBestShowImage("", old.ClearArt, fa.HDClearArt, fa.ClearArt),
-		ClearLogo: GetBestShowImage("", old.ClearLogo, fa.ClearLogo, fa.HdtvLogo),
+		ClearLogo: GetBestShowImage("", old.ClearLogo, fa.ClearLogo),
 		Landscape: GetBestShowImage("", old.Landscape, fa.ShowBackground),
 	}
 }
@@ -305,7 +305,7 @@ func (fa *Show) ToSeasonListItemArt(season int, old *xbmc.ListItemArt) *xbmc.Lis
 		Banner:    GetBestShowImage(s, old.Banner, fa.SeasonBanner, fa.TVBanner),
 		FanArt:    GetBestShowImage(s, old.FanArt, fa.ShowBackground),
 		ClearArt:  GetBestShowImage(s, old.ClearArt, fa.HDClearArt, fa.ClearArt),
-		ClearLogo: GetBestShowImage(s, old.ClearLogo, fa.ClearLogo, fa.HdtvLogo),
+		ClearLogo: GetBestShowImage(s, old.ClearLogo, fa.ClearLogo),
 		Landscape: GetBestShowImage(s, old.Landscape, fa.ShowBackground),
 	}
 }
@@ -321,7 +321,7 @@ func (fa *Show) ToEpisodeListItemArt(season int, old *xbmc.ListItemArt) *xbmc.Li
 		Banner:       GetBestShowImage(s, old.Banner, fa.SeasonBanner, fa.TVBanner),
 		FanArt:       old.FanArt,
 		ClearArt:     GetBestShowImage(s, old.ClearArt, fa.HDClearArt, fa.ClearArt),
-		ClearLogo:    GetBestShowImage(s, old.ClearLogo, fa.ClearLogo, fa.HdtvLogo),
+		ClearLogo:    GetBestShowImage(s, old.ClearLogo, fa.ClearLogo),
 		Landscape:    GetBestShowImage(s, old.Landscape, fa.ShowBackground),
 	}
 }
