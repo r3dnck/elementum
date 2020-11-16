@@ -73,7 +73,8 @@ func RefreshTrakt() error {
 
 	if isFirstRun {
 		l.mu.Trakt.Lock()
-		l.WatchedTrakt = []uint64{}
+		l.WatchedTraktMovies = []uint64{}
+		l.WatchedTraktShows = []uint64{}
 		l.mu.Trakt.Unlock()
 
 		IsTraktInitialized = true
@@ -182,247 +183,295 @@ func RefreshTraktWatched(itemType int, isRefreshNeeded bool) error {
 		RefreshUIDsRunner(true)
 	}()
 
-	cacheStore := cache.NewDBStore()
-	lastPlaycount := map[uint64]bool{}
-	cacheKey := fmt.Sprintf(cache.LibraryWatchedPlaycountKey, itemType)
-
 	if itemType == MovieType {
-		l.Running.IsMovies = true
-		defer func() {
-			l.Running.IsMovies = false
-		}()
+		return refreshTraktMoviesWatched(isRefreshNeeded)
+	} else if itemType == EpisodeType || itemType == SeasonType || itemType == ShowType {
+		return refreshTraktShowsWatched(isRefreshNeeded)
+	}
 
-		previous, _ := trakt.PreviousWatchedMovies()
-		current, err := trakt.WatchedMovies(isRefreshNeeded)
-		if err != nil {
-			log.Warningf("Got error from getting watched movies: %s", err)
-			return err
-		} else if len(current) == 0 {
-			// Kind of strange check to make sure Trakt watched items are not empty
-			return nil
-		} else if len(previous) > 50 && len(current) > 50 && len(previous)/len(current) > 2 {
-			// If current*2 < previous then skipping updates
-			return nil
-		}
+	return nil
+}
 
-		// Should parse all movies for Watched marks, but process only difference,
-		// to avoid overwriting Kodi unwatched items
-		watchedMovies := trakt.DiffWatchedMovies(previous, current)
-		unwatchedMovies := trakt.DiffWatchedMovies(current, previous)
+func refreshTraktMoviesWatched(isRefreshNeeded bool) error {
+	l.Running.IsMovies = true
+	defer func() {
+		l.Running.IsMovies = false
+	}()
 
-		watchedTraktMovies := make([]int, 0, len(current))
+	previous, _ := trakt.PreviousWatchedMovies()
+	current, err := trakt.WatchedMovies(isRefreshNeeded)
+	if err != nil {
+		log.Warningf("Got error from getting watched movies: %s", err)
+		return err
+	} else if len(current) == 0 {
+		return nil
+	}
 
-		missedItems := []uint64{}
+	cacheStore := cache.NewDBStore()
 
-		cacheStore.Get(cacheKey, &lastPlaycount)
-		for _, m := range current {
-			l.WatchedTrakt = addXXItem(l.WatchedTrakt, MovieType, m.Movie.IDs)
+	lastPlaycount := map[uint64]bool{}
+	syncPlaycount := map[uint64]bool{}
 
-			if r := getKodiMovieByTraktIDs(m.Movie.IDs); r != nil {
-				watchedTraktMovies = append(watchedTraktMovies, r.UIDs.TMDB)
+	lastCacheKey := fmt.Sprintf(cache.LibraryWatchedPlaycountKey, "movies")
+	syncCacheKey := fmt.Sprintf(cache.LibrarySyncPlaycountKey, "movies")
 
-				if _, ok := lastPlaycount[xxhash.Sum64String(r.File)]; ok && !r.IsWatched() {
-					delete(lastPlaycount, xxhash.Sum64String(r.File))
-					continue
-				}
-				lastPlaycount[xxhash.Sum64String(r.File)] = true
+	// Should parse all movies for Watched marks, but process only difference,
+	// to avoid overwriting Kodi unwatched items
+	watchedMovies := trakt.DiffWatchedMovies(previous, current)
+	unwatchedMovies := trakt.DiffWatchedMovies(current, previous)
 
-				if !r.IsWatched() || r.DateAdded.After(m.LastWatchedAt) {
-					updateMovieWatched(m, true)
-				}
-			} else {
-				missedItems = addXXItem(missedItems, MovieType, m.Movie.IDs)
-			}
-		}
-		cacheStore.Set(cacheKey, &lastPlaycount, cache.LibraryWatchedPlaycountExpire)
+	fileKey := uint64(0)
+	missedItems := []uint64{}
+	l.WatchedTraktMovies = []uint64{}
 
-		for _, m := range watchedMovies {
-			updateMovieWatched(m, true)
-		}
-		for _, m := range unwatchedMovies {
-			updateMovieWatched(m, false)
-		}
+	// Sync local items with exact list
+	for _, m := range watchedMovies {
+		updateMovieWatched(m, true)
+	}
+	for _, m := range unwatchedMovies {
+		updateMovieWatched(m, false)
+	}
 
-		if !config.Get().TraktSyncWatchedBack || len(l.Movies) == 0 {
-			return nil
-		}
+	cacheStore.Get(lastCacheKey, &lastPlaycount)
+	cacheStore.Get(syncCacheKey, &syncPlaycount)
+	defer cacheStore.Set(lastCacheKey, &lastPlaycount, cache.LibraryWatchedPlaycountExpire)
+	defer cacheStore.Set(syncCacheKey, &syncPlaycount, cache.LibrarySyncPlaycountExpire)
 
-		syncWatchMovies := []*trakt.WatchedItem{}
-		syncUnwatchMovies := []*trakt.WatchedItem{}
-		l.mu.Movies.Lock()
-		for _, m := range l.Movies {
-			if m.UIDs.TMDB == 0 {
+	for _, m := range current {
+		l.WatchedTraktMovies = addXXItem(l.WatchedTraktMovies, MovieType, m.Movie.IDs)
+
+		if r := getKodiMovieByTraktIDs(m.Movie.IDs); r != nil {
+			// Check if we previously set this item as watched, to avoid re-setting local items again and again.
+			fileKey = xxhash.Sum64String(r.File)
+			if _, ok := lastPlaycount[fileKey]; ok && !r.IsWatched() {
 				continue
 			}
 
-			has := hasItem(watchedTraktMovies, m.UIDs.TMDB) || hasXXItem(l.WatchedTrakt, MovieType, m.UIDs)
-			if (has && m.IsWatched()) || (!has && !m.IsWatched()) {
+			// Update local item Watched status if it is unwatched or was added after it is was watched
+			if !r.IsWatched() || r.DateAdded.After(m.LastWatchedAt) {
+				lastPlaycount[fileKey] = true
+				updateMovieWatched(m, true)
+			}
+		} else {
+			missedItems = addXXItem(missedItems, MovieType, m.Movie.IDs)
+		}
+	}
+
+	if !config.Get().TraktSyncWatchedBack || len(l.Movies) == 0 {
+		return nil
+	}
+
+	syncWatchMovies := []*trakt.WatchedItem{}
+	syncUnwatchMovies := []*trakt.WatchedItem{}
+
+	l.mu.Movies.Lock()
+	for _, m := range l.Movies {
+		if m.UIDs.TMDB == 0 {
+			continue
+		}
+
+		fileKey = xxhash.Sum64String(m.File)
+		previousRun, isDone := syncPlaycount[fileKey]
+
+		has := hasXXItem(l.WatchedTraktMovies, MovieType, m.UIDs)
+		if (has && m.IsWatched()) || (!has && !m.IsWatched() || (isDone && previousRun == m.IsWatched())) {
+			continue
+		}
+
+		item := &trakt.WatchedItem{
+			KodiKey:   fileKey,
+			MediaType: "movie",
+			Movie:     m.UIDs.TMDB,
+			Watched:   !has && m.IsWatched(),
+		}
+		if item.Watched {
+			syncWatchMovies = append(syncWatchMovies, item)
+		} else {
+			syncUnwatchMovies = append(syncUnwatchMovies, item)
+		}
+	}
+	l.mu.Movies.Unlock()
+
+	if len(syncUnwatchMovies) > 0 {
+		if _, err := trakt.SetMultipleWatched(syncUnwatchMovies); err == nil {
+			// Set cached entry to avoid running same item again
+			for _, i := range syncUnwatchMovies {
+				delete(lastPlaycount, i.KodiKey)
+				syncPlaycount[i.KodiKey] = i.Watched
+			}
+		}
+	}
+	if len(syncWatchMovies) > 0 {
+		if _, err := trakt.SetMultipleWatched(syncWatchMovies); err == nil {
+			// Set cached entry to avoid running same item again
+			for _, i := range syncWatchMovies {
+				syncPlaycount[i.KodiKey] = i.Watched
+			}
+		}
+	}
+
+	return nil
+}
+
+func refreshTraktShowsWatched(isRefreshNeeded bool) error {
+	l.Running.IsShows = true
+	defer func() {
+		l.Running.IsShows = false
+	}()
+
+	previous, _ := trakt.PreviousWatchedShows()
+	current, err := trakt.WatchedShows(isRefreshNeeded)
+	if err != nil {
+		log.Warningf("Got error from getting watched shows: %s", err)
+		return err
+	} else if len(current) == 0 {
+		// Kind of strange check to make sure Trakt watched items are not empty
+		return nil
+	}
+
+	cacheStore := cache.NewDBStore()
+
+	lastPlaycount := map[uint64]bool{}
+	syncPlaycount := map[uint64]bool{}
+
+	lastCacheKey := fmt.Sprintf(cache.LibraryWatchedPlaycountKey, "shows")
+	syncCacheKey := fmt.Sprintf(cache.LibrarySyncPlaycountKey, "shows")
+
+	// Should parse all shows for Watched marks, but process only difference,
+	// to avoid overwriting Kodi unwatched items
+	watchedShows := trakt.DiffWatchedShows(previous, current)
+	unwatchedShows := trakt.DiffWatchedShows(current, previous)
+
+	fileKey := uint64(0)
+	missedItems := []uint64{}
+	l.WatchedTraktShows = []uint64{}
+
+	cacheStore.Get(lastCacheKey, &lastPlaycount)
+	cacheStore.Get(syncCacheKey, &syncPlaycount)
+	defer cacheStore.Set(lastCacheKey, &lastPlaycount, cache.LibraryWatchedPlaycountExpire)
+	defer cacheStore.Set(syncCacheKey, &syncPlaycount, cache.LibrarySyncPlaycountExpire)
+
+	// Sync local items with exact list
+	for _, s := range watchedShows {
+		updateShowWatched(s, true)
+	}
+	for _, s := range unwatchedShows {
+		updateShowWatched(s, false)
+	}
+
+	for _, s := range current {
+		tmdbShow := tmdb.GetShowByID(strconv.Itoa(s.Show.IDs.TMDB), config.Get().Language)
+		completedSeasons := 0
+		for _, season := range s.Seasons {
+			if tmdbShow != nil {
+				if sc := tmdbShow.GetSeasonEpisodes(season.Number); sc != 0 && sc == len(season.Episodes) {
+					completedSeasons++
+
+					l.WatchedTraktShows = addXXItem(l.WatchedTraktShows, SeasonType, s.Show.IDs, season.Number)
+				}
+			}
+
+			for _, episode := range season.Episodes {
+				l.WatchedTraktShows = addXXItem(l.WatchedTraktShows, EpisodeType, s.Show.IDs, season.Number, episode.Number)
+			}
+		}
+
+		if tmdbShow != nil && (completedSeasons == len(tmdbShow.Seasons) || s.Watched) {
+			s.Watched = true
+
+			l.WatchedTraktShows = addXXItem(l.WatchedTraktShows, ShowType, s.Show.IDs)
+		}
+
+		if r := getKodiShowByTraktIDs(s.Show.IDs); r != nil {
+			toRun := false
+			for _, season := range s.Seasons {
+				for _, episode := range season.Episodes {
+					if e := r.GetEpisode(season.Number, episode.Number); e != nil {
+						fileKey = xxhash.Sum64String(e.File)
+						if _, ok := lastPlaycount[fileKey]; ok && !e.IsWatched() {
+							// Reset Plays to mark this episode as non-watched
+							episode.Plays = 0
+							continue
+						}
+
+						if !e.IsWatched() {
+							lastPlaycount[fileKey] = true
+							toRun = true
+						}
+					} else {
+						missedItems = addXXItem(missedItems, EpisodeType, s.Show.IDs, season.Number, episode.Number)
+					}
+				}
+			}
+
+			if toRun || r.DateAdded.After(s.LastWatchedAt) {
+				updateShowWatched(s, true)
+			}
+		} else {
+			missedItems = addXXItem(missedItems, ShowType, s.Show.IDs)
+		}
+	}
+
+	if !config.Get().TraktSyncWatchedBack || len(l.Shows) == 0 {
+		return nil
+	}
+
+	syncWatchShows := []*trakt.WatchedItem{}
+	syncUnwatchShows := []*trakt.WatchedItem{}
+
+	l.mu.Shows.Lock()
+	for _, s := range l.Shows {
+		if s.UIDs.TMDB == 0 || hasXXItem(l.WatchedTraktShows, ShowType, s.UIDs) {
+			continue
+		} else if hasXXItem(missedItems, ShowType, s.UIDs) {
+			continue
+		}
+
+		for _, e := range s.Episodes {
+			fileKey = xxhash.Sum64String(e.File)
+			previousRun, isDone := syncPlaycount[fileKey]
+
+			has := hasXXItem(l.WatchedTraktShows, EpisodeType, s.UIDs, e.Season, e.Episode) ||
+				hasXXItem(l.WatchedTraktShows, SeasonType, s.UIDs, e.Season)
+			if (has && e.IsWatched()) || (!has && !e.IsWatched()) || (isDone && previousRun == e.IsWatched()) {
+				continue
+			} else if hasXXItem(missedItems, EpisodeType, s.UIDs, e.Season, e.Episode) {
+				// Item not in Kodi library
 				continue
 			}
 
 			item := &trakt.WatchedItem{
-				MediaType: "movie",
-				Movie:     m.UIDs.TMDB,
-				Watched:   !has && m.IsWatched(),
+				KodiKey:   fileKey,
+				MediaType: "episode",
+				Show:      s.UIDs.TMDB,
+				Season:    e.Season,
+				Episode:   e.Episode,
+				Watched:   !has && e.IsWatched(),
 			}
 			if item.Watched {
-				syncWatchMovies = append(syncWatchMovies, item)
+				syncWatchShows = append(syncWatchShows, item)
 			} else {
-				syncUnwatchMovies = append(syncUnwatchMovies, item)
+				syncUnwatchShows = append(syncUnwatchShows, item)
 			}
 		}
-		l.mu.Movies.Unlock()
+	}
+	l.mu.Shows.Unlock()
 
-		if len(syncUnwatchMovies) > 0 {
-			trakt.SetMultipleWatched(syncUnwatchMovies)
-		}
-		if len(syncWatchMovies) > 0 {
-			trakt.SetMultipleWatched(syncWatchMovies)
-		}
-	} else if itemType == EpisodeType || itemType == SeasonType || itemType == ShowType {
-		l.Running.IsShows = true
-		defer func() {
-			l.Running.IsShows = false
-		}()
-
-		previous, _ := trakt.PreviousWatchedShows()
-		current, err := trakt.WatchedShows(isRefreshNeeded)
-		if err != nil {
-			log.Warningf("Got error from getting watched shows: %s", err)
-			return err
-		} else if len(current) == 0 {
-			// Kind of strange check to make sure Trakt watched items are not empty
-			return nil
-		} else if len(previous) > 5 && len(current) > 5 && len(previous)/len(current) > 2 {
-			// If current*2 < previous then skipping updates
-			return nil
-		}
-
-		// Should parse all shows for Watched marks, but process only difference,
-		// to avoid overwriting Kodi unwatched items
-		watchedShows := trakt.DiffWatchedShows(previous, current)
-		unwatchedShows := trakt.DiffWatchedShows(current, previous)
-
-		watchedTraktShows := []int{}
-		watchedTraktEpisodes := []int{}
-
-		missedItems := []uint64{}
-
-		cacheStore.Get(cacheKey, &lastPlaycount)
-		for _, s := range current {
-			tmdbShow := tmdb.GetShowByID(strconv.Itoa(s.Show.IDs.TMDB), config.Get().Language)
-			completedSeasons := 0
-			for _, season := range s.Seasons {
-				if tmdbShow != nil {
-					if sc := tmdbShow.GetSeasonEpisodes(season.Number); sc != 0 && sc == len(season.Episodes) {
-						completedSeasons++
-
-						l.WatchedTrakt = addXXItem(l.WatchedTrakt, SeasonType, s.Show.IDs, season.Number)
-					}
-				}
-
-				for _, episode := range season.Episodes {
-					l.WatchedTrakt = addXXItem(l.WatchedTrakt, EpisodeType, s.Show.IDs, season.Number, episode.Number)
-				}
-			}
-
-			if tmdbShow != nil && (completedSeasons == len(tmdbShow.Seasons) || s.Watched) {
-				s.Watched = true
-
-				l.WatchedTrakt = addXXItem(l.WatchedTrakt, ShowType, s.Show.IDs)
-			}
-
-			if r := getKodiShowByTraktIDs(s.Show.IDs); r != nil {
-				if s.Watched {
-					watchedTraktShows = append(watchedTraktShows, r.UIDs.Kodi)
-				}
-
-				toRun := false
-				for _, season := range s.Seasons {
-					for _, episode := range season.Episodes {
-						if e := r.GetEpisode(season.Number, episode.Number); e != nil {
-							watchedTraktEpisodes = append(watchedTraktEpisodes, e.UIDs.Kodi)
-
-							if _, ok := lastPlaycount[xxhash.Sum64String(e.File)]; ok && !r.IsWatched() {
-								delete(lastPlaycount, xxhash.Sum64String(e.File))
-								continue
-							}
-							lastPlaycount[xxhash.Sum64String(e.File)] = true
-
-							if !e.IsWatched() {
-								toRun = true
-							}
-						} else {
-							missedItems = addXXItem(missedItems, EpisodeType, s.Show.IDs, season.Number, episode.Number)
-						}
-					}
-				}
-
-				if toRun || r.DateAdded.After(s.LastWatchedAt) {
-					updateShowWatched(s, true)
-				}
-			} else {
-				missedItems = addXXItem(missedItems, ShowType, s.Show.IDs)
+	if len(syncUnwatchShows) > 0 {
+		if _, err := trakt.SetMultipleWatched(syncUnwatchShows); err == nil {
+			// Set cached entry to avoid running same item again
+			for _, i := range syncUnwatchShows {
+				delete(lastPlaycount, i.KodiKey)
+				syncPlaycount[i.KodiKey] = i.Watched
 			}
 		}
-		cacheStore.Set(cacheKey, &lastPlaycount, 30*24*time.Hour)
-
-		for _, s := range watchedShows {
-			updateShowWatched(s, true)
-		}
-		for _, s := range unwatchedShows {
-			updateShowWatched(s, false)
-		}
-
-		if !config.Get().TraktSyncWatchedBack || len(l.Shows) == 0 {
-			return nil
-		}
-
-		syncWatchShows := []*trakt.WatchedItem{}
-		syncUnwatchShows := []*trakt.WatchedItem{}
-
-		l.mu.Shows.Lock()
-		for _, s := range l.Shows {
-			if s.UIDs.TMDB == 0 || hasItem(watchedTraktShows, s.UIDs.Kodi) {
-				continue
-			} else if hasXXItem(missedItems, ShowType, s.UIDs) {
-				continue
+	}
+	if len(syncWatchShows) > 0 {
+		if _, err := trakt.SetMultipleWatched(syncWatchShows); err == nil {
+			// Set cached entry to avoid running same item again
+			for _, i := range syncWatchShows {
+				syncPlaycount[i.KodiKey] = i.Watched
 			}
-
-			for _, e := range s.Episodes {
-				has := hasItem(watchedTraktEpisodes, e.UIDs.Kodi) ||
-					hasXXItem(l.WatchedTrakt, EpisodeType, s.UIDs, e.Season, e.Episode) ||
-					hasXXItem(l.WatchedTrakt, SeasonType, s.UIDs, e.Season) ||
-					hasXXItem(l.WatchedTrakt, ShowType, s.UIDs)
-				if (has && e.IsWatched()) || (!has && !e.IsWatched()) {
-					continue
-				} else if hasXXItem(missedItems, EpisodeType, s.UIDs, e.Season, e.Episode) ||
-					hasXXItem(missedItems, ShowType, s.UIDs) {
-					// Item not in Kodi library
-					continue
-				}
-
-				item := &trakt.WatchedItem{
-					MediaType: "episode",
-					Show:      s.UIDs.TMDB,
-					Season:    e.Season,
-					Episode:   e.Episode,
-					Watched:   !has && e.IsWatched(),
-				}
-				if item.Watched {
-					syncWatchShows = append(syncWatchShows, item)
-				} else {
-					syncUnwatchShows = append(syncUnwatchShows, item)
-				}
-			}
-		}
-		l.mu.Shows.Unlock()
-
-		if len(syncUnwatchShows) > 0 {
-			trakt.SetMultipleWatched(syncUnwatchShows)
-		}
-		if len(syncWatchShows) > 0 {
-			trakt.SetMultipleWatched(syncWatchShows)
 		}
 	}
 
@@ -552,6 +601,10 @@ func updateMovieWatched(m *trakt.WatchedMovie, watched bool) {
 	// Resetting Resume state to avoid having old resume states,
 	// when item is watched on another device
 	if watched && !r.IsWatched() {
+		if m.Plays <= 0 {
+			return
+		}
+		
 		r.UIDs.Playcount = 1
 		xbmc.SetMovieWatchedWithDate(r.UIDs.Kodi, 1, 0, 0, m.LastWatchedAt)
 		// TODO: There should be a check for allowing resume state, otherwise we always reset it for already searched items
@@ -576,6 +629,10 @@ func updateShowWatched(s *trakt.WatchedShow, watched bool) {
 
 	for _, season := range s.Seasons {
 		for _, episode := range season.Episodes {
+			if episode.Plays <= 0 {
+				continue
+			}
+
 			e := r.GetEpisode(season.Number, episode.Number)
 			if e != nil {
 				// Resetting Resume state to avoid having old resume states,

@@ -513,7 +513,10 @@ func RefreshUIDsRunner(force bool) error {
 	defer playcount.Mu.Unlock()
 	playcount.Watched = []uint64{}
 	l.UIDs = []*UniqueIDs{}
-	for _, v := range l.WatchedTrakt {
+	for _, v := range l.WatchedTraktMovies {
+		playcount.Watched = append(playcount.Watched, v)
+	}
+	for _, v := range l.WatchedTraktShows {
 		playcount.Watched = append(playcount.Watched, v)
 	}
 

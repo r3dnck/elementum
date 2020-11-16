@@ -402,6 +402,7 @@ type PausedEpisode struct {
 type WatchedItem struct {
 	MediaType string
 	KodiID    int
+	KodiKey   uint64
 	Movie     int
 	Show      int
 	Season    int

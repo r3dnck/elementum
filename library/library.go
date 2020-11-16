@@ -112,7 +112,8 @@ var l = &Library{
 	Movies: []*Movie{},
 	Shows:  []*Show{},
 
-	WatchedTrakt: []uint64{},
+	WatchedTraktMovies: []uint64{},
+	WatchedTraktShows:  []uint64{},
 }
 
 // InitDB ...

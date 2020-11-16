@@ -29,7 +29,8 @@ type Library struct {
 	Movies []*Movie
 	Shows  []*Show
 
-	WatchedTrakt []uint64
+	WatchedTraktMovies []uint64
+	WatchedTraktShows []uint64
 
 	Pending Status
 	Running Status

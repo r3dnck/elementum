@@ -3,11 +3,13 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/elgatito/elementum/bittorrent"
+	"github.com/elgatito/elementum/cache"
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/library"
 	"github.com/elgatito/elementum/xbmc"
@@ -246,10 +248,22 @@ func Notification(w http.ResponseWriter, r *http.Request, s *bittorrent.Service)
 		go func() {
 			if item.Type == movieType {
 				library.RefreshMovie(item.ID, library.ActionSafeDelete)
+
+				// Remove local playcount history to allow re-setting watched status
+				cacheStore := cache.NewDBStore()
+				cacheStore.Delete(fmt.Sprintf(cache.LibraryWatchedPlaycountKey, "movies"))
 			} else if item.Type == showType {
 				library.RefreshShow(item.ID, library.ActionSafeDelete)
+
+				// Remove local playcount history to allow re-setting watched status
+				cacheStore := cache.NewDBStore()
+				cacheStore.Delete(fmt.Sprintf(cache.LibraryWatchedPlaycountKey, "shows"))
 			} else if item.Type == episodeType {
 				library.RefreshEpisode(item.ID, library.ActionSafeDelete)
+
+				// Remove local playcount history to allow re-setting watched status
+				cacheStore := cache.NewDBStore()
+				cacheStore.Delete(fmt.Sprintf(cache.LibraryWatchedPlaycountKey, "shows"))
 			}
 		}()
 

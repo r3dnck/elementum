@@ -132,12 +132,14 @@ const (
 	FanartShowByIDKey     = FanartKey + "show.%d"
 	FanartShowByIDExpire  = GeneralExpire
 
-	LibraryWatchedPlaycountKey    = LibraryKey + "WatchedLastPlaycount.%d"
+	LibraryWatchedPlaycountKey    = LibraryKey + "WatchedLastPlaycount.%s"
 	LibraryWatchedPlaycountExpire = 30 * 24 * time.Hour
 	LibraryShowsLastUpdatesKey    = LibraryKey + "showsLastUpdates"
 	LibraryShowsLastUpdatesExpire = 7 * 24 * time.Hour
 	LibraryResolveFileKey         = LibraryKey + "Resolve_File_%s"
 	LibraryResolveFileExpire      = 60 * 24 * time.Hour
+	LibrarySyncPlaycountKey       = LibraryKey + "SyncLastPlaycount.%s"
+	LibrarySyncPlaycountExpire    = 30 * 24 * time.Hour
 
 	ScraperLastExecutionKey    = ScraperKey + "last.execution"
 	ScraperLastExecutionExpire = 60 * 60 * 24 * 30
