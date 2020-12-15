@@ -499,9 +499,9 @@ func (movie *Movie) ToListItem() *xbmc.ListItem {
 		break
 	}
 	if movie.Credits != nil {
-		item.Info.CastMembers = make([]xbmc.ListItemCastMember, 0)
+		item.CastMembers = make([]xbmc.ListItemCastMember, 0)
 		for _, cast := range movie.Credits.Cast {
-			item.Info.CastMembers = append(item.Info.CastMembers, xbmc.ListItemCastMember{
+			item.CastMembers = append(item.CastMembers, xbmc.ListItemCastMember{
 				Name:      cast.Name,
 				Role:      cast.Character,
 				Thumbnail: ImageURL(cast.ProfilePath, "w500"),
