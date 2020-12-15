@@ -21,18 +21,21 @@ func (z *DBStore) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	for zb0001 > 0 {
 		zb0001--
 		field, bts, err = msgp.ReadMapKeyZC(bts)
 		if err != nil {
+			err = msgp.WrapError(err)
 			return
 		}
 		switch msgp.UnsafeString(field) {
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
+				err = msgp.WrapError(err)
 				return
 			}
 		}
@@ -58,6 +61,7 @@ func (z DBStoreItem) MarshalMsg(b []byte) (o []byte, err error) {
 	o = append(o, 0xa5, 0x56, 0x61, 0x6c, 0x75, 0x65)
 	o, err = msgp.AppendIntf(o, z.Value)
 	if err != nil {
+		err = msgp.WrapError(err, "Value")
 		return
 	}
 	return
@@ -70,28 +74,33 @@ func (z *DBStoreItem) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var zb0001 uint32
 	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
+		err = msgp.WrapError(err)
 		return
 	}
 	for zb0001 > 0 {
 		zb0001--
 		field, bts, err = msgp.ReadMapKeyZC(bts)
 		if err != nil {
+			err = msgp.WrapError(err)
 			return
 		}
 		switch msgp.UnsafeString(field) {
 		case "Key":
 			z.Key, bts, err = msgp.ReadStringBytes(bts)
 			if err != nil {
+				err = msgp.WrapError(err, "Key")
 				return
 			}
 		case "Value":
 			z.Value, bts, err = msgp.ReadIntfBytes(bts)
 			if err != nil {
+				err = msgp.WrapError(err, "Value")
 				return
 			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
+				err = msgp.WrapError(err)
 				return
 			}
 		}
