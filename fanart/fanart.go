@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/elgatito/elementum/cache"
+	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/util"
 	"github.com/elgatito/elementum/xbmc"
 	"github.com/jmcvetta/napping"
@@ -48,6 +49,7 @@ type Movie struct {
 	MovieDisc       []*Disk  `json:"moviedisc"`
 	MovieThumb      []*Image `json:"moviethumb"`
 	MovieArt        []*Image `json:"movieart"`
+	MovieClearArt   []*Image `json:"movieclearart"`
 	MovieLogo       []*Image `json:"movielogo"`
 	MovieBanner     []*Image `json:"moviebanner"`
 }
@@ -191,8 +193,11 @@ func GetBestImage(old string, lists ...[]*Image) string {
 		return ""
 	}
 
-	language := xbmc.GetLanguageISO639_1()
+	language := config.Get().Language
 	for _, l := range lists {
+		bestLikes := 0
+		bestItem := ""
+
 		for _, i := range l {
 			if i == nil {
 				continue
@@ -201,14 +206,16 @@ func GetBestImage(old string, lists ...[]*Image) string {
 			if i.Lang == language {
 				return i.URL
 			}
+			if i.Lang == "en" || i.Lang == "" {
+				if likes := likeConvert(i.Likes); likes > bestLikes {
+					bestItem = i.URL
+					bestLikes = likes
+				}
+			}
 		}
 
-		for _, i := range l {
-			if i == nil {
-				continue
-			}
-
-			return i.URL
+		if bestLikes > 0 {
+			return bestItem
 		}
 	}
 
@@ -222,17 +229,10 @@ func GetBestShowImage(season, old string, lists ...[]*ShowImage) string {
 		return ""
 	}
 
-	language := xbmc.GetLanguageISO639_1()
+	language := config.Get().Language
 	for _, l := range lists {
-		for _, i := range l {
-			if i == nil {
-				continue
-			}
-
-			if i.Lang == language && i.Season == season {
-				return i.URL
-			}
-		}
+		bestLikes := 0
+		bestItem := ""
 
 		for _, i := range l {
 			if i == nil {
@@ -240,8 +240,20 @@ func GetBestShowImage(season, old string, lists ...[]*ShowImage) string {
 			}
 
 			if i.Season == season {
-				return i.URL
+				if i.Lang == language {
+					return i.URL
+				}
+				if i.Lang == "en" || i.Lang == "" {
+					if likes := likeConvert(i.Likes); likes > bestLikes {
+						bestItem = i.URL
+						bestLikes = likes
+					}
+				}
 			}
+		}
+
+		if bestLikes > 0 {
+			return bestItem
 		}
 
 		for _, i := range l {
@@ -252,14 +264,16 @@ func GetBestShowImage(season, old string, lists ...[]*ShowImage) string {
 			if i.Lang == language {
 				return i.URL
 			}
+			if i.Lang == "en" || i.Lang == "" {
+				if likes := likeConvert(i.Likes); likes > bestLikes {
+					bestItem = i.URL
+					bestLikes = likes
+				}
+			}
 		}
 
-		for _, i := range l {
-			if i == nil {
-				continue
-			}
-
-			return i.URL
+		if bestLikes > 0 {
+			return bestItem
 		}
 	}
 
@@ -270,26 +284,25 @@ func GetBestShowImage(season, old string, lists ...[]*ShowImage) string {
 func (fa *Movie) ToListItemArt(old *xbmc.ListItemArt) *xbmc.ListItemArt {
 	return &xbmc.ListItemArt{
 		Poster:    GetBestImage(old.Poster, fa.MoviePoster),
-		Thumbnail: GetBestImage(old.Thumbnail, fa.MovieThumb),
+		Thumbnail: old.Thumbnail,
 		Banner:    GetBestImage(old.Banner, fa.MovieBanner),
-		FanArt:    GetBestImage(old.FanArt, fa.MovieArt, fa.MovieBackground),
-		ClearArt:  GetBestImage(old.ClearArt, fa.HDMovieClearArt),
+		FanArt:    GetBestImage(old.FanArt, fa.MovieBackground),
+		ClearArt:  GetBestImage(old.ClearArt, fa.HDMovieClearArt, fa.MovieClearArt),
 		ClearLogo: GetBestImage(old.ClearLogo, fa.HDMovieLogo, fa.MovieLogo),
-		Landscape: GetBestImage(old.Landscape, fa.MovieBackground),
+		Landscape: GetBestImage(old.Landscape, fa.MovieThumb),
 	}
 }
 
 // ToListItemArt ...
 func (fa *Show) ToListItemArt(old *xbmc.ListItemArt) *xbmc.ListItemArt {
 	return &xbmc.ListItemArt{
-		Poster: GetBestShowImage("", old.Poster, fa.TVPoster),
-		// Thumbnail: GetBestShowImage("", old.Thumbnail, fa.TVThumb),
-		Thumbnail: GetBestShowImage("", old.Thumbnail, fa.TVPoster),
+		Poster:    GetBestShowImage("", old.Poster, fa.TVPoster),
+		Thumbnail: old.Thumbnail,
 		Banner:    GetBestShowImage("", old.Banner, fa.TVBanner),
 		FanArt:    GetBestShowImage("", old.FanArt, fa.ShowBackground),
 		ClearArt:  GetBestShowImage("", old.ClearArt, fa.HDClearArt, fa.ClearArt),
-		ClearLogo: GetBestShowImage("", old.ClearLogo, fa.ClearLogo),
-		Landscape: GetBestShowImage("", old.Landscape, fa.ShowBackground),
+		ClearLogo: GetBestShowImage("", old.ClearLogo, fa.HdtvLogo, fa.ClearLogo),
+		Landscape: GetBestShowImage("", old.Landscape, fa.TVThumb),
 	}
 }
 
@@ -298,15 +311,14 @@ func (fa *Show) ToSeasonListItemArt(season int, old *xbmc.ListItemArt) *xbmc.Lis
 	s := strconv.Itoa(season)
 
 	return &xbmc.ListItemArt{
-		TvShowPoster: GetBestShowImage(s, old.Poster, fa.TVPoster, fa.SeasonPoster),
+		TvShowPoster: GetBestShowImage(s, old.Poster, fa.SeasonPoster, fa.TVPoster),
 		Poster:       GetBestShowImage(s, old.Poster, fa.SeasonPoster, fa.TVPoster),
-		// Thumbnail:    GetBestShowImage(s, old.Thumbnail, fa.SeasonThumb, fa.TVThumb),
-		Thumbnail: GetBestShowImage(s, old.Thumbnail, fa.SeasonPoster, fa.TVPoster),
-		Banner:    GetBestShowImage(s, old.Banner, fa.SeasonBanner, fa.TVBanner),
-		FanArt:    GetBestShowImage(s, old.FanArt, fa.ShowBackground),
-		ClearArt:  GetBestShowImage(s, old.ClearArt, fa.HDClearArt, fa.ClearArt),
-		ClearLogo: GetBestShowImage(s, old.ClearLogo, fa.ClearLogo),
-		Landscape: GetBestShowImage(s, old.Landscape, fa.ShowBackground),
+		Thumbnail:    old.Thumbnail,
+		Banner:       GetBestShowImage(s, old.Banner, fa.SeasonBanner, fa.TVBanner),
+		FanArt:       GetBestShowImage(s, old.FanArt, fa.ShowBackground),
+		ClearArt:     GetBestShowImage(s, old.ClearArt, fa.HDClearArt, fa.ClearArt),
+		ClearLogo:    GetBestShowImage(s, old.ClearLogo, fa.HdtvLogo, fa.ClearLogo),
+		Landscape:    GetBestShowImage(s, old.Landscape, fa.SeasonThumb, fa.TVThumb),
 	}
 }
 
@@ -315,13 +327,18 @@ func (fa *Show) ToEpisodeListItemArt(season int, old *xbmc.ListItemArt) *xbmc.Li
 	s := strconv.Itoa(season)
 
 	return &xbmc.ListItemArt{
-		TvShowPoster: GetBestShowImage(s, old.Poster, fa.TVPoster, fa.SeasonPoster),
+		TvShowPoster: GetBestShowImage(s, old.Poster, fa.SeasonPoster, fa.TVPoster),
 		Poster:       GetBestShowImage(s, old.Poster, fa.SeasonPoster, fa.TVPoster),
 		Thumbnail:    old.Thumbnail,
 		Banner:       GetBestShowImage(s, old.Banner, fa.SeasonBanner, fa.TVBanner),
-		FanArt:       old.FanArt,
+		FanArt:       GetBestShowImage(s, old.FanArt, fa.ShowBackground),
 		ClearArt:     GetBestShowImage(s, old.ClearArt, fa.HDClearArt, fa.ClearArt),
-		ClearLogo:    GetBestShowImage(s, old.ClearLogo, fa.ClearLogo),
-		Landscape:    GetBestShowImage(s, old.Landscape, fa.ShowBackground),
+		ClearLogo:    GetBestShowImage(s, old.ClearLogo, fa.HdtvLogo, fa.ClearLogo),
+		Landscape:    GetBestShowImage(s, old.Landscape, fa.SeasonThumb, fa.TVThumb),
 	}
+}
+
+func likeConvert(likes string) int {
+	i, _ := strconv.Atoi(likes)
+	return i
 }
