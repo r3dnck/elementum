@@ -9,6 +9,7 @@ import (
 
 	"github.com/elgatito/elementum/cache"
 	"github.com/elgatito/elementum/config"
+	"github.com/elgatito/elementum/fanart"
 	"github.com/elgatito/elementum/util"
 	"github.com/elgatito/elementum/xbmc"
 	"github.com/jmcvetta/napping"
@@ -42,15 +43,16 @@ type EpisodeList []*Episode
 type Movie struct {
 	Entity
 
-	IMDBId              string       `json:"imdb_id"`
-	Overview            string       `json:"overview"`
-	ProductionCompanies []*IDName    `json:"production_companies"`
-	Runtime             int          `json:"runtime"`
-	TagLine             string       `json:"tagline"`
-	RawPopularity       interface{}  `json:"popularity"`
-	Popularity          float64      `json:"-"`
-	SpokenLanguages     []*Language  `json:"spoken_languages"`
-	ExternalIDs         *ExternalIDs `json:"external_ids"`
+	FanArt              *fanart.Movie `json:"fanart"`
+	IMDBId              string        `json:"imdb_id"`
+	Overview            string        `json:"overview"`
+	ProductionCompanies []*IDName     `json:"production_companies"`
+	Runtime             int           `json:"runtime"`
+	TagLine             string        `json:"tagline"`
+	RawPopularity       interface{}   `json:"popularity"`
+	Popularity          float64       `json:"-"`
+	SpokenLanguages     []*Language   `json:"spoken_languages"`
+	ExternalIDs         *ExternalIDs  `json:"external_ids"`
 
 	AlternativeTitles *struct {
 		Titles []*AlternativeTitle `json:"titles"`
@@ -74,6 +76,7 @@ type Movie struct {
 type Show struct {
 	Entity
 
+	FanArt              *fanart.Show `json:"fanart"`
 	EpisodeRunTime      []int        `json:"episode_run_time"`
 	Homepage            string       `json:"homepage"`
 	InProduction        bool         `json:"in_production"`

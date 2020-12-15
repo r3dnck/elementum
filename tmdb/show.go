@@ -123,6 +123,10 @@ func GetShow(showID int, language string) (show *Show) {
 		})
 
 		if show == nil && err != nil && err == util.ErrNotFound {
+			if config.Get().UseFanartTv {
+				show.FanArt = fanart.GetShow(util.StrInterfaceToInt(show.ExternalIDs.TVDBID))
+			}
+
 			cacheStore.Set(key, &show, cache.TMDBShowByIDExpire)
 		}
 		if show == nil {
@@ -544,11 +548,9 @@ func (show *Show) ToListItem() *xbmc.ListItem {
 	item.Thumbnail = item.Art.Poster
 	item.Art.Thumbnail = item.Art.Poster
 
-	if config.Get().UseFanartTv {
-		if fa := fanart.GetShow(util.StrInterfaceToInt(show.ExternalIDs.TVDBID)); fa != nil {
-			item.Art = fa.ToListItemArt(item.Art)
-			item.Thumbnail = item.Art.Thumbnail
-		}
+	if config.Get().UseFanartTv && show.FanArt != nil {
+		item.Art = show.FanArt.ToListItemArt(item.Art)
+		item.Thumbnail = item.Art.Thumbnail
 	}
 
 	if show.InProduction {
@@ -568,10 +570,16 @@ func (show *Show) ToListItem() *xbmc.ListItem {
 		break
 	}
 	if show.Credits != nil {
-		item.Info.CastAndRole = make([][]string, 0)
+		item.Info.CastMembers = make([]xbmc.ListItemCastMember, 0)
 		for _, cast := range show.Credits.Cast {
-			item.Info.CastAndRole = append(item.Info.CastAndRole, []string{cast.Name, cast.Character})
+			item.Info.CastMembers = append(item.Info.CastMembers, xbmc.ListItemCastMember{
+				Name:      cast.Name,
+				Role:      cast.Character,
+				Thumbnail: ImageURL(cast.ProfilePath, "w500"),
+				Order:     cast.Order,
+			})
 		}
+
 		directors := make([]string, 0)
 		writers := make([]string, 0)
 		for _, crew := range show.Credits.Crew {

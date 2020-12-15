@@ -69,44 +69,43 @@ type ListItemInfo struct {
 	Date  string `json:"date,omitempty"`
 
 	// Video Values
-	Genre         string         `json:"genre,omitempty"`
-	Year          int            `json:"year,omitempty"`
-	Episode       int            `json:"episode,omitempty"`
-	Season        int            `json:"season,omitempty"`
-	Top250        int            `json:"top250,omitempty"`
-	TrackNumber   int            `json:"tracknumber,omitempty"`
-	Rating        float32        `json:"rating,omitempty"`
-	PlayCount     int            `json:"playcount,omitempty"`
-	Overlay       GUIIconOverlay `json:"overlay,omitempty"`
-	Cast          []string       `json:"cast,omitempty"`
-	CastAndRole   [][]string     `json:"castandrole,omitempty"`
-	Director      string         `json:"director,omitempty"`
-	MPAA          string         `json:"mpaa,omitempty"`
-	Plot          string         `json:"plot,omitempty"`
-	PlotOutline   string         `json:"plotoutline,omitempty"`
-	Title         string         `json:"title,omitempty"`
-	OriginalTitle string         `json:"originaltitle,omitempty"`
-	SortTitle     string         `json:"sorttitle,omitempty"`
-	Duration      int            `json:"duration,omitempty"`
-	Studio        string         `json:"studio,omitempty"`
-	TagLine       string         `json:"tagline,omitempty"`
-	Writer        string         `json:"writer,omitempty"`
-	TVShowTitle   string         `json:"tvshowtitle,omitempty"`
-	Premiered     string         `json:"premiered,omitempty"`
-	Status        string         `json:"status,omitempty"`
-	Code          string         `json:"code,omitempty"`
-	Aired         string         `json:"aired,omitempty"`
-	Credits       string         `json:"credits,omitempty"`
-	LastPlayed    string         `json:"lastplayed,omitempty"`
-	Album         string         `json:"album,omitempty"`
-	Artist        []string       `json:"artist,omitempty"`
-	Votes         string         `json:"votes,omitempty"`
-	Trailer       string         `json:"trailer,omitempty"`
-	DateAdded     string         `json:"dateadded,omitempty"`
-	DBID          int            `json:"dbid,omitempty"`
-	DBTYPE        string         `json:"dbtype,omitempty"`
-	Mediatype     string         `json:"mediatype,omitempty"`
-	IMDBNumber    string         `json:"imdbnumber,omitempty"`
+	Genre         string               `json:"genre,omitempty"`
+	Year          int                  `json:"year,omitempty"`
+	Episode       int                  `json:"episode,omitempty"`
+	Season        int                  `json:"season,omitempty"`
+	Top250        int                  `json:"top250,omitempty"`
+	TrackNumber   int                  `json:"tracknumber,omitempty"`
+	Rating        float32              `json:"rating,omitempty"`
+	PlayCount     int                  `json:"playcount,omitempty"`
+	Overlay       GUIIconOverlay       `json:"overlay,omitempty"`
+	CastMembers   []ListItemCastMember `json:"castmembers,omitempty"`
+	Director      string               `json:"director,omitempty"`
+	MPAA          string               `json:"mpaa,omitempty"`
+	Plot          string               `json:"plot,omitempty"`
+	PlotOutline   string               `json:"plotoutline,omitempty"`
+	Title         string               `json:"title,omitempty"`
+	OriginalTitle string               `json:"originaltitle,omitempty"`
+	SortTitle     string               `json:"sorttitle,omitempty"`
+	Duration      int                  `json:"duration,omitempty"`
+	Studio        string               `json:"studio,omitempty"`
+	TagLine       string               `json:"tagline,omitempty"`
+	Writer        string               `json:"writer,omitempty"`
+	TVShowTitle   string               `json:"tvshowtitle,omitempty"`
+	Premiered     string               `json:"premiered,omitempty"`
+	Status        string               `json:"status,omitempty"`
+	Code          string               `json:"code,omitempty"`
+	Aired         string               `json:"aired,omitempty"`
+	Credits       string               `json:"credits,omitempty"`
+	LastPlayed    string               `json:"lastplayed,omitempty"`
+	Album         string               `json:"album,omitempty"`
+	Artist        []string             `json:"artist,omitempty"`
+	Votes         string               `json:"votes,omitempty"`
+	Trailer       string               `json:"trailer,omitempty"`
+	DateAdded     string               `json:"dateadded,omitempty"`
+	DBID          int                  `json:"dbid,omitempty"`
+	DBTYPE        string               `json:"dbtype,omitempty"`
+	Mediatype     string               `json:"mediatype,omitempty"`
+	IMDBNumber    string               `json:"imdbnumber,omitempty"`
 
 	// Music Values
 	Lyrics string `json:"lyrics,omitempty"`
@@ -127,6 +126,14 @@ type ListItemArt struct {
 	ClearLogo    string `json:"clearlogo,omitempty"`
 	Landscape    string `json:"landscape,omitempty"`
 	Icon         string `json:"icon,omitempty"`
+}
+
+// ListItemCastMember represents Cast member information from TMDB
+type ListItemCastMember struct {
+	Name      string `json:"name,omitempty"`
+	Role      string `json:"role,omitempty"`
+	Thumbnail string `json:"thumbnail,omitempty"`
+	Order     int    `json:"order"`
 }
 
 // ContextMenuItem ...

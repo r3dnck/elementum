@@ -8,7 +8,6 @@ import (
 
 	"github.com/elgatito/elementum/cache"
 	"github.com/elgatito/elementum/config"
-	"github.com/elgatito/elementum/fanart"
 	"github.com/elgatito/elementum/playcount"
 	"github.com/elgatito/elementum/util"
 	"github.com/elgatito/elementum/xbmc"
@@ -137,10 +136,8 @@ func (episode *Episode) ToListItem(show *Show, season *Season) *xbmc.ListItem {
 		}
 	}
 
-	if config.Get().UseFanartTv {
-		if fa := fanart.GetShow(util.StrInterfaceToInt(show.ExternalIDs.TVDBID)); fa != nil {
-			item.Art = fa.ToEpisodeListItemArt(season.Season, item.Art)
-		}
+	if config.Get().UseFanartTv && show.FanArt != nil {
+		item.Art = show.FanArt.ToEpisodeListItemArt(season.Season, item.Art)
 	}
 
 	if episode.StillPath != "" {
@@ -166,10 +163,16 @@ func (episode *Episode) ToListItem(show *Show, season *Season) *xbmc.ListItem {
 	}
 
 	if episode.Credits != nil {
-		item.Info.CastAndRole = make([][]string, 0)
+		item.Info.CastMembers = make([]xbmc.ListItemCastMember, 0)
 		for _, cast := range episode.Credits.Cast {
-			item.Info.CastAndRole = append(item.Info.CastAndRole, []string{cast.Name, cast.Character})
+			item.Info.CastMembers = append(item.Info.CastMembers, xbmc.ListItemCastMember{
+				Name:      cast.Name,
+				Role:      cast.Character,
+				Thumbnail: ImageURL(cast.ProfilePath, "w500"),
+				Order:     cast.Order,
+			})
 		}
+
 		directors := make([]string, 0)
 		writers := make([]string, 0)
 		for _, crew := range episode.Credits.Crew {
