@@ -36,7 +36,7 @@ func ContextPlaySelector(s *bittorrent.Service) gin.HandlerFunc {
 		}
 
 		if kodiID == 0 {
-			ctx.Redirect(302, URLQuery(URLForXBMC("/search"), "q", id))
+			ctx.Redirect(302, URLQuery(URLForXBMC("/search"), "q", id, "action", mediaAction))
 			return
 		} else if media == "movie" {
 			if m := library.GetLibraryMovie(kodiID); m != nil && m.UIDs.TMDB != 0 {
