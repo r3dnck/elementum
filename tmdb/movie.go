@@ -17,7 +17,6 @@ import (
 	"github.com/elgatito/elementum/xbmc"
 
 	"github.com/jmcvetta/napping"
-	"github.com/sanity-io/litter"
 )
 
 // ByPopularity ...

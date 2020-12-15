@@ -123,14 +123,14 @@ func GetShow(showID int, language string) (show *Show) {
 		})
 
 		if show == nil && err != nil && err == util.ErrNotFound {
-			if config.Get().UseFanartTv {
-				show.FanArt = fanart.GetShow(util.StrInterfaceToInt(show.ExternalIDs.TVDBID))
-			}
-
 			cacheStore.Set(key, &show, cache.TMDBShowByIDExpire)
 		}
 		if show == nil {
 			return nil
+		}
+
+		if config.Get().UseFanartTv {
+			show.FanArt = fanart.GetShow(util.StrInterfaceToInt(show.ExternalIDs.TVDBID))
 		}
 
 		cacheStore.Set(key, &show, cache.TMDBShowByIDExpire)

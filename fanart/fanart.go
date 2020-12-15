@@ -239,7 +239,7 @@ func GetBestShowImage(season, old string, lists ...[]*ShowImage) string {
 				continue
 			}
 
-			if i.Season == season {
+			if season == "" || i.Season == season {
 				if i.Lang == language {
 					return i.URL
 				}
