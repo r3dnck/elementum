@@ -125,14 +125,6 @@ func CustomDialContext(ctx context.Context, network, addr string) (net.Conn, err
 // GetProxyURL ...
 func GetProxyURL(fixedURL *url.URL) func(*http.Request) (*url.URL, error) {
 	return func(r *http.Request) (*url.URL, error) {
-		if config.Get().AntizapretEnabled {
-			if proxy, err := PacParser.FindProxy(r.URL.String()); err == nil && proxy != "" {
-				if u, err := url.Parse(proxy); err == nil && u != nil {
-					return u, nil
-				}
-			}
-		}
-
 		return fixedURL, nil
 	}
 }

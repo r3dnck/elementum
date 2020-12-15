@@ -12,7 +12,6 @@ import (
 
 	"github.com/elgatito/elementum/config"
 
-	"github.com/ElementumOrg/cfbypass"
 	"github.com/elazarl/goproxy"
 	logging "github.com/op/go-logging"
 )
@@ -87,16 +86,6 @@ func handleResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
 		dumpResponse(resp, ctx, false, false)
 	}
 
-	if resp == nil {
-		return resp
-	}
-
-	if cfResp, err := cfbypass.RunProxy(resp, ctx); err != nil {
-		log.Warningf("Could not solve the CloudFlare challenge: %s", err)
-	} else if cfResp != nil {
-		return cfResp
-	}
-
 	return resp
 }
 
@@ -159,9 +148,6 @@ func StartProxy() *CustomProxy {
 	if config.Get().InternalDNSEnabled {
 		Proxy.Tr.Dial = CustomDial
 	}
-
-	cfbypass.LogEnabled = config.Get().InternalProxyLogging
-	cfbypass.LogBodyEnabled = config.Get().InternalProxyLoggingBody
 
 	srv := &CustomProxy{
 		&http.Server{

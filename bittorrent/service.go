@@ -157,10 +157,6 @@ func (s *Service) Reconfigure() {
 	s.config = config.Get()
 	s.configure()
 
-	if config.Get().AntizapretEnabled {
-		go proxy.PacParser.Update()
-	}
-
 	s.startServices()
 	s.loadTorrentFiles()
 }
