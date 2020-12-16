@@ -230,6 +230,7 @@ func (btp *Player) Buffer() error {
 		log.Info("Skipping buffering for background download")
 		btp.t.IsBuffering = false
 		btp.t.IsBufferingFinished = true
+		btp.t.IsNeedFinishNotification = true
 	} else {
 		btp.t.IsBuffering = true
 	}

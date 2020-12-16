@@ -71,15 +71,16 @@ type Torrent struct {
 	BufferPiecesProgress   map[int]float64
 	MemorySize             int64
 
-	IsPlaying           bool
-	IsPaused            bool
-	IsBuffering         bool
-	IsBufferingFinished bool
-	IsSeeding           bool
-	IsRarArchive        bool
-	IsNextFile          bool
-	HasNextFile         bool
-	PlayerAttached      int
+	IsPlaying                bool
+	IsPaused                 bool
+	IsBuffering              bool
+	IsBufferingFinished      bool
+	IsSeeding                bool
+	IsRarArchive             bool
+	IsNextFile               bool
+	IsNeedFinishNotification bool
+	HasNextFile              bool
+	PlayerAttached           int
 
 	DBItem *database.BTItem
 
@@ -796,14 +797,6 @@ func (t *Torrent) GetState() int {
 func (t *Torrent) GetStateString() string {
 	defer perf.ScopeTimer()()
 
-	if t.IsMemoryStorage() {
-		if t.IsBuffering {
-			return StatusStrings[StatusBuffering]
-		} else if t.IsPlaying {
-			return StatusStrings[StatusPlaying]
-		}
-	}
-
 	if t.th == nil || t.th.Swigcptr() == 0 {
 		return StatusStrings[StatusQueued]
 	}
@@ -823,8 +816,8 @@ func (t *Torrent) GetStateString() string {
 
 		return StatusStrings[StatusPaused]
 	} else if !torrentStatus.GetPaused() && (state == StatusFinished || progress == 100) {
-		if t.IsMemoryStorage() {
-			return StatusStrings[StatusQueued]
+		if progress < 100 {
+			return StatusStrings[StatusDownloading]
 		}
 	} else if state != StatusQueued && t.IsBuffering {
 		return StatusStrings[StatusBuffering]
@@ -905,15 +898,6 @@ func (t *Torrent) GetProgress() float64 {
 	}
 
 	defer perf.ScopeTimer()()
-
-	// For memory storage let's show playback progress,
-	// because we can't know real progress of download
-	if t.IsMemoryStorage() {
-		if player := t.Service.GetActivePlayer(); player != nil && player.p.VideoDuration != 0 {
-			t.GetRealProgress()
-			return player.p.WatchedTime / player.p.VideoDuration * 100
-		}
-	}
 
 	return t.GetRealProgress()
 }
@@ -1964,4 +1948,15 @@ func (t *Torrent) TorrentInfo(w io.Writer) {
 // IsMemoryStorage is a shortcut for checking whether we run memory storage
 func (t *Torrent) IsMemoryStorage() bool {
 	return t.DownloadStorage == StorageMemory
+}
+
+// AlertFinished sends notification to user that this torrent is successfully downloaded
+func (t *Torrent) AlertFinished() {
+	if !t.IsNeedFinishNotification || t.IsMemoryStorage() || t.GetProgress() < 100 {
+		return
+	}
+
+	t.IsNeedFinishNotification = false
+
+	xbmc.Notify("Elementum", "LOCALIZE[30618];;"+t.Name(), config.AddonIcon())
 }

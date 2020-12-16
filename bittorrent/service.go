@@ -982,6 +982,13 @@ func (s *Service) alertsConsumer() {
 							t.trackers.Store("DHT", ta.GetNumPeers())
 						}
 					}
+				case lt.TorrentFinishedAlertAlertType:
+					ta := lt.SwigcptrTorrentFinishedAlert(alertPtr)
+					for _, t := range s.q.All() {
+						if t.th != nil && ta.GetHandle().Equal(t.th) {
+							go t.AlertFinished()
+						}
+					}
 				}
 
 				alert := &Alert{
