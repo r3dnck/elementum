@@ -40,6 +40,7 @@ func (lf *LockFile) Lock() (int, error) {
 	}
 
 	file, err := os.Open(lf.File)
+	file.Chmod(0666)
 	defer file.Close()
 
 	if err != nil { // If we get an error we handle it
@@ -48,7 +49,7 @@ func (lf *LockFile) Lock() (int, error) {
 		}
 	} else { // We read the file successfully, so we check the PID inside it.
 		pid, err := getPid(lf.File)
-		if err != nil {
+		if err != nil || pid <= 0 {
 			return pid, ErrInvalidPID
 		}
 
@@ -62,7 +63,7 @@ func (lf *LockFile) Lock() (int, error) {
 		}
 	}
 
-	ioutil.WriteFile(lf.File, []byte(strconv.Itoa(ownPID)), 0644) // The file's not locked, so we lock it with our PID.
+	ioutil.WriteFile(lf.File, []byte(strconv.Itoa(ownPID)), 0666) // The file's not locked, so we lock it with our PID.
 	lf.locked = true
 
 	return ownPID, nil

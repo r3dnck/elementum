@@ -56,7 +56,13 @@ func ensureSingleInstance(conf *config.Configuration) (lock *lockfile.LockFile, 
 	var pid int
 	var p *os.Process
 	pid, err = lock.Lock()
-	if err != nil {
+	if pid <= 0 {
+		if err = os.Remove(lock.File); err != nil {
+			log.Critical("Unable to remove lockfile")
+			return
+		}
+		_, err = lock.Lock()
+	} else if err != nil {
 		log.Warningf("Unable to acquire lock %q: %v, killing...", lock.File, err)
 		p, err = os.FindProcess(pid)
 		if err != nil {
