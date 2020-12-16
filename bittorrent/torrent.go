@@ -1395,11 +1395,7 @@ func (t *Torrent) updatePieces() error {
 
 	// need to keep a reference to the status or else the pieces bitfield
 	// is at risk of being collected
-	if t.lastStatus != nil && t.lastStatus.Swigcptr() != 0 {
-		lt.DeleteTorrentStatus(t.lastStatus)
-	}
-	t.lastStatus = t.th.Status(uint(lt.WrappedTorrentHandleQueryPieces))
-	// defer lt.DeleteTorrentStatus(t.lastStatus)
+	t.GetLastStatus(true)
 
 	if t.lastStatus.GetState() > lt.TorrentStatusSeeding {
 		return errors.New("Torrent file has invalid state")
@@ -1959,4 +1955,18 @@ func (t *Torrent) AlertFinished() {
 	t.IsNeedFinishNotification = false
 
 	xbmc.Notify("Elementum", "LOCALIZE[30618];;"+t.Name(), config.AddonIcon())
+}
+
+// GetLastStatus gets, or initially sets torrenthandle status
+func (t *Torrent) GetLastStatus(isForced bool) lt.TorrentStatus {
+	if !isForced && t.lastStatus != nil && t.lastStatus.Swigcptr() != 0 {
+		return t.lastStatus
+	}
+
+	if t.lastStatus != nil && t.lastStatus.Swigcptr() != 0 {
+		lt.DeleteTorrentStatus(t.lastStatus)
+	}
+
+	t.lastStatus = t.th.Status(uint(lt.WrappedTorrentHandleQueryPieces))
+	return t.lastStatus
 }

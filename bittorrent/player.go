@@ -360,6 +360,10 @@ func (btp *Player) processMetadata() {
 func (btp *Player) statusStrings(progress float64, status lt.TorrentStatus) (string, string, string) {
 	defer perf.ScopeTimer()()
 
+	if status == nil || status.Swigcptr() == 0 {
+		return "", "", ""
+	}
+
 	statusName := btp.t.GetStateString()
 	line1 := fmt.Sprintf("%s (%.2f%%)", statusName, progress)
 
@@ -522,13 +526,10 @@ func (btp *Player) updateBufferDialog() (bool, error) {
 
 	defer perf.ScopeTimer()()
 
-	status := btp.t.GetStatus()
-	defer lt.DeleteTorrentStatus(status)
-
 	// Handle "Checking" state for resumed downloads
-	if status.GetState() == StatusChecking || btp.t.IsRarArchive {
+	if btp.t.GetLastStatus(false).GetState() == StatusChecking || btp.t.IsRarArchive {
 		progress := btp.t.GetBufferProgress()
-		line1, line2, line3 := btp.statusStrings(progress, status)
+		line1, line2, line3 := btp.statusStrings(progress, btp.t.GetLastStatus(false))
 		if btp.dialogProgress != nil {
 			btp.dialogProgress.Update(int(progress), line1, line2, line3)
 		}
@@ -589,10 +590,7 @@ func (btp *Player) updateBufferDialog() (bool, error) {
 			return true, nil
 		}
 	} else {
-		status := btp.t.GetStatus()
-		defer lt.DeleteTorrentStatus(status)
-
-		line1, line2, line3 := btp.statusStrings(btp.t.BufferProgress, status)
+		line1, line2, line3 := btp.statusStrings(btp.t.BufferProgress, btp.t.GetLastStatus(false))
 		if btp.dialogProgress != nil {
 			btp.dialogProgress.Update(int(btp.t.BufferProgress), line1, line2, line3)
 		}
@@ -705,11 +703,8 @@ playbackLoop:
 				}
 			} else if xbmc.PlayerIsPaused() {
 				if btp.overlayStatusEnabled && btp.p.Playing {
-					status := btp.t.GetStatus()
-					defer lt.DeleteTorrentStatus(status)
-
 					progress := btp.t.GetProgress()
-					line1, line2, line3 := btp.statusStrings(progress, status)
+					line1, line2, line3 := btp.statusStrings(progress, btp.t.GetLastStatus(false))
 					btp.overlayStatus.Update(int(progress), line1, line2, line3)
 					if overlayStatusActive == false {
 						btp.overlayStatus.Show()
