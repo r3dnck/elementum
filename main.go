@@ -29,6 +29,15 @@ import (
 	"github.com/elgatito/elementum/xbmc"
 )
 
+const (
+	// ExitCodeSuccess = exit code 0
+	ExitCodeSuccess = 0
+	// ExitCodeError = exit code 1
+	ExitCodeError = 1
+	// ExitCodeRestart = exit code 5
+	ExitCodeRestart = 5
+)
+
 var log = logging.MustGetLogger("main")
 
 func init() {
@@ -92,7 +101,7 @@ func main() {
 	defer lock.Unlock()
 	if err != nil {
 		log.Warningf("Unable to acquire lock %q: %v, exiting...", lock.File, err)
-		os.Exit(1)
+		os.Exit(ExitCodeError)
 	}
 
 	db, err := database.InitStormDB(conf)
@@ -109,7 +118,7 @@ func main() {
 
 	s := bittorrent.NewService()
 
-	var shutdown = func(fromSignal bool) {
+	var shutdown = func(code int) {
 		if s == nil || s.Closer.IsSet() {
 			return
 		}
@@ -128,18 +137,14 @@ func main() {
 		// If we don't give an exit code - python treat as well done and not
 		// restarting the daemon. So when we come here from Signal -
 		// we should properly exit with non-0 exitcode.
-		if !fromSignal {
-			os.Exit(0)
-		} else {
-			os.Exit(1)
-		}
+		os.Exit(code)
 	}
 
 	var watchParentProcess = func() {
 		for {
 			if os.Getppid() == 1 {
 				log.Warning("Parent shut down, shutting down too...")
-				go shutdown(false)
+				go shutdown(ExitCodeSuccess)
 				break
 			}
 			time.Sleep(1 * time.Second)
@@ -167,7 +172,10 @@ func main() {
 		Notification(w, r, s)
 	}))
 	http.Handle("/shutdown", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		shutdown(false)
+		shutdown(ExitCodeSuccess)
+	}))
+	http.Handle("/restart", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		shutdown(ExitCodeRestart)
 	}))
 
 	if config.Get().GreetingEnabled {
@@ -191,7 +199,7 @@ func main() {
 			case <-closer:
 				return
 			case <-sigc:
-				shutdown(true)
+				shutdown(ExitCodeError)
 			}
 		}
 	}()
