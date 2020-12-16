@@ -186,6 +186,37 @@ func GetShow(tvdbID int) (show *Show) {
 	return
 }
 
+// GetMultipleImage returns multiple images in a list
+func GetMultipleImage(old string, lists ...[]*Image) []string {
+	if lists == nil || len(lists) == 0 {
+		return []string{old}
+	}
+
+	res := []string{}
+	language := config.Get().Language
+	for _, l := range lists {
+		for _, i := range l {
+			if i == nil {
+				continue
+			}
+
+			if i.Lang == language && !contains(res, i.URL) {
+				res = append(res, i.URL)
+			}
+			if i.Lang == "en" || i.Lang == "" {
+				if !contains(res, i.URL) {
+					res = append(res, i.URL)
+				}
+			}
+		}
+	}
+
+	if len(res) > 0 {
+		return res
+	}
+	return []string{old}
+}
+
 // GetBestImage returns best image from multiple lists,
 // according to the lang setting. Taking order of lists into account.
 func GetBestImage(old string, lists ...[]*Image) string {
@@ -220,6 +251,58 @@ func GetBestImage(old string, lists ...[]*Image) string {
 	}
 
 	return old
+}
+
+// GetMultipleShowImage returns multiple images in a list
+func GetMultipleShowImage(season, old string, lists ...[]*ShowImage) []string {
+	if lists == nil || len(lists) == 0 {
+		return []string{old}
+	}
+
+	res := []string{}
+	language := config.Get().Language
+	for _, l := range lists {
+		for _, i := range l {
+			if i == nil {
+				continue
+			}
+
+			if season == "" || i.Season == season {
+				if i.Lang == language && !contains(res, i.URL) {
+					res = append(res, i.URL)
+				}
+				if i.Lang == "en" || i.Lang == "" {
+					if !contains(res, i.URL) {
+						res = append(res, i.URL)
+					}
+				}
+			}
+		}
+
+		if len(res) > 0 {
+			return res
+		}
+
+		for _, i := range l {
+			if i == nil {
+				continue
+			}
+
+			if i.Lang == language && !contains(res, i.URL) {
+				res = append(res, i.URL)
+			}
+			if i.Lang == "en" || i.Lang == "" {
+				if !contains(res, i.URL) {
+					res = append(res, i.URL)
+				}
+			}
+		}
+	}
+
+	if len(res) > 0 {
+		return res
+	}
+	return []string{old}
 }
 
 // GetBestShowImage returns best image from multiple lists,
@@ -287,6 +370,7 @@ func (fa *Movie) ToListItemArt(old *xbmc.ListItemArt) *xbmc.ListItemArt {
 		Thumbnail: old.Thumbnail,
 		Banner:    GetBestImage(old.Banner, fa.MovieBanner),
 		FanArt:    GetBestImage(old.FanArt, fa.MovieBackground),
+		FanArts:   GetMultipleImage(old.FanArt, fa.MovieBackground),
 		ClearArt:  GetBestImage(old.ClearArt, fa.HDMovieClearArt, fa.MovieClearArt),
 		ClearLogo: GetBestImage(old.ClearLogo, fa.HDMovieLogo, fa.MovieLogo),
 		Landscape: GetBestImage(old.Landscape, fa.MovieThumb),
@@ -300,6 +384,7 @@ func (fa *Show) ToListItemArt(old *xbmc.ListItemArt) *xbmc.ListItemArt {
 		Thumbnail: old.Thumbnail,
 		Banner:    GetBestShowImage("", old.Banner, fa.TVBanner),
 		FanArt:    GetBestShowImage("", old.FanArt, fa.ShowBackground),
+		FanArts:   GetMultipleShowImage("", old.FanArt, fa.ShowBackground),
 		ClearArt:  GetBestShowImage("", old.ClearArt, fa.HDClearArt, fa.ClearArt),
 		ClearLogo: GetBestShowImage("", old.ClearLogo, fa.HdtvLogo, fa.ClearLogo),
 		Landscape: GetBestShowImage("", old.Landscape, fa.TVThumb),
@@ -316,6 +401,7 @@ func (fa *Show) ToSeasonListItemArt(season int, old *xbmc.ListItemArt) *xbmc.Lis
 		Thumbnail:    old.Thumbnail,
 		Banner:       GetBestShowImage(s, old.Banner, fa.SeasonBanner, fa.TVBanner),
 		FanArt:       GetBestShowImage(s, old.FanArt, fa.ShowBackground),
+		FanArts:      GetMultipleShowImage(s, old.FanArt, fa.ShowBackground),
 		ClearArt:     GetBestShowImage(s, old.ClearArt, fa.HDClearArt, fa.ClearArt),
 		ClearLogo:    GetBestShowImage(s, old.ClearLogo, fa.HdtvLogo, fa.ClearLogo),
 		Landscape:    GetBestShowImage(s, old.Landscape, fa.SeasonThumb, fa.TVThumb),
@@ -332,6 +418,7 @@ func (fa *Show) ToEpisodeListItemArt(season int, old *xbmc.ListItemArt) *xbmc.Li
 		Thumbnail:    old.Thumbnail,
 		Banner:       GetBestShowImage(s, old.Banner, fa.SeasonBanner, fa.TVBanner),
 		FanArt:       GetBestShowImage(s, old.FanArt, fa.ShowBackground),
+		FanArts:      GetMultipleShowImage(s, old.FanArt, fa.ShowBackground),
 		ClearArt:     GetBestShowImage(s, old.ClearArt, fa.HDClearArt, fa.ClearArt),
 		ClearLogo:    GetBestShowImage(s, old.ClearLogo, fa.HdtvLogo, fa.ClearLogo),
 		Landscape:    GetBestShowImage(s, old.Landscape, fa.SeasonThumb, fa.TVThumb),
@@ -341,4 +428,13 @@ func (fa *Show) ToEpisodeListItemArt(season int, old *xbmc.ListItemArt) *xbmc.Li
 func likeConvert(likes string) int {
 	i, _ := strconv.Atoi(likes)
 	return i
+}
+
+func contains(slice []string, val string) bool {
+	for _, item := range slice {
+		if item == val {
+			return true
+		}
+	}
+	return false
 }

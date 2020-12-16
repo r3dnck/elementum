@@ -117,15 +117,16 @@ type ListItemInfo struct {
 
 // ListItemArt ...
 type ListItemArt struct {
-	Thumbnail    string `json:"thumb,omitempty"`
-	Poster       string `json:"poster,omitempty"`
-	TvShowPoster string `json:"tvshowposter,omitempty"`
-	Banner       string `json:"banner,omitempty"`
-	FanArt       string `json:"fanart,omitempty"`
-	ClearArt     string `json:"clearart,omitempty"`
-	ClearLogo    string `json:"clearlogo,omitempty"`
-	Landscape    string `json:"landscape,omitempty"`
-	Icon         string `json:"icon,omitempty"`
+	Thumbnail    string   `json:"thumb,omitempty"`
+	Poster       string   `json:"poster,omitempty"`
+	TvShowPoster string   `json:"tvshowposter,omitempty"`
+	Banner       string   `json:"banner,omitempty"`
+	FanArt       string   `json:"fanart,omitempty"`
+	FanArts      []string `json:"fanarts,omitempty"`
+	ClearArt     string   `json:"clearart,omitempty"`
+	ClearLogo    string   `json:"clearlogo,omitempty"`
+	Landscape    string   `json:"landscape,omitempty"`
+	Icon         string   `json:"icon,omitempty"`
 }
 
 // ListItemCastMember represents Cast member information from TMDB
