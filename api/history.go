@@ -18,9 +18,10 @@ func History(ctx *gin.Context) {
 	ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 
 	infohash := ctx.Query("infohash")
+	index := ctx.DefaultQuery("index", "")
 	if torrent := InTorrentsHistory(infohash); torrent != nil {
 		ctx.Redirect(302, URLQuery(
-			URLForXBMC("/play"), "uri", torrent.URI,
+			URLForXBMC("/play"), "uri", torrent.URI, "index", index,
 		))
 		return
 	}

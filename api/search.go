@@ -29,6 +29,8 @@ func Search(s *bittorrent.Service) gin.HandlerFunc {
 		query := ctx.Query("q")
 		keyboard := ctx.Query("keyboard")
 		action := ctx.Query("action")
+		silent := ctx.DefaultQuery("silent", "")
+		index := ctx.DefaultQuery("index", "")
 		historyType := ""
 
 		runAction := "/play"
@@ -46,12 +48,13 @@ func Search(s *bittorrent.Service) gin.HandlerFunc {
 
 		fakeTmdbID := strconv.Itoa(int(xxhash.Sum64String(query)))
 		existingTorrent := s.HasTorrentByQuery(query)
-		if existingTorrent != nil && (config.Get().SilentStreamStart || (existingTorrent.IsNextFile && config.Get().SmartEpisodeChoose) || xbmc.DialogConfirmFocused("Elementum", fmt.Sprintf("LOCALIZE[30608];;[COLOR gold]%s[/COLOR]", existingTorrent.Title()))) {
+		if existingTorrent != nil && (silent != "" || config.Get().SilentStreamStart || (existingTorrent.IsNextFile && config.Get().SmartEpisodeChoose) || xbmc.DialogConfirmFocused("Elementum", fmt.Sprintf("LOCALIZE[30608];;[COLOR gold]%s[/COLOR]", existingTorrent.Title()))) {
 			xbmc.PlayURLWithTimeout(URLQuery(
 				URLForXBMC(runAction),
 				"resume", existingTorrent.InfoHash(),
 				"query", query,
 				"tmdb", fakeTmdbID,
+				"index", index,
 				"type", "search"))
 			return
 		}
@@ -61,6 +64,7 @@ func Search(s *bittorrent.Service) gin.HandlerFunc {
 				URLForXBMC(runAction), "uri", torrent.URI,
 				"query", query,
 				"tmdb", fakeTmdbID,
+				"index", index,
 				"type", "search"))
 			return
 		}
@@ -138,6 +142,7 @@ func Search(s *bittorrent.Service) gin.HandlerFunc {
 				"uri", torrents[choice].URI,
 				"query", query,
 				"tmdb", fakeTmdbID,
+				"index", index,
 				"type", "search"))
 			return
 		}

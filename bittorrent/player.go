@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,9 +28,11 @@ import (
 	"github.com/elgatito/elementum/diskusage"
 	"github.com/elgatito/elementum/library"
 	"github.com/elgatito/elementum/osdb"
+	"github.com/elgatito/elementum/playcount"
 	"github.com/elgatito/elementum/tmdb"
 	"github.com/elgatito/elementum/trakt"
 	"github.com/elgatito/elementum/tvdb"
+	"github.com/elgatito/elementum/upnext"
 	"github.com/elgatito/elementum/util"
 	"github.com/elgatito/elementum/xbmc"
 )
@@ -37,6 +40,10 @@ import (
 const (
 	episodeMatchRegex       = `(?i)(^|\W|_|\w)(S0*%[1]d\W?E?0*%[2]d|0*%[1]dx0*%[2]d|0*%[1]d0*%[2]d)(\W|_|\w)`
 	singleEpisodeMatchRegex = `(?i)(^|\W|_)(E0*%[1]d|0*%[1]d)(\W|_)`
+)
+
+var (
+	errNoCandidates = fmt.Errorf("No candidates left")
 )
 
 // Player ...
@@ -99,6 +106,7 @@ type PlayerParams struct {
 	Episode           int
 	AbsoluteNumber    int
 	Query             string
+	UpNextSent        bool
 	UIDs              *library.UniqueIDs
 	Resume            *library.Resume
 	StoredResume      *library.Resume
@@ -704,6 +712,11 @@ playbackLoop:
 		case <-oneSecond.C:
 			btp.updateWatchTimes()
 
+			// Trigger UpNext notification if Player is done with initialization
+			if btp.p.VideoDuration > 0 && !btp.p.UpNextSent {
+				go btp.processUpNextPayload()
+			}
+
 			if btp.p.Seeked {
 				btp.p.Seeked = false
 				if btp.scrobble {
@@ -1186,6 +1199,196 @@ func (btp *Player) SaveStoredResume() {
 	}
 }
 
+func (btp *Player) processUpNextPayload() {
+	btp.p.UpNextSent = true
+
+	var err error
+	var payload upnext.Payload
+
+	if btp.p.ShowID != 0 {
+		payload, err = btp.processUpNextShow()
+	} else {
+		payload, err = btp.processUpNextQuery()
+	}
+
+	if payload.PlayURL == "" || err == errNoCandidates {
+		return
+	} else if err != nil {
+		log.Warningf("Could not prepare UpNext payload: %s", err)
+	}
+
+	xbmc.UpNextNotify(xbmc.Args{payload})
+}
+
+func (btp *Player) processUpNextShow() (upnext.Payload, error) {
+	res := upnext.Payload{}
+
+	show, season, episode, err := getShowSeasonEpisode(btp.p.ShowID, btp.p.Season, btp.p.Episode)
+	if err != nil {
+		log.Warningf("Cannot prepare current UpNext item: %s", err)
+		return res, err
+	}
+	res.CurrentEpisode = btp.processUpNextEpisode(show, season, episode)
+
+	show, season, episode, err = getNextShowSeasonEpisode(btp.p.ShowID, btp.p.Season, btp.p.Episode)
+	if err != nil {
+		log.Warningf("Cannot prepare next UpNext item: %s", err)
+		return res, err
+	}
+	res.NextEpisode = btp.processUpNextEpisode(show, season, episode)
+
+	res.PlayURL = contextPlayURL(
+		URLForXBMC("/show/%d/season/%d/episode/%d/",
+			show.ID,
+			episode.SeasonNumber,
+			episode.EpisodeNumber,
+		)+"%s/%s?silent=true",
+		fmt.Sprintf("%s S%02dE%02d", show.OriginalName, episode.SeasonNumber, episode.EpisodeNumber),
+		false,
+	)
+
+	return res, nil
+}
+
+func (btp *Player) processUpNextQuery() (upnext.Payload, error) {
+	res := upnext.Payload{}
+
+	currentFile, _, errCurrent := btp.processUpNextFile(btp.p.FileIndex)
+	if errCurrent != nil {
+		log.Warningf("Cannot prepare current UpNext item: %s", errCurrent)
+		return res, errCurrent
+	}
+
+	nextFile, nextIndex, errNext := btp.processUpNextFile(btp.p.FileIndex + 1)
+	if errNext != nil {
+		log.Warningf("Cannot prepare next UpNext item: %s", errNext)
+		return res, errNext
+	}
+
+	showTitle := btp.p.Query
+	if showTitle == "" {
+		showTitle = btp.t.Name()
+	}
+
+	res.CurrentEpisode = upnext.Episode{
+		Title:     currentFile,
+		ShowTitle: showTitle,
+		EpisodeID: removeTrailingMinus(strconv.Itoa(int(xxhash.Sum64String(currentFile)))),
+		TVShowID:  removeTrailingMinus(strconv.Itoa(int(xxhash.Sum64String(showTitle)))),
+	}
+	res.NextEpisode = upnext.Episode{
+		Title:     nextFile,
+		ShowTitle: showTitle,
+		EpisodeID: removeTrailingMinus(strconv.Itoa(int(xxhash.Sum64String(nextFile)))),
+		TVShowID:  removeTrailingMinus(strconv.Itoa(int(xxhash.Sum64String(showTitle)))),
+	}
+
+	if btp.p.Query != "" {
+		res.PlayURL = URLQuery(URLForXBMC("/search"), "q", btp.p.Query, "index", strconv.Itoa(nextIndex), "silent", "true")
+	} else {
+		res.PlayURL = URLQuery(URLForXBMC("/history"), "infohash", btp.t.InfoHash(), "index", strconv.Itoa(nextIndex), "silent", "true")
+	}
+
+	return res, nil
+}
+
+func (btp *Player) processUpNextEpisode(show *tmdb.Show, season *tmdb.Season, episode *tmdb.Episode) upnext.Episode {
+	li := episode.ToListItem(show, season)
+	runtime := 1800
+	if len(show.EpisodeRunTime) > 0 {
+		runtime = show.EpisodeRunTime[len(show.EpisodeRunTime)-1] * 60
+	}
+
+	return upnext.Episode{
+		EpisodeID:  strconv.Itoa(episode.ID),
+		TVShowID:   strconv.Itoa(show.ID),
+		Title:      episode.Name,
+		Season:     strconv.Itoa(episode.SeasonNumber),
+		Episode:    strconv.Itoa(episode.EpisodeNumber),
+		ShowTitle:  show.Name,
+		Plot:       episode.Overview,
+		Playcount:  playcount.GetWatchedEpisodeByTMDB(show.ID, episode.SeasonNumber, episode.EpisodeNumber).Int(),
+		Rating:     int(episode.VoteAverage),
+		FirstAired: episode.AirDate,
+		Runtime:    runtime,
+
+		Art: upnext.Art{
+			Thumb:           li.Art.Thumbnail,
+			TVShowClearArt:  li.Art.ClearArt,
+			TVShowClearLogo: li.Art.ClearLogo,
+			TVShowFanart:    li.Art.FanArt,
+			TVShowLandscape: li.Art.Landscape,
+			TVShowPoster:    li.Art.TvShowPoster,
+		},
+	}
+}
+
+func (btp *Player) processUpNextFile(index int) (string, int, error) {
+	if candidates, _, err := btp.t.GetCandidateFiles(btp); err == nil {
+		if len(candidates) <= index {
+			return "", -1, errNoCandidates
+		}
+
+		return candidates[index].Filename, index, nil
+	}
+
+	return "", -1, fmt.Errorf("Not able to find candidate file")
+}
+
+func contextPlayURL(f string, title string, forced bool) string {
+	action := "links"
+	if strings.Contains(f, "movie") && config.Get().ChooseStreamAutoMovie {
+		action = "play"
+	} else if strings.Contains(f, "show") && config.Get().ChooseStreamAutoShow {
+		action = "play"
+	} else if strings.Contains(f, "search") && config.Get().ChooseStreamAutoSearch {
+		action = "play"
+	}
+
+	if forced {
+		action = "force" + action
+	}
+
+	return fmt.Sprintf(f, action, url.PathEscape(title))
+}
+
+func getShowSeasonEpisode(showID, seasonNumber, episodeNumber int) (*tmdb.Show, *tmdb.Season, *tmdb.Episode, error) {
+	show := tmdb.GetShow(showID, config.Get().Language)
+	if show == nil {
+		return nil, nil, nil, errors.New("Unable to find show")
+	}
+
+	season := tmdb.GetSeason(showID, seasonNumber, config.Get().Language, len(show.Seasons))
+	if season == nil || len(season.Episodes) < episodeNumber {
+		return nil, nil, nil, errors.New("Unable to find season")
+	}
+
+	if len(season.Episodes) < episodeNumber {
+		return nil, nil, nil, errors.New("Unable to find episode")
+	}
+
+	return show, season, season.Episodes[episodeNumber-1], nil
+}
+
+func getNextShowSeasonEpisode(showID, seasonNumber, episodeNumber int) (*tmdb.Show, *tmdb.Season, *tmdb.Episode, error) {
+	show := tmdb.GetShow(showID, config.Get().Language)
+	if show == nil {
+		return nil, nil, nil, errors.New("Unable to find show")
+	}
+
+	season := tmdb.GetSeason(showID, seasonNumber, config.Get().Language, len(show.Seasons))
+	if season == nil || len(season.Episodes) < episodeNumber {
+		return nil, nil, nil, errors.New("Unable to find season")
+	}
+
+	episodeNumber++
+	if len(season.Episodes) < episodeNumber {
+		return getShowSeasonEpisode(showID, seasonNumber+1, 1)
+	}
+
+	return show, season, season.Episodes[episodeNumber-1], nil
+}
+
 // TrimChoices clears redundant folder names from files list and sorts remaining records.
 func TrimChoices(choices []*CandidateFile) {
 	// We are trying to see whether all files belong to the same directory.
@@ -1282,4 +1485,12 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, show *tmdb.Show, episod
 	}
 
 	return
+}
+
+func removeTrailingMinus(in string) string {
+	if strings.HasPrefix(in, "-") {
+		return in[1:]
+	}
+
+	return in
 }

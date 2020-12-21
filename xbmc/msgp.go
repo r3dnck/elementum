@@ -786,9 +786,9 @@ func (z *ListItem) Msgsize() (s int) {
 // MarshalMsg implements msgp.Marshaler
 func (z *ListItemArt) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 9
+	// map header, size 10
 	// string "Thumbnail"
-	o = append(o, 0x89, 0xa9, 0x54, 0x68, 0x75, 0x6d, 0x62, 0x6e, 0x61, 0x69, 0x6c)
+	o = append(o, 0x8a, 0xa9, 0x54, 0x68, 0x75, 0x6d, 0x62, 0x6e, 0x61, 0x69, 0x6c)
 	o = msgp.AppendString(o, z.Thumbnail)
 	// string "Poster"
 	o = append(o, 0xa6, 0x50, 0x6f, 0x73, 0x74, 0x65, 0x72)
@@ -802,6 +802,12 @@ func (z *ListItemArt) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "FanArt"
 	o = append(o, 0xa6, 0x46, 0x61, 0x6e, 0x41, 0x72, 0x74)
 	o = msgp.AppendString(o, z.FanArt)
+	// string "FanArts"
+	o = append(o, 0xa7, 0x46, 0x61, 0x6e, 0x41, 0x72, 0x74, 0x73)
+	o = msgp.AppendArrayHeader(o, uint32(len(z.FanArts)))
+	for za0001 := range z.FanArts {
+		o = msgp.AppendString(o, z.FanArts[za0001])
+	}
 	// string "ClearArt"
 	o = append(o, 0xa8, 0x43, 0x6c, 0x65, 0x61, 0x72, 0x41, 0x72, 0x74)
 	o = msgp.AppendString(o, z.ClearArt)
@@ -865,6 +871,25 @@ func (z *ListItemArt) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				err = msgp.WrapError(err, "FanArt")
 				return
 			}
+		case "FanArts":
+			var zb0002 uint32
+			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "FanArts")
+				return
+			}
+			if cap(z.FanArts) >= int(zb0002) {
+				z.FanArts = (z.FanArts)[:zb0002]
+			} else {
+				z.FanArts = make([]string, zb0002)
+			}
+			for za0001 := range z.FanArts {
+				z.FanArts[za0001], bts, err = msgp.ReadStringBytes(bts)
+				if err != nil {
+					err = msgp.WrapError(err, "FanArts", za0001)
+					return
+				}
+			}
 		case "ClearArt":
 			z.ClearArt, bts, err = msgp.ReadStringBytes(bts)
 			if err != nil {
@@ -903,7 +928,11 @@ func (z *ListItemArt) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *ListItemArt) Msgsize() (s int) {
-	s = 1 + 10 + msgp.StringPrefixSize + len(z.Thumbnail) + 7 + msgp.StringPrefixSize + len(z.Poster) + 13 + msgp.StringPrefixSize + len(z.TvShowPoster) + 7 + msgp.StringPrefixSize + len(z.Banner) + 7 + msgp.StringPrefixSize + len(z.FanArt) + 9 + msgp.StringPrefixSize + len(z.ClearArt) + 10 + msgp.StringPrefixSize + len(z.ClearLogo) + 10 + msgp.StringPrefixSize + len(z.Landscape) + 5 + msgp.StringPrefixSize + len(z.Icon)
+	s = 1 + 10 + msgp.StringPrefixSize + len(z.Thumbnail) + 7 + msgp.StringPrefixSize + len(z.Poster) + 13 + msgp.StringPrefixSize + len(z.TvShowPoster) + 7 + msgp.StringPrefixSize + len(z.Banner) + 7 + msgp.StringPrefixSize + len(z.FanArt) + 8 + msgp.ArrayHeaderSize
+	for za0001 := range z.FanArts {
+		s += msgp.StringPrefixSize + len(z.FanArts[za0001])
+	}
+	s += 9 + msgp.StringPrefixSize + len(z.ClearArt) + 10 + msgp.StringPrefixSize + len(z.ClearLogo) + 10 + msgp.StringPrefixSize + len(z.Landscape) + 5 + msgp.StringPrefixSize + len(z.Icon)
 	return
 }
 
