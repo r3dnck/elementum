@@ -1084,7 +1084,7 @@ func (t *Torrent) Title() string {
 
 // Length ...
 func (t *Torrent) Length() int64 {
-	if t.th == nil || !t.gotMetainfo.IsSet() {
+	if t.th == nil || t.ti == nil || t.ti.Swigcptr() == 0 || !t.gotMetainfo.IsSet() {
 		return 0
 	}
 
