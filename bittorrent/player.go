@@ -1324,6 +1324,10 @@ func (btp *Player) processUpNextEpisode(show *tmdb.Show, season *tmdb.Season, ep
 }
 
 func (btp *Player) processUpNextFile(index int) (string, int, error) {
+	if index < 0 {
+		return "", -1, errNoCandidates
+	}
+
 	if candidates, _, err := btp.t.GetCandidateFiles(btp); err == nil {
 		if len(candidates) <= index {
 			return "", -1, errNoCandidates
