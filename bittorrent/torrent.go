@@ -822,6 +822,9 @@ func (t *Torrent) GetStateString() string {
 	} else if state != StatusQueued && t.IsBuffering {
 		return StatusStrings[StatusBuffering]
 	}
+	if t.IsBuffering {
+		return StatusStrings[StatusBuffering]
+	}
 
 	return StatusStrings[state]
 }

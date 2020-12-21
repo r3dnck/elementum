@@ -150,9 +150,13 @@ func (btp *Player) GetTorrent() *Torrent {
 
 // SetTorrent ...
 func (btp *Player) SetTorrent(t *Torrent) {
+	// Increase player counter only if this is a different torrent or it was not yet set.
+	if btp.t == nil || btp.t != t {
+		t.PlayerAttached++
+	}
+
 	btp.t = t
 
-	btp.t.PlayerAttached++
 	btp.t.IsBuffering = false
 	btp.t.IsBufferingFinished = false
 	btp.t.IsNextFile = false
@@ -363,6 +367,9 @@ func (btp *Player) statusStrings(progress float64, status lt.TorrentStatus) (str
 	if status == nil || status.Swigcptr() == 0 {
 		return "", "", ""
 	}
+	if progress < 0 {
+		progress = 0
+	}
 
 	statusName := btp.t.GetStateString()
 	line1 := fmt.Sprintf("%s (%.2f%%)", statusName, progress)
@@ -471,7 +478,8 @@ func (btp *Player) Close() {
 		return
 	}
 
-	if !btp.p.Background {
+	// Remove torrent only if this torrent is not needed for background download or other players are using it.
+	if !btp.p.Background && btp.t.PlayerAttached <= 1 {
 		// If there is no chosen file - we stop the torrent and remove everything
 		btp.s.RemoveTorrent(btp.t, false, btp.notEnoughSpace, btp.IsWatched())
 	}
