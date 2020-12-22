@@ -388,6 +388,9 @@ func (btp *Player) statusStrings(progress float64, status lt.TorrentStatus) (str
 		done := int64(float64(progress/100) * float64(query))
 
 		line1 = fmt.Sprintf("%s (%.2f%%) | (%s / %s)", statusName, progress, humanize.Bytes(uint64(done)), humanize.Bytes(uint64(query)))
+	} else if btp.t.IsMemoryStorage() {
+		// For memory storage show also memory size near percents.
+		line1 = fmt.Sprintf("%s (%.2f%% / %s)", statusName, progress, humanize.Bytes(uint64(btp.t.MemorySize)))
 	}
 
 	if btp.t.ti != nil && btp.t.ti.Swigcptr() != 0 {
