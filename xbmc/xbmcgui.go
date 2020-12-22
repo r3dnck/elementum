@@ -215,7 +215,7 @@ func dialogConfirmRunner(title, message string, focused bool) bool {
 		}
 
 		retVal := 0
-		executeJSONRPCEx("Dialog_Confirm", &retVal, Args{title, message})
+		executeJSONRPCEx("Dialog_Confirm_With_Timeout", &retVal, Args{title, message, focused, DialogAutoclose})
 		c1 <- retVal != 0
 	}()
 
@@ -223,7 +223,7 @@ func dialogConfirmRunner(title, message string, focused bool) bool {
 	case res := <-c1:
 		return res
 	case <-time.After(time.Duration(DialogAutoclose) * time.Second):
-		CloseAllDialogs()
+		CloseAllConfirmDialogs()
 		return focused
 	}
 }
@@ -302,5 +302,12 @@ func GetWatchTimes() map[string]string {
 func CloseAllDialogs() bool {
 	retVal := 0
 	executeJSONRPCEx("Dialog_CloseAll", &retVal, nil)
+	return retVal != 0
+}
+
+// CloseAllConfirmDialogs ...
+func CloseAllConfirmDialogs() bool {
+	retVal := 0
+	executeJSONRPCEx("Dialog_CloseAllConfirms", &retVal, nil)
 	return retVal != 0
 }
