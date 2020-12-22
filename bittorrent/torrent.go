@@ -1082,6 +1082,19 @@ func (t *Torrent) Title() string {
 	return torrentFile.Title
 }
 
+// GetSelectedSize returns size of all chosen files
+func (t *Torrent) GetSelectedSize() int64 {
+	if len(t.ChosenFiles) == 0 {
+		return 0
+	}
+
+	var res int64
+	for _, f := range t.ChosenFiles {
+		res += int64(f.Size)
+	}
+	return res
+}
+
 // Length ...
 func (t *Torrent) Length() int64 {
 	if t.th == nil || t.ti == nil || t.ti.Swigcptr() == 0 || !t.gotMetainfo.IsSet() {
@@ -1874,6 +1887,7 @@ func (t *Torrent) TorrentInfo(w io.Writer) {
 	fmt.Fprint(w, "    Size:\n")
 	fmt.Fprintf(w, "        Total:                  %v \n", humanize.Bytes(uint64(t.ti.TotalSize())))
 	fmt.Fprintf(w, "        Done:                   %v (%.2f%%) \n", humanize.Bytes(uint64(st.GetTotalDone())), 100*(float64(st.GetTotalDone())/float64(t.ti.TotalSize())))
+	fmt.Fprintf(w, "        Selected:               %v (%.2f%%) \n", humanize.Bytes(uint64(t.GetSelectedSize())), 100*(float64(st.GetTotalDone())/float64(t.GetSelectedSize())))
 	fmt.Fprintf(w, "        Wanted:                 %v \n", humanize.Bytes(uint64(st.GetTotalWanted())))
 	fmt.Fprintf(w, "        Wanted done:            %v (%.2f%%) \n", humanize.Bytes(uint64(st.GetTotalWantedDone())), 100*(float64(st.GetTotalWantedDone())/float64(st.GetTotalWanted())))
 	fmt.Fprint(w, "\n")
