@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/anacrolix/missinggo/perf"
 	"github.com/gin-gonic/gin"
@@ -17,6 +18,7 @@ import (
 	"github.com/elgatito/elementum/providers"
 	"github.com/elgatito/elementum/tmdb"
 	"github.com/elgatito/elementum/trakt"
+	"github.com/elgatito/elementum/util"
 	"github.com/elgatito/elementum/xbmc"
 )
 
@@ -448,7 +450,21 @@ func ShowEpisodes(ctx *gin.Context) {
 	seasonsToShow := []int{seasonNumber}
 	if seasonParam == "all" {
 		seasonsToShow = []int{}
+		now := util.UTCBod()
 		for _, s := range show.Seasons {
+			if s.EpisodeCount == 0 {
+				continue
+			}
+			if config.Get().ShowUnairedSeasons == false {
+				firstAired, _ := time.Parse("2006-01-02", s.AirDate)
+				if firstAired.After(now) || firstAired.Equal(now) {
+					continue
+				}
+			}
+			if !config.Get().ShowSeasonsSpecials && s.Season <= 0 {
+				continue
+			}
+
 			seasonsToShow = append(seasonsToShow, s.Season)
 		}
 

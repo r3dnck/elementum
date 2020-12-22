@@ -88,6 +88,7 @@ type Configuration struct {
 	ShowUnairedEpisodes        bool
 	ShowSeasonsAll             bool
 	ShowSeasonsOrder           int
+	ShowSeasonsSpecials        bool
 	SmartEpisodeStart          bool
 	SmartEpisodeMatch          bool
 	SmartEpisodeChoose         bool
@@ -547,6 +548,7 @@ func Reload() *Configuration {
 		ShowUnairedEpisodes:        settings["unaired_episodes"].(bool),
 		ShowSeasonsAll:             settings["seasons_all"].(bool),
 		ShowSeasonsOrder:           settings["seasons_order"].(int),
+		ShowSeasonsSpecials:        settings["seasons_specials"].(bool),
 		PlaybackPercent:            settings["playback_percent"].(int),
 		SmartEpisodeStart:          settings["smart_episode_start"].(bool),
 		SmartEpisodeMatch:          settings["smart_episode_match"].(bool),

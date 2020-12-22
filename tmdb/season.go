@@ -97,6 +97,9 @@ func (seasons SeasonList) ToListItems(show *Show) []*xbmc.ListItem {
 				continue
 			}
 		}
+		if !config.Get().ShowSeasonsSpecials && season.Season <= 0 {
+			continue
+		}
 
 		item := season.ToListItem(show)
 
