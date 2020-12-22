@@ -251,6 +251,7 @@ type Configuration struct {
 	CompletedShowsPath  string
 
 	LocalOnlyClient bool
+	LogLevel        int
 }
 
 // Addon ...
@@ -686,7 +687,10 @@ func Reload() *Configuration {
 		CompletedShowsPath:  settings["completed_shows_path"].(string),
 
 		LocalOnlyClient: settings["local_only_client"].(bool),
+		LogLevel:        settings["log_level"].(int),
 	}
+
+	updateLoggingLevel(newConfig.LogLevel)
 
 	// Fallback for old configuration with additional storage variants
 	if newConfig.DownloadStorage > 1 {
@@ -950,4 +954,17 @@ func getKodiBufferSize() int {
 	}
 
 	return 0
+}
+
+func updateLoggingLevel(level int) {
+	if level == 0 {
+		logging.SetLevel(logging.CRITICAL, "")
+	} else if level == 1 {
+		logging.SetLevel(logging.ERROR, "")
+	} else if level == 2 {
+		logging.SetLevel(logging.INFO, "")
+	} else if level == 3 {
+		logging.SetLevel(logging.DEBUG, "")
+	}
+
 }
