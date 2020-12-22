@@ -1032,6 +1032,8 @@ func (btp *Player) findNextFile() {
 				return
 			}
 		}
+	} else if btp.p.ContentType == movieType {
+		return
 	} else {
 		// Selecting next file from available choices as the next file
 		if candidates, _, err := btp.t.GetCandidateFiles(btp); err == nil {
@@ -1210,6 +1212,8 @@ func (btp *Player) processUpNextPayload() {
 
 	if btp.p.ShowID != 0 {
 		payload, err = btp.processUpNextShow()
+	} else if btp.p.ContentType == movieType {
+		return
 	} else {
 		payload, err = btp.processUpNextQuery()
 	}
