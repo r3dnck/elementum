@@ -797,7 +797,7 @@ func Reload() *Configuration {
 	configOutput := litter.Sdump(config)
 	configOutput = privacyRegex.ReplaceAllString(configOutput, `$1: "********"`)
 
-	log.Debugf("Using configuration: %s", configOutput)
+	log.Infof("Using configuration: %s", configOutput)
 
 	return config
 }
