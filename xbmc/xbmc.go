@@ -485,6 +485,18 @@ func SetFileWatched(file string, position int, total int) (ret string) {
 	return
 }
 
+// Translate ...
+func Translate(str string) (retVal string) {
+	executeJSONRPCEx("Translate", &retVal, Args{str})
+	return
+}
+
+// TranslateText ...
+func TranslateText(str string) (retVal string) {
+	executeJSONRPCEx("TranslateText", &retVal, Args{str})
+	return
+}
+
 // TranslatePath ...
 func TranslatePath(path string) (retVal string) {
 	executeJSONRPCEx("TranslatePath", &retVal, Args{path})

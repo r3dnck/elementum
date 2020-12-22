@@ -1222,7 +1222,7 @@ func (s *Service) downloadProgress() {
 							torrentHandle.Pause(1)
 							isPaused = true
 						}
-						status = "Seeded"
+						status = StatusStrings[StatusSeeding]
 					}
 				}
 				if !t.IsMemoryStorage() && s.config.SeedTimeRatioLimit > 0 {
@@ -1238,7 +1238,7 @@ func (s *Service) downloadProgress() {
 							torrentHandle.Pause(1)
 							isPaused = true
 						}
-						status = "Seeded"
+						status = StatusStrings[StatusSeeding]
 					}
 				}
 				if !t.IsMemoryStorage() && s.config.ShareRatioLimit > 0 {
@@ -1253,19 +1253,19 @@ func (s *Service) downloadProgress() {
 							torrentHandle.AutoManaged(false)
 							torrentHandle.Pause(1)
 						}
-						status = "Seeded"
+						status = StatusStrings[StatusSeeding]
 					}
 				}
 
 				if s.MarkedToMove != "" && infoHash == s.MarkedToMove {
 					s.MarkedToMove = ""
-					status = "Seeded"
+					status = StatusStrings[StatusSeeding]
 				}
 
 				//
 				// Handle moving completed downloads
 				//
-				if t.IsMemoryStorage() || !s.config.CompletedMove || status != "Seeded" || s.anyPlayerIsPlaying() {
+				if t.IsMemoryStorage() || !s.config.CompletedMove || status != StatusStrings[StatusSeeding] || s.anyPlayerIsPlaying() {
 					continue
 				}
 				if xbmc.PlayerIsPlaying() {

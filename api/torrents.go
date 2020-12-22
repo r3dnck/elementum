@@ -188,7 +188,7 @@ func ListTorrents(s *bittorrent.Service) gin.HandlerFunc {
 
 			torrentName := t.Name()
 			progress := t.GetProgress()
-			status := t.GetStateString()
+			status := xbmc.Translate(t.GetStateString())
 			// dt := t.GetAddedTime()
 
 			torrentAction := []string{"LOCALIZE[30231]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/torrents/pause/%s", t.InfoHash()))}
@@ -294,7 +294,7 @@ func ListTorrentsWeb(s *bittorrent.Service) gin.HandlerFunc {
 			progress := float64(torrentStatus.GetProgress()) * 100
 
 			infoHash := t.InfoHash()
-			status := t.GetStateString()
+			status := xbmc.Translate(t.GetStateString())
 
 			ratio := float64(0)
 			allTimeDownload := float64(torrentStatus.GetAllTimeDownload())

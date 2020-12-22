@@ -41,7 +41,7 @@ func NewDialogProgress(title, line1, line2, line3 string) *DialogProgress {
 // Update ...
 func (dp *DialogProgress) Update(percent int, line1, line2, line3 string) {
 	retVal := -1
-	executeJSONRPCEx("DialogProgress_Update", &retVal, Args{dp.hWnd, percent, line1, line2, line3})
+	executeJSONRPCEx("DialogProgress_Update", &retVal, Args{dp.hWnd, percent, TranslateText(line1), TranslateText(line2), TranslateText(line3)})
 }
 
 // IsCanceled ...
@@ -78,7 +78,7 @@ func NewDialogProgressBG(title, message string, translations ...string) *DialogP
 // Update ...
 func (dp *DialogProgressBG) Update(percent int, heading string, message string) {
 	retVal := -1
-	executeJSONRPCEx("DialogProgressBG_Update", &retVal, Args{dp.hWnd, percent, heading, message})
+	executeJSONRPCEx("DialogProgressBG_Update", &retVal, Args{dp.hWnd, percent, TranslateText(heading), TranslateText(message)})
 }
 
 // IsFinished ...
@@ -113,7 +113,7 @@ func (ov *OverlayStatus) Update(percent int, line1, line2, line3 string) {
 	}
 
 	retVal := -1
-	executeJSONRPCEx("OverlayStatus_Update", &retVal, Args{ov.hWnd, percent, line1, line2, line3})
+	executeJSONRPCEx("OverlayStatus_Update", &retVal, Args{ov.hWnd, percent, TranslateText(line1), TranslateText(line2), TranslateText(line3)})
 }
 
 // Show ...

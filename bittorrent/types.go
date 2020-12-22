@@ -49,17 +49,17 @@ const (
 
 // StatusStrings ...
 var StatusStrings = []string{
-	"Queued",
-	"Checking",
-	"Finding",
-	"Downloading",
-	"Finished",
-	"Seeding",
-	"Allocating",
-	"Stalled",
-	"Paused",
-	"Buffering",
-	"Playing",
+	"LOCALIZE[30621]",
+	"LOCALIZE[30622]",
+	"LOCALIZE[30623]",
+	"LOCALIZE[30624]",
+	"LOCALIZE[30625]",
+	"LOCALIZE[30626]",
+	"LOCALIZE[30627]",
+	"LOCALIZE[30628]",
+	"LOCALIZE[30629]",
+	"LOCALIZE[30630]",
+	"LOCALIZE[30631]",
 }
 
 const (

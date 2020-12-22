@@ -1863,7 +1863,7 @@ func (t *Torrent) TorrentInfo(w io.Writer) {
 
 	fmt.Fprintf(w, "    Name:               %s \n", st.GetName())
 	fmt.Fprintf(w, "    Infohash:           %s \n", hex.EncodeToString([]byte(st.GetInfoHash().ToString())))
-	fmt.Fprintf(w, "    Status:             %s \n", StatusStrings[st.GetState()])
+	fmt.Fprintf(w, "    Status:             %s \n", xbmc.Translate(StatusStrings[st.GetState()]))
 	fmt.Fprintf(w, "    Piece size:         %d \n", t.ti.NumPieces())
 	fmt.Fprintf(w, "    Piece length:       %s \n", humanize.Bytes(uint64(t.ti.PieceLength())))
 	fmt.Fprint(w, "\n")
