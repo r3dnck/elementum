@@ -39,6 +39,19 @@ var (
 	// DialogAutoclose determines number of seconds to wait
 	// until DialogConfirm should be automatically closed
 	DialogAutoclose = 0
+
+	languageMappings = map[string]string{
+		"Chinese":    "zh",
+		"English":    "en",
+		"French":     "fr",
+		"Hindi":      "hi",
+		"Mongolian":  "mn",
+		"Persian":    "fa",
+		"Portuguese": "pt",
+		"Serbian":    "sr",
+		"Spanish":    "es",
+		"Tamil":      "ta",
+	}
 )
 
 // ListItems ...

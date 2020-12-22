@@ -582,39 +582,16 @@ func GetLanguage(format int) string {
 // GetLanguageISO639_1 ...
 func GetLanguageISO639_1() string {
 	language := GetLanguage(Iso639_1)
-	if language == "" {
-		switch GetLanguage(EnglishName) {
-		case "Chinese (Simple)":
-			return "zh"
-		case "Chinese (Traditional)":
-			return "zh"
-		case "English (Australia)":
-			return "en"
-		case "English (New Zealand)":
-			return "en"
-		case "English (US)":
-			return "en"
-		case "French (Canada)":
-			return "fr"
-		case "Hindi (Devanagiri)":
-			return "hi"
-		case "Mongolian (Mongolia)":
-			return "mn"
-		case "Persian (Iran)":
-			return "fa"
-		case "Portuguese (Brazil)":
-			return "pt"
-		case "Serbian (Cyrillic)":
-			return "sr"
-		case "Spanish (Argentina)":
-			return "es"
-		case "Spanish (Mexico)":
-			return "es"
-		case "Tamil (India)":
-			return "ta"
-		default:
-			return "en"
+	english := strings.ToLower(GetLanguage(EnglishName))
+
+	for k, v := range languageMappings {
+		if strings.HasPrefix(english, strings.ToLower(k)) {
+			return v
 		}
+	}
+
+	if language == "" {
+		language = "en"
 	}
 	return language
 }
