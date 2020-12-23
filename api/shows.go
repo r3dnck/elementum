@@ -471,7 +471,7 @@ func ShowEpisodes(ctx *gin.Context) {
 		sort.Slice(seasonsToShow, func(i, j int) bool {
 			return seasonsToShow[i] < seasonsToShow[j]
 		})
-		if seasonsToShow[0] == 0 {
+		if len(seasonsToShow) > 0 && seasonsToShow[0] == 0 {
 			seasonsToShow = append(seasonsToShow[1:], seasonsToShow[0])
 		}
 	}
