@@ -514,7 +514,7 @@ func (show *Show) AnimeInfoWithShow(episode *Episode, tvdbShow *tvdb.Show) (an i
 func (show *Show) ToListItem() *xbmc.ListItem {
 	year, _ := strconv.Atoi(strings.Split(show.FirstAirDate, "-")[0])
 
-	name := show.Name
+	name := show.name()
 	if config.Get().UseOriginalTitle && show.OriginalName != "" {
 		name = show.OriginalName
 	}
@@ -526,8 +526,8 @@ func (show *Show) ToListItem() *xbmc.ListItem {
 			Count:         rand.Int(),
 			Title:         name,
 			OriginalTitle: show.OriginalName,
-			Plot:          show.Overview,
-			PlotOutline:   show.Overview,
+			Plot:          show.overview(),
+			PlotOutline:   show.overview(),
 			Code:          show.ExternalIDs.IMDBId,
 			IMDBNumber:    show.ExternalIDs.IMDBId,
 			Date:          show.FirstAirDate,
@@ -612,4 +612,65 @@ func (show *Show) mpaa() string {
 	}
 
 	return ""
+}
+
+func (show *Show) name() string {
+	if show.Name != "" || show.Translations == nil || show.Translations.Translations == nil || len(show.Translations.Translations) == 0 {
+		return show.Name
+	}
+
+	current := show.findTranslation(config.Get().Language)
+	if current != nil && current.Data != nil && current.Data.Name != "" {
+		return current.Data.Name
+	}
+
+	current = show.findTranslation("en")
+	if current != nil && current.Data != nil && current.Data.Name != "" {
+		return current.Data.Name
+	}
+
+	current = show.findTranslation(show.OriginalLanguage)
+	if current != nil && current.Data != nil && current.Data.Name != "" {
+		return current.Data.Name
+	}
+
+	return show.Name
+}
+
+func (show *Show) overview() string {
+	if show.Overview != "" || show.Translations == nil || show.Translations.Translations == nil || len(show.Translations.Translations) == 0 {
+		return show.Overview
+	}
+
+	current := show.findTranslation(config.Get().Language)
+	if current != nil && current.Data != nil && current.Data.Overview != "" {
+		return current.Data.Overview
+	}
+
+	current = show.findTranslation("en")
+	if current != nil && current.Data != nil && current.Data.Overview != "" {
+		return current.Data.Overview
+	}
+
+	current = show.findTranslation(show.OriginalLanguage)
+	if current != nil && current.Data != nil && current.Data.Overview != "" {
+		return current.Data.Overview
+	}
+
+	return show.Overview
+}
+
+func (show *Show) findTranslation(language string) *Translation {
+	if language == "" || show.Translations == nil || show.Translations.Translations == nil || len(show.Translations.Translations) == 0 {
+		return nil
+	}
+
+	language = strings.ToLower(language)
+	for _, tr := range show.Translations.Translations {
+		if strings.ToLower(tr.Iso639_1) == language {
+			return tr
+		}
+	}
+
+	return nil
 }

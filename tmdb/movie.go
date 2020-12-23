@@ -421,7 +421,7 @@ func (movie *Movie) Year() int {
 
 // ToListItem ...
 func (movie *Movie) ToListItem() *xbmc.ListItem {
-	title := movie.Title
+	title := movie.title()
 	if config.Get().UseOriginalTitle && movie.OriginalTitle != "" {
 		title = movie.OriginalTitle
 	}
@@ -434,8 +434,8 @@ func (movie *Movie) ToListItem() *xbmc.ListItem {
 			Count:         rand.Int(),
 			Title:         title,
 			OriginalTitle: movie.OriginalTitle,
-			Plot:          movie.Overview,
-			PlotOutline:   movie.Overview,
+			Plot:          movie.overview(),
+			PlotOutline:   movie.overview(),
 			TagLine:       movie.TagLine,
 			Duration:      movie.Runtime * 60,
 			Code:          movie.IMDBId,
@@ -541,4 +541,65 @@ func (movie *Movie) mpaa() string {
 	}
 
 	return ""
+}
+
+func (movie *Movie) title() string {
+	if movie.Title != "" || movie.Translations == nil || movie.Translations.Translations == nil || len(movie.Translations.Translations) == 0 {
+		return movie.Title
+	}
+
+	current := movie.findTranslation(config.Get().Language)
+	if current != nil && current.Data != nil && current.Data.Title != "" {
+		return current.Data.Title
+	}
+
+	current = movie.findTranslation("en")
+	if current != nil && current.Data != nil && current.Data.Title != "" {
+		return current.Data.Title
+	}
+
+	current = movie.findTranslation(movie.OriginalLanguage)
+	if current != nil && current.Data != nil && current.Data.Title != "" {
+		return current.Data.Title
+	}
+
+	return movie.Title
+}
+
+func (movie *Movie) overview() string {
+	if movie.Overview != "" || movie.Translations == nil || movie.Translations.Translations == nil || len(movie.Translations.Translations) == 0 {
+		return movie.Overview
+	}
+
+	current := movie.findTranslation(config.Get().Language)
+	if current != nil && current.Data != nil && current.Data.Overview != "" {
+		return current.Data.Overview
+	}
+
+	current = movie.findTranslation("en")
+	if current != nil && current.Data != nil && current.Data.Overview != "" {
+		return current.Data.Overview
+	}
+
+	current = movie.findTranslation(movie.OriginalLanguage)
+	if current != nil && current.Data != nil && current.Data.Overview != "" {
+		return current.Data.Overview
+	}
+
+	return movie.Overview
+}
+
+func (movie *Movie) findTranslation(language string) *Translation {
+	if language == "" || movie.Translations == nil || movie.Translations.Translations == nil || len(movie.Translations.Translations) == 0 {
+		return nil
+	}
+
+	language = strings.ToLower(language)
+	for _, tr := range movie.Translations.Translations {
+		if strings.ToLower(tr.Iso639_1) == language {
+			return tr
+		}
+	}
+
+	return nil
 }

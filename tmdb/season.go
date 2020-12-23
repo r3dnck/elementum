@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/elgatito/elementum/cache"
@@ -57,11 +59,18 @@ func GetSeason(showID int, seasonNumber int, language string, seasonsCount int) 
 		// with no language set.
 		// See https://github.com/scakemyer/plugin.video.quasar/issues/249
 		if season.EpisodeCount > 0 {
-			for index := 0; index < season.EpisodeCount && index < len(season.Episodes); index++ {
-				if season.Episodes[index] != nil && season.Episodes[index].Name == "" {
-					season.Episodes[index] = GetEpisode(showID, seasonNumber, index+1, language)
+			// If we have empty Names/Overviews then we need to collect Translations separately
+			wg := sync.WaitGroup{}
+			for i, episode := range season.Episodes {
+				if episode.Translations == nil && (episode.Name == "" || episode.Overview == "") {
+					wg.Add(1)
+					go func(idx int, episode *Episode) {
+						defer wg.Done()
+						season.Episodes[idx] = GetEpisode(showID, seasonNumber, idx+1, language)
+					}(i, episode)
 				}
 			}
+			wg.Wait()
 		}
 
 		cacheStore.Set(key, &season, cache.TMDBSeasonExpire)
@@ -86,6 +95,19 @@ func (seasons SeasonList) ToListItems(show *Show) []*xbmc.ListItem {
 	} else {
 		sort.Slice(seasons, func(i, j int) bool { return seasons[i].Season > seasons[j].Season })
 	}
+
+	// If we have empty Names/Overviews then we need to collect Translations separately
+	wg := sync.WaitGroup{}
+	for i, season := range seasons {
+		if season.Translations == nil && (season.Name == "" || season.Overview == "") {
+			wg.Add(1)
+			go func(idx int, season *Season) {
+				defer wg.Done()
+				seasons[idx] = GetSeason(show.ID, season.Season, config.Get().Language, len(seasons))
+			}(i, season)
+		}
+	}
+	wg.Wait()
 
 	for _, season := range seasons {
 		if season.EpisodeCount == 0 {
@@ -124,8 +146,8 @@ func (seasons SeasonList) Less(i, j int) bool { return seasons[i].Season < seaso
 // ToListItem ...
 func (season *Season) ToListItem(show *Show) *xbmc.ListItem {
 	name := fmt.Sprintf("Season %d", season.Season)
-	if season.Name != "" {
-		name = season.Name
+	if season.name(show) != "" {
+		name = season.name(show)
 	}
 	if season.Season == 0 {
 		name = "Specials"
@@ -138,9 +160,9 @@ func (season *Season) ToListItem(show *Show) *xbmc.ListItem {
 			Title:         name,
 			OriginalTitle: name,
 			Season:        season.Season,
-			TVShowTitle:   show.OriginalName,
-			Plot:          show.Overview,
-			PlotOutline:   show.Overview,
+			TVShowTitle:   show.name(),
+			Plot:          season.overview(show),
+			PlotOutline:   season.overview(show),
 			DBTYPE:        "season",
 			Mediatype:     "season",
 			Code:          show.ExternalIDs.IMDBId,
@@ -173,4 +195,65 @@ func (season *Season) ToListItem(show *Show) *xbmc.ListItem {
 	}
 
 	return item
+}
+
+func (season *Season) name(show *Show) string {
+	if season.Name != "" || season.Translations == nil || season.Translations.Translations == nil || len(season.Translations.Translations) == 0 {
+		return season.Name
+	}
+
+	current := season.findTranslation(config.Get().Language)
+	if current != nil && current.Data != nil && current.Data.Name != "" {
+		return current.Data.Name
+	}
+
+	current = season.findTranslation("en")
+	if current != nil && current.Data != nil && current.Data.Name != "" {
+		return current.Data.Name
+	}
+
+	current = season.findTranslation(show.OriginalLanguage)
+	if current != nil && current.Data != nil && current.Data.Name != "" {
+		return current.Data.Name
+	}
+
+	return season.Name
+}
+
+func (season *Season) overview(show *Show) string {
+	if season.Overview != "" || season.Translations == nil || season.Translations.Translations == nil || len(season.Translations.Translations) == 0 {
+		return season.Overview
+	}
+
+	current := season.findTranslation(config.Get().Language)
+	if current != nil && current.Data != nil && current.Data.Overview != "" {
+		return current.Data.Overview
+	}
+
+	current = season.findTranslation("en")
+	if current != nil && current.Data != nil && current.Data.Overview != "" {
+		return current.Data.Overview
+	}
+
+	current = season.findTranslation(show.OriginalLanguage)
+	if current != nil && current.Data != nil && current.Data.Overview != "" {
+		return current.Data.Overview
+	}
+
+	return season.Overview
+}
+
+func (season *Season) findTranslation(language string) *Translation {
+	if language == "" || season.Translations == nil || season.Translations.Translations == nil || len(season.Translations.Translations) == 0 {
+		return nil
+	}
+
+	language = strings.ToLower(language)
+	for _, tr := range season.Translations.Translations {
+		if strings.ToLower(tr.Iso639_1) == language {
+			return tr
+		}
+	}
+
+	return nil
 }

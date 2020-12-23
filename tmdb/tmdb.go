@@ -112,6 +112,7 @@ type Show struct {
 type Season struct {
 	ID           int          `json:"id"`
 	Name         string       `json:"name,omitempty"`
+	Overview     string       `json:"overview"`
 	Season       int          `json:"season_number"`
 	EpisodeCount int          `json:"episode_count,omitempty"`
 	AirDate      string       `json:"air_date"`

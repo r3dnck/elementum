@@ -79,9 +79,9 @@ func (episodes EpisodeList) ToListItems(show *Show, season *Season) []*xbmc.List
 
 // ToListItem ...
 func (episode *Episode) ToListItem(show *Show, season *Season) *xbmc.ListItem {
-	episodeLabel := episode.Name
+	episodeLabel := episode.name(show)
 	if config.Get().AddEpisodeNumbers {
-		episodeLabel = fmt.Sprintf("%dx%02d %s", episode.SeasonNumber, episode.EpisodeNumber, episode.Name)
+		episodeLabel = fmt.Sprintf("%dx%02d %s", episode.SeasonNumber, episode.EpisodeNumber, episode.name(show))
 	}
 
 	runtime := 1800
@@ -95,12 +95,12 @@ func (episode *Episode) ToListItem(show *Show, season *Season) *xbmc.ListItem {
 		Info: &xbmc.ListItemInfo{
 			Count:         rand.Int(),
 			Title:         episodeLabel,
-			OriginalTitle: episode.Name,
+			OriginalTitle: episode.name(show),
 			Season:        episode.SeasonNumber,
 			Episode:       episode.EpisodeNumber,
-			TVShowTitle:   show.Name,
-			Plot:          episode.Overview,
-			PlotOutline:   episode.Overview,
+			TVShowTitle:   show.name(),
+			Plot:          episode.overview(show),
+			PlotOutline:   episode.overview(show),
 			Rating:        episode.VoteAverage,
 			Aired:         episode.AirDate,
 			Duration:      runtime,
@@ -188,4 +188,65 @@ func (episode *Episode) ToListItem(show *Show, season *Season) *xbmc.ListItem {
 	}
 
 	return item
+}
+
+func (episode *Episode) name(show *Show) string {
+	if episode.Name != "" || episode.Translations == nil || episode.Translations.Translations == nil || len(episode.Translations.Translations) == 0 {
+		return episode.Name
+	}
+
+	current := episode.findTranslation(config.Get().Language)
+	if current != nil && current.Data != nil && current.Data.Name != "" {
+		return current.Data.Name
+	}
+
+	current = episode.findTranslation("en")
+	if current != nil && current.Data != nil && current.Data.Name != "" {
+		return current.Data.Name
+	}
+
+	current = episode.findTranslation(show.OriginalLanguage)
+	if current != nil && current.Data != nil && current.Data.Name != "" {
+		return current.Data.Name
+	}
+
+	return episode.Name
+}
+
+func (episode *Episode) overview(show *Show) string {
+	if episode.Overview != "" || episode.Translations == nil || episode.Translations.Translations == nil || len(episode.Translations.Translations) == 0 {
+		return episode.Overview
+	}
+
+	current := episode.findTranslation(config.Get().Language)
+	if current != nil && current.Data != nil && current.Data.Overview != "" {
+		return current.Data.Overview
+	}
+
+	current = episode.findTranslation("en")
+	if current != nil && current.Data != nil && current.Data.Overview != "" {
+		return current.Data.Overview
+	}
+
+	current = episode.findTranslation(show.OriginalLanguage)
+	if current != nil && current.Data != nil && current.Data.Overview != "" {
+		return current.Data.Overview
+	}
+
+	return episode.Overview
+}
+
+func (episode *Episode) findTranslation(language string) *Translation {
+	if language == "" || episode.Translations == nil || episode.Translations.Translations == nil || len(episode.Translations.Translations) == 0 {
+		return nil
+	}
+
+	language = strings.ToLower(language)
+	for _, tr := range episode.Translations.Translations {
+		if strings.ToLower(tr.Iso639_1) == language {
+			return tr
+		}
+	}
+
+	return nil
 }

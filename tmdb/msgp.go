@@ -4311,13 +4311,16 @@ func (z *ReleaseDatesResults) Msgsize() (s int) {
 // MarshalMsg implements msgp.Marshaler
 func (z *Season) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 13
+	// map header, size 14
 	// string "ID"
-	o = append(o, 0x8d, 0xa2, 0x49, 0x44)
+	o = append(o, 0x8e, 0xa2, 0x49, 0x44)
 	o = msgp.AppendInt(o, z.ID)
 	// string "Name"
 	o = append(o, 0xa4, 0x4e, 0x61, 0x6d, 0x65)
 	o = msgp.AppendString(o, z.Name)
+	// string "Overview"
+	o = append(o, 0xa8, 0x4f, 0x76, 0x65, 0x72, 0x76, 0x69, 0x65, 0x77)
+	o = msgp.AppendString(o, z.Overview)
 	// string "Season"
 	o = append(o, 0xa6, 0x53, 0x65, 0x61, 0x73, 0x6f, 0x6e)
 	o = msgp.AppendInt(o, z.Season)
@@ -4473,6 +4476,12 @@ func (z *Season) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			z.Name, bts, err = msgp.ReadStringBytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Name")
+				return
+			}
+		case "Overview":
+			z.Overview, bts, err = msgp.ReadStringBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Overview")
 				return
 			}
 		case "Season":
@@ -4821,7 +4830,7 @@ func (z *Season) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Season) Msgsize() (s int) {
-	s = 1 + 3 + msgp.IntSize + 5 + msgp.StringPrefixSize + len(z.Name) + 7 + msgp.IntSize + 13 + msgp.IntSize + 8 + msgp.StringPrefixSize + len(z.AirDate) + 7 + msgp.StringPrefixSize + len(z.Poster) + 12
+	s = 1 + 3 + msgp.IntSize + 5 + msgp.StringPrefixSize + len(z.Name) + 9 + msgp.StringPrefixSize + len(z.Overview) + 7 + msgp.IntSize + 13 + msgp.IntSize + 8 + msgp.StringPrefixSize + len(z.AirDate) + 7 + msgp.StringPrefixSize + len(z.Poster) + 12
 	if z.ExternalIDs == nil {
 		s += msgp.NilSize
 	} else {
