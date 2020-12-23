@@ -444,6 +444,7 @@ func (movie *Movie) ToListItem() *xbmc.ListItem {
 			Votes:         strconv.Itoa(movie.VoteCount),
 			Rating:        movie.VoteAverage,
 			PlayCount:     playcount.GetWatchedMovieByTMDB(movie.ID).Int(),
+			MPAA:          movie.mpaa(),
 			DBTYPE:        "movie",
 			Mediatype:     "movie",
 		},
@@ -523,4 +524,21 @@ func (movie *Movie) ToListItem() *xbmc.ListItem {
 		item.Info.Writer = strings.Join(writers, " / ")
 	}
 	return item
+}
+
+func (movie *Movie) mpaa() string {
+	if movie.ReleaseDates == nil || movie.ReleaseDates.Results == nil || len(movie.ReleaseDates.Results) == 0 {
+		return ""
+	}
+
+	language := config.Get().Language
+	for _, r := range movie.ReleaseDates.Results {
+		if r.ReleaseDates == nil || len(r.ReleaseDates) == 0 || strings.ToLower(r.Iso3166_1) != language {
+			continue
+		}
+
+		return r.ReleaseDates[0].Certification
+	}
+
+	return ""
 }

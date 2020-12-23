@@ -115,7 +115,7 @@ func GetShow(showID int, language string) (show *Show) {
 			URL: fmt.Sprintf("%s/tv/%d", tmdbEndpoint, showID),
 			Params: napping.Params{
 				"api_key":            apiKey,
-				"append_to_response": "credits,images,alternative_titles,translations,external_ids",
+				"append_to_response": "credits,images,alternative_titles,translations,external_ids,content_ratings",
 				"language":           language,
 			}.AsUrlValues(),
 			Result:      &show,
@@ -536,6 +536,7 @@ func (show *Show) ToListItem() *xbmc.ListItem {
 			TVShowTitle:   show.OriginalName,
 			Premiered:     show.FirstAirDate,
 			PlayCount:     playcount.GetWatchedShowByTMDB(show.ID).Int(),
+			MPAA:          show.mpaa(),
 			DBTYPE:        "tvshow",
 			Mediatype:     "tvshow",
 		},
@@ -594,4 +595,21 @@ func (show *Show) ToListItem() *xbmc.ListItem {
 		item.Info.Writer = strings.Join(writers, " / ")
 	}
 	return item
+}
+
+func (show *Show) mpaa() string {
+	if show.ContentRatings == nil || show.ContentRatings.Ratings == nil || len(show.ContentRatings.Ratings) == 0 {
+		return ""
+	}
+
+	language := config.Get().Language
+	for _, r := range show.ContentRatings.Ratings {
+		if strings.ToLower(r.Iso3166_1) != language {
+			continue
+		}
+
+		return r.Rating
+	}
+
+	return ""
 }

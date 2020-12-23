@@ -98,6 +98,9 @@ type Show struct {
 	AlternativeTitles *struct {
 		Titles []*AlternativeTitle `json:"results"`
 	} `json:"alternative_titles"`
+	ContentRatings *struct {
+		Ratings []*ContentRating `json:"results"`
+	} `json:"content_ratings"`
 
 	Credits *Credits `json:"credits,omitempty"`
 	Images  *Images  `json:"images,omitempty"`
@@ -261,6 +264,12 @@ type ExternalIDs struct {
 	FreeBaseID  string      `json:"freebase_id"`
 	FreeBaseMID string      `json:"freebase_mid"`
 	TVDBID      interface{} `json:"tvdb_id"`
+}
+
+// ContentRating ...
+type ContentRating struct {
+	Iso3166_1 string `json:"iso_3166_1"`
+	Rating    string `json:"rating"`
 }
 
 // AlternativeTitle ...
