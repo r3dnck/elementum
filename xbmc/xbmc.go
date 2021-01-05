@@ -573,16 +573,29 @@ func FilesGetSources() *FileSources {
 }
 
 // GetLanguage ...
-func GetLanguage(format int) string {
+func GetLanguage(format int, withRegion bool) string {
 	retVal := ""
-	executeJSONRPCEx("GetLanguage", &retVal, Args{format})
+	executeJSONRPCEx("GetLanguage", &retVal, Args{format, withRegion})
 	return retVal
+}
+
+// GetRegion ...
+func GetRegion() string {
+	region := GetLanguage(Iso639_1, true)
+	if strings.Contains(region, "-") {
+		region = region[strings.Index(region, "-")+1:]
+	}
+
+	if region == "" {
+		region = "us"
+	}
+	return strings.ToUpper(region)
 }
 
 // GetLanguageISO639_1 ...
 func GetLanguageISO639_1() string {
-	language := GetLanguage(Iso639_1)
-	english := strings.ToLower(GetLanguage(EnglishName))
+	language := GetLanguage(Iso639_1, false)
+	english := strings.ToLower(GetLanguage(EnglishName, false))
 
 	for k, v := range languageMappings {
 		if strings.HasPrefix(english, strings.ToLower(k)) {

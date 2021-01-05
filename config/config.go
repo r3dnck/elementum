@@ -50,6 +50,7 @@ type Configuration struct {
 	Info                       *xbmc.AddonInfo
 	Platform                   *xbmc.Platform
 	Language                   string
+	Region                     string
 	TemporaryPath              string
 	ProfilePath                string
 	HomePath                   string
@@ -492,6 +493,7 @@ func Reload() *Configuration {
 		Info:                       info,
 		Platform:                   platform,
 		Language:                   xbmc.GetLanguageISO639_1(),
+		Region:                     xbmc.GetRegion(),
 		TemporaryPath:              info.TempPath,
 		ProfilePath:                info.Profile,
 		HomePath:                   info.Home,
