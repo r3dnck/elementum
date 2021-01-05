@@ -1598,6 +1598,23 @@ func (t *Torrent) GetFiles() []*File {
 	return t.files
 }
 
+// GetCandidateFileForIndex returns CandidateFile for specific int index
+func (t *Torrent) GetCandidateFileForIndex(idx int) *CandidateFile {
+	if idx < 0 {
+		return nil
+	}
+
+	if candidates, _, err := t.GetCandidateFiles(nil); err == nil {
+		if len(candidates) <= idx {
+			return nil
+		}
+
+		return candidates[idx]
+	}
+
+	return nil
+}
+
 // GetCandidateFiles returns all the files for selecting by user
 func (t *Torrent) GetCandidateFiles(btp *Player) ([]*CandidateFile, int, error) {
 	biggestFile := 0

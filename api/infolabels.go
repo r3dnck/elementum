@@ -138,8 +138,9 @@ func InfoLabelsSearch(s *bittorrent.Service) gin.HandlerFunc {
 		defer perf.ScopeTimer()()
 
 		tmdbID := ctx.Params.ByName("tmdbId")
+		idx := ctx.DefaultQuery("index", "-1")
 
-		if item, err := GetSearchLabels(s, tmdbID); err == nil {
+		if item, err := GetSearchLabels(s, tmdbID, idx); err == nil {
 			saveEncoded(encodeItem(item))
 			ctx.JSON(200, item)
 		} else {
@@ -203,7 +204,7 @@ func GetMovieLabels(tmdbID string) (item *xbmc.ListItem, err error) {
 }
 
 // GetSearchLabels returnes listitem for a search query
-func GetSearchLabels(s *bittorrent.Service, tmdbID string) (item *xbmc.ListItem, err error) {
+func GetSearchLabels(s *bittorrent.Service, tmdbID string, idx string) (item *xbmc.ListItem, err error) {
 	torrent := s.HasTorrentByFakeID(tmdbID)
 	if torrent == nil || torrent.DBItem == nil {
 		return nil, errors.New("Unable to find the torrent")
@@ -211,13 +212,24 @@ func GetSearchLabels(s *bittorrent.Service, tmdbID string) (item *xbmc.ListItem,
 
 	// Collecting downloaded file names into string to show in a subtitle
 	chosenFiles := map[string]bool{}
-	for _, f := range torrent.ChosenFiles {
-		chosenFiles[filepath.Base(f.Path)] = true
-	}
 	chosenFileNames := []string{}
+
+	if idxNum, errNum := strconv.Atoi(idx); errNum == nil && idxNum >= 0 {
+		if f := torrent.GetCandidateFileForIndex(idxNum); f != nil {
+			chosenFiles[filepath.Base(f.Path)] = true
+		}
+	}
+
+	if len(chosenFiles) == 0 {
+		for _, f := range torrent.ChosenFiles {
+			chosenFiles[filepath.Base(f.Path)] = true
+		}
+	}
+
 	for k := range chosenFiles {
 		chosenFileNames = append(chosenFileNames, k)
 	}
+
 	sort.Sort(sort.StringSlice(chosenFileNames))
 	subtitle := strings.Join(chosenFileNames, ", ")
 
