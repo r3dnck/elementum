@@ -23,7 +23,8 @@ const (
 // TorrentFS ...
 type TorrentFS struct {
 	http.Dir
-	s *Service
+	s      *Service
+	isHead bool
 }
 
 // TorrentFSEntry ...
@@ -48,6 +49,7 @@ type TorrentFSEntry struct {
 
 	lastUsed time.Time
 	isActive bool
+	isHead   bool
 }
 
 // PieceRange ...
@@ -56,10 +58,11 @@ type PieceRange struct {
 }
 
 // NewTorrentFS ...
-func NewTorrentFS(service *Service) *TorrentFS {
+func NewTorrentFS(service *Service, method string) *TorrentFS {
 	return &TorrentFS{
-		s:   service,
-		Dir: http.Dir(service.config.DownloadPath),
+		s:      service,
+		Dir:    http.Dir(service.config.DownloadPath),
+		isHead: method == "HEAD",
 	}
 }
 
@@ -118,6 +121,7 @@ func NewTorrentFSEntry(file http.File, tfs *TorrentFS, t *Torrent, f *File, name
 
 		lastUsed: time.Now(),
 		isActive: true,
+		isHead:   tfs.isHead,
 	}
 	go tf.consumeAlerts()
 
@@ -378,6 +382,11 @@ func (tf *TorrentFSEntry) byteRegionPieces(off, size int64) (pr PieceRange) {
 // IsIdle ...
 func (tf *TorrentFSEntry) IsIdle() bool {
 	return tf.lastUsed.Before(time.Now().Add(time.Minute * -1))
+}
+
+// IsHead ...
+func (tf *TorrentFSEntry) IsHead() bool {
+	return tf.isHead
 }
 
 // IsActive ...

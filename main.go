@@ -168,7 +168,7 @@ func main() {
 
 	http.Handle("/files/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Connection", "close")
-		handler := http.StripPrefix("/files/", http.FileServer(bittorrent.NewTorrentFS(s)))
+		handler := http.StripPrefix("/files/", http.FileServer(bittorrent.NewTorrentFS(s, r.Method)))
 		handler.ServeHTTP(w, r)
 	}))
 	http.Handle("/reload", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

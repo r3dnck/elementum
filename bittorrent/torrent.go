@@ -1282,8 +1282,11 @@ func (t *Torrent) ResetReaders() {
 	perReaderSize := t.GetReadaheadSize()
 	countActive := float64(0)
 	countIdle := float64(0)
+	countHead := float64(0)
 	for _, r := range t.readers {
-		if r.IsActive() {
+		if r.IsHead() {
+			countHead++
+		} else if r.IsActive() {
 			countActive++
 		} else {
 			countIdle++
@@ -1292,12 +1295,16 @@ func (t *Torrent) ResetReaders() {
 
 	sizeActive := int64(0)
 	sizeIdle := int64(0)
+	sizeHead := int64(t.pieceLength)
 
 	if countIdle > 1 {
 		countIdle = 2
 	}
 	if countActive > 1 {
 		countActive = 2
+	}
+	if countHead > 1 {
+		countHead = 2
 	}
 
 	if countIdle > 0 {
@@ -1309,13 +1316,15 @@ func (t *Torrent) ResetReaders() {
 		sizeActive = int64(float64(perReaderSize) / countActive)
 	}
 
-	if countActive == 0 && countIdle == 0 {
+	if countActive == 0 && countIdle == 0 && countHead == 0 {
 		return
 	}
 
 	for _, r := range t.readers {
 		size := sizeActive
-		if !r.IsActive() {
+		if r.IsHead() {
+			size = sizeHead
+		} else if !r.IsActive() {
 			size = sizeIdle
 		}
 
