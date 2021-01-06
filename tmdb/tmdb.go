@@ -47,6 +47,7 @@ type Movie struct {
 	IMDBId              string        `json:"imdb_id"`
 	Overview            string        `json:"overview"`
 	ProductionCompanies []*IDName     `json:"production_companies"`
+	ProductionCountries []*Country    `json:"production_countries"`
 	Runtime             int           `json:"runtime"`
 	TagLine             string        `json:"tagline"`
 	RawPopularity       interface{}   `json:"popularity"`
@@ -117,6 +118,7 @@ type Season struct {
 	EpisodeCount int          `json:"episode_count,omitempty"`
 	AirDate      string       `json:"air_date"`
 	Poster       string       `json:"poster_path"`
+	Backdrop     string       `json:"backdrop_path"`
 	ExternalIDs  *ExternalIDs `json:"external_ids"`
 
 	AlternativeTitles *struct {
@@ -208,6 +210,7 @@ type GenreList struct {
 // Country ...
 type Country struct {
 	Iso31661    string `json:"iso_3166_1"`
+	Name        string `json:"name"`
 	EnglishName string `json:"english_name"`
 }
 
@@ -454,6 +457,10 @@ func tmdbCheck(key string) bool {
 
 // ImageURL ...
 func ImageURL(uri string, size string) string {
+	if uri == "" {
+		return ""
+	}
+
 	return imageEndpoint + size + uri
 }
 

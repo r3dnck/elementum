@@ -171,26 +171,40 @@ func (season *Season) ToListItem(show *Show) *xbmc.ListItem {
 			IMDBNumber:    show.ExternalIDs.IMDBId,
 			PlayCount:     playcount.GetWatchedSeasonByTMDB(show.ID, season.Season).Int(),
 		},
-		Art: &xbmc.ListItemArt{},
+		Art: &xbmc.ListItemArt{
+			TvShowPoster: ImageURL(show.PosterPath, "w1280"),
+			FanArt:       ImageURL(season.Backdrop, "w1280"),
+			Poster:       ImageURL(season.Poster, "w1280"),
+			Thumbnail:    ImageURL(season.Poster, "w1280"),
+		},
 	}
 
-	if season.Poster != "" {
-		item.Art.Poster = ImageURL(season.Poster, "w1280")
-		item.Art.Thumbnail = ImageURL(season.Poster, "w1280")
+	if item.Art.Poster == "" {
+		item.Art.Poster = ImageURL(show.PosterPath, "w1280")
+		item.Art.Thumbnail = ImageURL(show.PosterPath, "w1280")
 	}
 
+	var thisBackdrops []*Image
+	if show.Images != nil && show.Images.Backdrops != nil && len(show.Images.Backdrops) != 0 {
+		thisBackdrops = show.Images.Backdrops
+	}
+	if season.Images != nil && season.Images.Backdrops != nil && len(season.Images.Backdrops) != 0 {
+		thisBackdrops = season.Images.Backdrops
+	}
 	fanarts := make([]string, 0)
-	for _, backdrop := range show.Images.Backdrops {
+	for _, backdrop := range thisBackdrops {
 		fanarts = append(fanarts, ImageURL(backdrop.FilePath, "w1280"))
 	}
 	if len(fanarts) > 0 {
 		item.Art.FanArt = fanarts[rand.Intn(len(fanarts))]
+		item.Art.FanArts = fanarts
 	}
 
 	if config.Get().UseFanartTv && show.FanArt != nil {
 		item.Art = show.FanArt.ToSeasonListItemArt(season.Season, item.Art)
-		item.Thumbnail = item.Art.Thumbnail
 	}
+
+	item.Thumbnail = item.Art.Thumbnail
 
 	if len(show.Genres) > 0 {
 		item.Info.Genre = show.Genres[0].Name

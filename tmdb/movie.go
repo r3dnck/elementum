@@ -456,19 +456,34 @@ func (movie *Movie) ToListItem() *xbmc.ListItem {
 		},
 	}
 
-	item.Thumbnail = item.Art.Poster
-	item.Art.Thumbnail = item.Art.Poster
+	if movie.Images != nil && movie.Images.Backdrops != nil {
+		fanarts := make([]string, 0)
+		for _, backdrop := range movie.Images.Backdrops {
+			fanarts = append(fanarts, ImageURL(backdrop.FilePath, "w1280"))
+		}
+		if len(fanarts) > 0 {
+			item.Art.FanArt = fanarts[rand.Intn(len(fanarts))]
+			item.Art.FanArts = fanarts
+		}
+	}
 
 	if config.Get().UseFanartTv && movie.FanArt != nil {
 		item.Art = movie.FanArt.ToListItemArt(item.Art)
-		item.Thumbnail = item.Art.Thumbnail
 	}
+
+	item.Thumbnail = item.Art.Poster
 
 	genres := make([]string, 0, len(movie.Genres))
 	for _, genre := range movie.Genres {
 		genres = append(genres, genre.Name)
 	}
 	item.Info.Genre = strings.Join(genres, " / ")
+
+	countries := make([]string, 0, len(movie.ProductionCountries))
+	for _, country := range movie.ProductionCountries {
+		countries = append(countries, country.Name)
+	}
+	item.Info.Country = strings.Join(countries, " / ")
 
 	if movie.Trailers != nil {
 		for _, trailer := range movie.Trailers.Youtube {

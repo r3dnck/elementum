@@ -1018,9 +1018,9 @@ func (z *ListItemCastMember) Msgsize() (s int) {
 // MarshalMsg implements msgp.Marshaler
 func (z *ListItemInfo) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 42
+	// map header, size 43
 	// string "Count"
-	o = append(o, 0xde, 0x0, 0x2a, 0xa5, 0x43, 0x6f, 0x75, 0x6e, 0x74)
+	o = append(o, 0xde, 0x0, 0x2b, 0xa5, 0x43, 0x6f, 0x75, 0x6e, 0x74)
 	o = msgp.AppendInt(o, z.Count)
 	// string "Size"
 	o = append(o, 0xa4, 0x53, 0x69, 0x7a, 0x65)
@@ -1031,6 +1031,9 @@ func (z *ListItemInfo) MarshalMsg(b []byte) (o []byte, err error) {
 	// string "Genre"
 	o = append(o, 0xa5, 0x47, 0x65, 0x6e, 0x72, 0x65)
 	o = msgp.AppendString(o, z.Genre)
+	// string "Country"
+	o = append(o, 0xa7, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x72, 0x79)
+	o = msgp.AppendString(o, z.Country)
 	// string "Year"
 	o = append(o, 0xa4, 0x59, 0x65, 0x61, 0x72)
 	o = msgp.AppendInt(o, z.Year)
@@ -1191,6 +1194,12 @@ func (z *ListItemInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			z.Genre, bts, err = msgp.ReadStringBytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Genre")
+				return
+			}
+		case "Country":
+			z.Country, bts, err = msgp.ReadStringBytes(bts)
+			if err != nil {
+				err = msgp.WrapError(err, "Country")
 				return
 			}
 		case "Year":
@@ -1452,7 +1461,7 @@ func (z *ListItemInfo) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *ListItemInfo) Msgsize() (s int) {
-	s = 3 + 6 + msgp.IntSize + 5 + msgp.IntSize + 5 + msgp.StringPrefixSize + len(z.Date) + 6 + msgp.StringPrefixSize + len(z.Genre) + 5 + msgp.IntSize + 8 + msgp.IntSize + 7 + msgp.IntSize + 7 + msgp.IntSize + 12 + msgp.IntSize + 7 + msgp.Float32Size + 10 + msgp.IntSize + 8 + msgp.IntSize + 9 + msgp.StringPrefixSize + len(z.Director) + 5 + msgp.StringPrefixSize + len(z.MPAA) + 5 + msgp.StringPrefixSize + len(z.Plot) + 12 + msgp.StringPrefixSize + len(z.PlotOutline) + 6 + msgp.StringPrefixSize + len(z.Title) + 14 + msgp.StringPrefixSize + len(z.OriginalTitle) + 10 + msgp.StringPrefixSize + len(z.SortTitle) + 9 + msgp.IntSize + 7 + msgp.StringPrefixSize + len(z.Studio) + 8 + msgp.StringPrefixSize + len(z.TagLine) + 7 + msgp.StringPrefixSize + len(z.Writer) + 12 + msgp.StringPrefixSize + len(z.TVShowTitle) + 10 + msgp.StringPrefixSize + len(z.Premiered) + 7 + msgp.StringPrefixSize + len(z.Status) + 5 + msgp.StringPrefixSize + len(z.Code) + 6 + msgp.StringPrefixSize + len(z.Aired) + 8 + msgp.StringPrefixSize + len(z.Credits) + 11 + msgp.StringPrefixSize + len(z.LastPlayed) + 6 + msgp.StringPrefixSize + len(z.Album) + 7 + msgp.ArrayHeaderSize
+	s = 3 + 6 + msgp.IntSize + 5 + msgp.IntSize + 5 + msgp.StringPrefixSize + len(z.Date) + 6 + msgp.StringPrefixSize + len(z.Genre) + 8 + msgp.StringPrefixSize + len(z.Country) + 5 + msgp.IntSize + 8 + msgp.IntSize + 7 + msgp.IntSize + 7 + msgp.IntSize + 12 + msgp.IntSize + 7 + msgp.Float32Size + 10 + msgp.IntSize + 8 + msgp.IntSize + 9 + msgp.StringPrefixSize + len(z.Director) + 5 + msgp.StringPrefixSize + len(z.MPAA) + 5 + msgp.StringPrefixSize + len(z.Plot) + 12 + msgp.StringPrefixSize + len(z.PlotOutline) + 6 + msgp.StringPrefixSize + len(z.Title) + 14 + msgp.StringPrefixSize + len(z.OriginalTitle) + 10 + msgp.StringPrefixSize + len(z.SortTitle) + 9 + msgp.IntSize + 7 + msgp.StringPrefixSize + len(z.Studio) + 8 + msgp.StringPrefixSize + len(z.TagLine) + 7 + msgp.StringPrefixSize + len(z.Writer) + 12 + msgp.StringPrefixSize + len(z.TVShowTitle) + 10 + msgp.StringPrefixSize + len(z.Premiered) + 7 + msgp.StringPrefixSize + len(z.Status) + 5 + msgp.StringPrefixSize + len(z.Code) + 6 + msgp.StringPrefixSize + len(z.Aired) + 8 + msgp.StringPrefixSize + len(z.Credits) + 11 + msgp.StringPrefixSize + len(z.LastPlayed) + 6 + msgp.StringPrefixSize + len(z.Album) + 7 + msgp.ArrayHeaderSize
 	for za0001 := range z.Artist {
 		s += msgp.StringPrefixSize + len(z.Artist[za0001])
 	}

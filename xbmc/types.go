@@ -84,6 +84,7 @@ type ListItemInfo struct {
 
 	// Video Values
 	Genre         string         `json:"genre,omitempty"`
+	Country       string         `json:"country,omitempty"`
 	Year          int            `json:"year,omitempty"`
 	Episode       int            `json:"episode,omitempty"`
 	Season        int            `json:"season,omitempty"`

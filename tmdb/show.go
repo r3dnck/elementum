@@ -540,20 +540,32 @@ func (show *Show) ToListItem() *xbmc.ListItem {
 			MPAA:          show.mpaa(),
 			DBTYPE:        "tvshow",
 			Mediatype:     "tvshow",
+			Country:       strings.Join(show.OriginCountry, " / "),
 		},
 		Art: &xbmc.ListItemArt{
-			FanArt: ImageURL(show.BackdropPath, "w1280"),
-			Poster: ImageURL(show.PosterPath, "w1280"),
+			FanArt:       ImageURL(show.BackdropPath, "w1280"),
+			Poster:       ImageURL(show.PosterPath, "w1280"),
+			Thumbnail:    ImageURL(show.PosterPath, "w1280"),
+			TvShowPoster: ImageURL(show.PosterPath, "w1280"),
 		},
 	}
 
-	item.Thumbnail = item.Art.Poster
-	item.Art.Thumbnail = item.Art.Poster
+	if show.Images != nil && show.Images.Backdrops != nil {
+		fanarts := make([]string, 0)
+		for _, backdrop := range show.Images.Backdrops {
+			fanarts = append(fanarts, ImageURL(backdrop.FilePath, "w1280"))
+		}
+		if len(fanarts) > 0 {
+			item.Art.FanArt = fanarts[rand.Intn(len(fanarts))]
+			item.Art.FanArts = fanarts
+		}
+	}
 
 	if config.Get().UseFanartTv && show.FanArt != nil {
 		item.Art = show.FanArt.ToListItemArt(item.Art)
-		item.Thumbnail = item.Art.Thumbnail
 	}
+
+	item.Thumbnail = item.Art.Poster
 
 	if show.InProduction {
 		item.Info.Status = "Continuing"
