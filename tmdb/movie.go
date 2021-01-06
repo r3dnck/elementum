@@ -532,13 +532,17 @@ func (movie *Movie) mpaa() string {
 		return ""
 	}
 
-	language := config.Get().Language
+	region := config.Get().Region
 	for _, r := range movie.ReleaseDates.Results {
-		if r.ReleaseDates == nil || len(r.ReleaseDates) == 0 || strings.ToLower(r.Iso3166_1) != language {
+		if r.ReleaseDates == nil || len(r.ReleaseDates) == 0 || strings.ToUpper(r.Iso3166_1) != region {
 			continue
 		}
 
-		return r.ReleaseDates[0].Certification
+		for _, rd := range r.ReleaseDates {
+			if rd.Certification != "" {
+				return rd.Certification
+			}
+		}
 	}
 
 	return ""

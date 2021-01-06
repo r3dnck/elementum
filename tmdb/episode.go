@@ -108,6 +108,7 @@ func (episode *Episode) ToListItem(show *Show, season *Season) *xbmc.ListItem {
 			Code:          show.ExternalIDs.IMDBId,
 			IMDBNumber:    show.ExternalIDs.IMDBId,
 			PlayCount:     playcount.GetWatchedEpisodeByTMDB(show.ID, episode.SeasonNumber, episode.EpisodeNumber).Int(),
+			MPAA:          show.mpaa(),
 			DBTYPE:        "episode",
 			Mediatype:     "episode",
 		},

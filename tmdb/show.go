@@ -603,13 +603,15 @@ func (show *Show) mpaa() string {
 		return ""
 	}
 
-	language := config.Get().Language
+	region := config.Get().Region
 	for _, r := range show.ContentRatings.Ratings {
-		if strings.ToLower(r.Iso3166_1) != language {
+		if strings.ToUpper(r.Iso3166_1) != region {
 			continue
 		}
 
-		return r.Rating
+		if r.Rating != "" {
+			return r.Rating
+		}
 	}
 
 	return ""

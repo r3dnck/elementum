@@ -164,6 +164,7 @@ func (season *Season) ToListItem(show *Show) *xbmc.ListItem {
 			TVShowTitle:   show.name(),
 			Plot:          season.overview(show),
 			PlotOutline:   season.overview(show),
+			MPAA:          show.mpaa(),
 			DBTYPE:        "season",
 			Mediatype:     "season",
 			Code:          show.ExternalIDs.IMDBId,
