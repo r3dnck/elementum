@@ -2,10 +2,14 @@ package lockfile
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
+
+	acl "github.com/hectane/go-acl"
 )
 
 var (
@@ -40,8 +44,7 @@ func (lf *LockFile) Lock() (int, error) {
 	}
 
 	file, err := os.Open(lf.File)
-	file.Chmod(0666)
-	defer file.Close()
+	file.Close()
 
 	if err != nil { // If we get an error we handle it
 		if !os.IsNotExist(err) { // File not found errors mean the file is unlocked, so we only fail with err if it's not a file not found error.
@@ -64,6 +67,12 @@ func (lf *LockFile) Lock() (int, error) {
 	}
 
 	ioutil.WriteFile(lf.File, []byte(strconv.Itoa(ownPID)), 0666) // The file's not locked, so we lock it with our PID.
+	// For Windows we use ACL to properly set World-Wide permissions, so that after restart users could remove this lockfile.
+	if runtime.GOOS == "windows" {
+		if err := acl.Chmod(lf.File, 0755); err != nil {
+			return 0, fmt.Errorf("Could not change file permissions on Windows for %s: %s", lf.File, err)
+		}
+	}
 	lf.locked = true
 
 	return ownPID, nil
