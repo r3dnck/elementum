@@ -28,6 +28,7 @@ require (
 	github.com/go-playground/validator/v10 v10.3.0 // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/golang/snappy v0.0.2 // indirect
+	github.com/hectane/go-acl v0.0.0-20190604041725-da78bae5fc95
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/jmcvetta/napping v3.2.0+incompatible
 	github.com/jmcvetta/randutil v0.0.0-20150817122601-2bb1b664bcff // indirect
