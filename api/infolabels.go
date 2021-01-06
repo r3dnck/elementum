@@ -55,7 +55,10 @@ var (
 		"ListItem.ArtFanart",
 		"ListItem.ArtBanner",
 		"ListItem.ArtPoster",
+		"ListItem.ArtLandscape",
 		"ListItem.ArtTvshowPoster",
+		"ListItem.ArtClearArt",
+		"ListItem.ArtClearLogo",
 	}
 )
 
