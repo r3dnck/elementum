@@ -114,9 +114,10 @@ func GetShow(showID int, language string) (show *Show) {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/tv/%d", tmdbEndpoint, showID),
 			Params: napping.Params{
-				"api_key":            apiKey,
-				"append_to_response": "credits,images,alternative_titles,translations,external_ids,content_ratings",
-				"language":           language,
+				"api_key":                apiKey,
+				"append_to_response":     "credits,images,alternative_titles,translations,external_ids,content_ratings",
+				"include_image_language": fmt.Sprintf("%s,en,null", config.Get().Language),
+				"language":               language,
 			}.AsUrlValues(),
 			Result:      &show,
 			Description: "show",

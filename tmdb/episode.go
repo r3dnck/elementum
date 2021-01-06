@@ -23,9 +23,10 @@ func GetEpisode(showID int, seasonNumber int, episodeNumber int, language string
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/tv/%d/season/%d/episode/%d", tmdbEndpoint, showID, seasonNumber, episodeNumber),
 			Params: napping.Params{
-				"api_key":            apiKey,
-				"append_to_response": "credits,images,videos,alternative_titles,translations,external_ids,trailers",
-				"language":           language,
+				"api_key":                apiKey,
+				"append_to_response":     "credits,images,videos,alternative_titles,translations,external_ids,trailers",
+				"include_image_language": fmt.Sprintf("%s,en,null", config.Get().Language),
+				"language":               language,
 			}.AsUrlValues(),
 			Result:      &episode,
 			Description: "episode",

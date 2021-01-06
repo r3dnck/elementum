@@ -63,9 +63,10 @@ func GetMovieByID(movieID string, language string) *Movie {
 		err = MakeRequest(APIRequest{
 			URL: fmt.Sprintf("%s/movie/%s", tmdbEndpoint, movieID),
 			Params: napping.Params{
-				"api_key":            apiKey,
-				"append_to_response": "credits,images,alternative_titles,translations,external_ids,trailers,release_dates",
-				"language":           language,
+				"api_key":                apiKey,
+				"append_to_response":     "credits,images,alternative_titles,translations,external_ids,trailers,release_dates",
+				"include_image_language": fmt.Sprintf("%s,en,null", config.Get().Language),
+				"language":               language,
 			}.AsUrlValues(),
 			Result:      &movie,
 			Description: "movie",
