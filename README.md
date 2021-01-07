@@ -60,3 +60,18 @@ Fork of the great [Pulsar daemon](https://github.com/steeve/pulsar) and [Quasar 
     ```
     make
     ```
+
+Find memory leaks
+
+To find memory leaks, we can use Valgrind or use Sanitizers.
+
+```
+/bin/bash test_build.sh sanitize
+```
+This will build the binary with enabled sanitizer, so just run it and wait for errors in the console.
+
+```
+valgrind --leak-check=full ./elementum -disableBackup
+```
+This will run the binary with Valgrind. When you cose the process, Valgrind will show statistics.
+It is better to use usual binary, without sanitizer, and add backup disable options, as well as disable Kodi library integration. Or it will take a lot of time/CPU at the startup (unless you do need it).
