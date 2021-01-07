@@ -281,12 +281,16 @@ var (
 var (
 	// Args for cli arguments parsing
 	Args = struct {
+		DisableBackup bool `help:"Disable database backup"`
+
 		RemoteHost string `help:"remote host, default is '127.0.0.1'"`
 		RemotePort int    `help:"remote port, default is '65221'"`
 
 		LocalHost string `help:"local host, default is '0.0.0.0'"`
 		LocalPort int    `help:"local port, default is '65220'"`
 	}{
+		DisableBackup: false,
+
 		RemoteHost: "127.0.0.1",
 		RemotePort: 65221,
 

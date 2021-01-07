@@ -98,11 +98,15 @@ func (d *StormDatabase) MaintenanceRefreshHandler() {
 
 // CreateBackup ...
 func (d *StormDatabase) CreateBackup(backupPath string) {
+	if config.Args.DisableBackup {
+		return
+	}
+
 	defer perf.ScopeTimer()()
 
 	d.db.Bolt.View(func(tx *bolt.Tx) error {
 		tx.CopyFile(backupPath, 0600)
-		log.Debugf("Database backup saved at: %s", backupPath)
+		log.Infof("Storm Database backup saved at: %s", backupPath)
 		return nil
 	})
 }

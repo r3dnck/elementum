@@ -195,9 +195,15 @@ func RestoreBackup(databasePath string, backupPath string) {
 
 // CreateBackup ...
 func (d *BoltDatabase) CreateBackup(backupPath string) {
+	if config.Args.DisableBackup {
+		return
+	}
+
+	defer perf.ScopeTimer()()
+
 	d.db.View(func(tx *bolt.Tx) error {
 		tx.CopyFile(backupPath, 0600)
-		log.Debugf("Database backup saved at: %s", backupPath)
+		log.Infof("Bolt Database backup saved at: %s", backupPath)
 		return nil
 	})
 }

@@ -833,6 +833,10 @@ func RefreshLocal() error {
 }
 
 func refreshLocalMovies() {
+	if !config.Get().LibraryEnabled {
+		return
+	}
+
 	moviesLibraryPath := MoviesLibraryPath()
 	if _, err := os.Stat(moviesLibraryPath); err != nil {
 		return
@@ -864,6 +868,10 @@ func refreshLocalMovies() {
 }
 
 func refreshLocalShows() {
+	if !config.Get().LibraryEnabled {
+		return
+	}
+
 	showsLibraryPath := ShowsLibraryPath()
 	if _, err := os.Stat(showsLibraryPath); err != nil {
 		return
