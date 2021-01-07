@@ -579,14 +579,13 @@ func (s *Service) checkAvailableSpace(t *Torrent) bool {
 	}
 
 	torrentInfo := t.th.TorrentFile()
-	// defer lt.DeleteTorrentInfo(torrentInfo)
 
 	if torrentInfo == nil || torrentInfo.Swigcptr() == 0 {
 		log.Warning("Missing torrent info to check available space.")
 		return false
 	}
 
-	status := t.th.Status(uint(lt.WrappedTorrentHandleQueryAccurateDownloadCounters) | uint(lt.WrappedTorrentHandleQuerySavePath))
+	status := t.th.Status(uint(lt.WrappedTorrentHandleQueryAccurateDownloadCounters) | uint(lt.WrappedTorrentHandleQuerySavePath) | uint(lt.WrappedTorrentHandleQueryName))
 	defer lt.DeleteTorrentStatus(status)
 
 	totalSize := t.ti.TotalSize()
@@ -606,7 +605,7 @@ func (s *Service) checkAvailableSpace(t *Torrent) bool {
 		log.Errorf("Unsufficient free space on %s. Has %d, needs %d.", path, diskStatus.Free, sizeLeft)
 		xbmc.Notify("Elementum", "LOCALIZE[30207]", config.AddonIcon())
 
-		log.Infof("Pausing torrent %s", t.th.Status(uint(lt.WrappedTorrentHandleQueryName)).GetName())
+		log.Infof("Pausing torrent %s", status.GetName())
 		t.Pause()
 		return false
 	}
@@ -833,6 +832,8 @@ func (s *Service) onStateChanged(stateAlert lt.StateChangedAlert) {
 	case lt.TorrentStatusDownloading:
 		torrentHandle := stateAlert.GetHandle()
 		torrentStatus := torrentHandle.Status(uint(lt.WrappedTorrentHandleQueryName))
+		defer lt.DeleteTorrentStatus(torrentStatus)
+
 		shaHash := torrentStatus.GetInfoHash().ToString()
 		infoHash := hex.EncodeToString([]byte(shaHash))
 		if spaceChecked, exists := s.SpaceChecked[infoHash]; exists {
@@ -908,6 +909,7 @@ func (s *Service) saveResumeDataConsumer() {
 					path := filepath.Join(s.config.TorrentsPath, fmt.Sprintf("%s.fastresume", alert.InfoHash))
 					ioutil.WriteFile(path, bEncoded, 0644)
 				}
+				lt.DeleteEntry(alert.Entry)
 			}
 		}
 	}
@@ -934,6 +936,7 @@ func (s *Service) alertsConsumer() {
 
 			var alerts lt.StdVectorAlerts
 			alerts = s.Session.PopAlerts()
+			defer lt.DeleteStdVectorAlerts(alerts)
 			queueSize := alerts.Size()
 			var name string
 			var infoHash string
@@ -953,6 +956,8 @@ func (s *Service) alertsConsumer() {
 					saveResumeData := lt.SwigcptrSaveResumeDataAlert(alertPtr)
 					torrentHandle := saveResumeData.GetHandle()
 					torrentStatus := torrentHandle.Status(uint(lt.WrappedTorrentHandleQuerySavePath) | uint(lt.WrappedTorrentHandleQueryName))
+					defer lt.DeleteTorrentStatus(torrentStatus)
+
 					name = torrentStatus.GetName()
 					shaHash := torrentStatus.GetInfoHash().ToString()
 					infoHash = hex.EncodeToString([]byte(shaHash))
@@ -1162,6 +1167,7 @@ func (s *Service) downloadProgress() {
 			activeTorrents := make([]*activeTorrent, 0)
 			torrentsVector := s.Session.GetTorrents()
 			torrentsVectorSize := int(torrentsVector.Size())
+			defer lt.DeleteStdVectorTorrentHandle(torrentsVector)
 
 			for i := 0; i < torrentsVectorSize; i++ {
 				torrentHandle := torrentsVector.Get(i)

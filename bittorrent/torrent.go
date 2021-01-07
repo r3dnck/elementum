@@ -875,21 +875,32 @@ func (t *Torrent) piecesProgress(pieces map[int]float64) {
 	}
 	t.muAwaitingPieces.Unlock()
 
+	t.GetLastStatus(false)
+
+	blockSize := t.lastStatus.GetBlockSize()
 	queueSize := queue.Size()
 	for i := 0; i < int(queueSize); i++ {
 		ppi := queue.Get(i)
 		pieceIndex := ppi.GetPieceIndex()
 		if v, exists := pieces[pieceIndex]; exists && v != 1.0 {
-			blocks := ppi.Blocks()
-			totalBlocks := ppi.GetBlocksInPiece()
-			totalBlockDownloaded := uint(0)
-			totalBlockSize := uint(0)
-			for j := 0; j < totalBlocks; j++ {
-				block := blocks.Getitem(j)
-				totalBlockDownloaded += block.GetBytesProgress()
-				totalBlockSize += block.GetBlockSize()
-			}
+			// We don't count parts of Blocks, since they are 16Kb usually,
+			// 	just to avoid having memory leaks
+			totalBlockDownloaded := ppi.GetFinished() * blockSize
+			totalBlockSize := ppi.GetBlocksInPiece() * blockSize
 			pieces[pieceIndex] = float64(totalBlockDownloaded) / float64(totalBlockSize)
+
+			// ppi.GetBlockSize()
+			// blocks := ppi.Blocks()
+			// totalBlocks := ppi.GetBlocksInPiece()
+			// totalBlockDownloaded := uint(0)
+			// totalBlockSize := uint(0)
+			// for j := 0; j < totalBlocks; j++ {
+			// 	block := blocks.Getitem(j)
+			// 	totalBlockDownloaded += block.GetBytesProgress()
+			// 	totalBlockSize += block.GetBlockSize()
+			// }
+			// lt.DeleteBlockInfoList(blocks)
+			// pieces[pieceIndex] = float64(totalBlockDownloaded) / float64(totalBlockSize)
 		}
 	}
 }
@@ -1124,8 +1135,12 @@ func (t *Torrent) Drop(removeFiles, removeData bool) {
 			defer util.FreeMemoryGC()
 		}
 
+		if t.lastStatus == nil || t.lastStatus.Swigcptr() == 0 {
+			lt.DeleteTorrentStatus(t.lastStatus)
+		}
+
 		toRemove := 0
-		if removeData {
+		if removeData && !t.IsMemoryStorage() {
 			toRemove = 1
 			log.Info("Removing the torrent and deleting files after playing ...")
 		} else {
@@ -1362,6 +1377,8 @@ func (t *Torrent) GetMetadata() []byte {
 	defer lt.DeleteCreateTorrent(torrentFile)
 
 	torrentContent := torrentFile.Generate()
+	defer lt.DeleteEntry(torrentContent)
+
 	return []byte(lt.Bencode(torrentContent))
 }
 

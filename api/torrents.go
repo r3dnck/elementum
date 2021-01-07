@@ -271,6 +271,8 @@ func ListTorrentsWeb(s *bittorrent.Service) gin.HandlerFunc {
 
 		// TODO: Need to rewrite all this lists to use Service.[]Torrent
 		torrentsVector := s.Session.GetTorrents()
+		defer lt.DeleteStdVectorTorrentHandle(torrentsVector)
+
 		torrentsVectorSize := int(torrentsVector.Size())
 		torrents := make([]*TorrentsWeb, 0, torrentsVectorSize)
 		seedTimeLimit := config.Get().SeedTimeLimit
