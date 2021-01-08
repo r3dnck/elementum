@@ -35,6 +35,7 @@ import (
 	"github.com/elgatito/elementum/diskusage"
 	"github.com/elgatito/elementum/proxy"
 	"github.com/elgatito/elementum/tmdb"
+	"github.com/elgatito/elementum/trakt"
 	"github.com/elgatito/elementum/util"
 	"github.com/elgatito/elementum/xbmc"
 )
@@ -159,6 +160,11 @@ func (s *Service) Reconfigure() {
 
 	s.startServices()
 	s.loadTorrentFiles()
+
+	// After re-configure check Trakt authorization
+	if config.Get().TraktToken != "" && !config.Get().TraktAuthorized {
+		trakt.GetLastActivities()
+	}
 }
 
 func (s *Service) configure() {

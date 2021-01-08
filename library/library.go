@@ -143,6 +143,11 @@ func Init() {
 		// Give time to Kodi to start its JSON-RPC service
 		time.Sleep(5 * time.Second)
 
+		// After re-configure check Trakt authorization
+		if config.Get().TraktToken != "" && !config.Get().TraktAuthorized {
+			trakt.GetLastActivities()
+		}
+
 		RefreshLocal()
 		Refresh()
 		initialized = true
