@@ -320,10 +320,10 @@ func RefreshEpisodes() error {
 		}()
 
 		shows = make([]int, 0, len(pendingShows))
-		for _, i := range pendingShows {
+		for i := range pendingShows {
 			shows = append(shows, i)
 		}
-		pendingShows = []int{}
+		pendingShows = map[int]bool{}
 	} else {
 		l.mu.Shows.Lock()
 		shows = make([]int, 0, len(l.Shows))
@@ -976,6 +976,6 @@ func PlanShowsUpdate() {
 
 // PlanShowUpdate ...
 func PlanShowUpdate(showID int) {
-	pendingShows = append(pendingShows, showID)
+	pendingShows[showID] = true
 	l.Pending.IsEpisodes = true
 }

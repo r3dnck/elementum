@@ -104,7 +104,7 @@ var (
 
 	resolveRegexp = regexp.MustCompile(`^plugin://plugin.video.elementum.*?(\d+)(\W|$)`)
 
-	pendingShows = []int{}
+	pendingShows = map[int]bool{}
 )
 
 var l = &Library{
