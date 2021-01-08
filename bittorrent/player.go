@@ -1458,13 +1458,11 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, show *tmdb.Show, episod
 	re := regexp.MustCompile(fmt.Sprintf(episodeMatchRegex, s, e))
 	for i, choice := range choices {
 		if re.MatchString(choice.Path) {
-			log.Debugf("MATCHED: %d --- %d --- %s", s, e, choice.Path)
 			index = i
 			found++
 		}
 	}
 
-	log.Debugf("MAT1: %#v --- %#v --- %d --- %d", s, e, found, index)
 	if isSingleSeason && found == 0 {
 		re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, e))
 		for i, choice := range choices {
@@ -1475,7 +1473,6 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, show *tmdb.Show, episod
 		}
 	}
 
-	log.Debugf("MAT2: %#v --- %#v --- %d --- %d", s, e, found, index)
 	if found == 0 && show != nil && episode != nil && show.IsAnime() {
 		if an, _ := show.AnimeInfoWithShow(episode, tvdbShow); an != 0 {
 			re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, an))
@@ -1488,7 +1485,6 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, show *tmdb.Show, episod
 		}
 	}
 
-	log.Debugf("MAT3: %#v --- %#v --- %d --- %d", s, e, found, index)
 	if found == 0 {
 		re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, e))
 		for i, choice := range choices {
@@ -1499,7 +1495,6 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, show *tmdb.Show, episod
 		}
 	}
 
-	log.Debugf("MAT4: %#v --- %#v --- %d --- %d", s, e, found, index)
 	return
 }
 
