@@ -372,7 +372,7 @@ func (btp *Player) processMetadata() {
 func (btp *Player) statusStrings(progress float64, status lt.TorrentStatus) (string, string, string) {
 	defer perf.ScopeTimer()()
 
-	if status == nil || status.Swigcptr() == 0 {
+	if status == nil || status.Swigcptr() == 0 || btp.t.Closer.IsSet() {
 		return "", "", ""
 	}
 	if progress < 0 {

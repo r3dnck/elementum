@@ -352,7 +352,7 @@ func (t *Torrent) bufferFinishedEvent() {
 // another for a piece of file from the end (probably to get codec descriptors and so on)
 // We set it as post-buffer and include in required buffer pieces array.
 func (t *Torrent) Buffer(file *File, isStartup bool) {
-	if file == nil {
+	if file == nil || t.Closer.IsSet() {
 		t.bufferFinishedEvent()
 		return
 	}
@@ -552,7 +552,7 @@ func (t *Torrent) getBufferSize(fileOffset int64, off, length int64) (startPiece
 	size = int64(endPiece-startPiece+1) * t.pieceLength
 
 	// Calculated offset is more than we have in torrent, so correcting the size
-	if t.ti.TotalSize() != 0 && offset+size >= t.ti.TotalSize() {
+	if !t.Closer.IsSet() && t.ti.TotalSize() != 0 && offset+size >= t.ti.TotalSize() {
 		size = t.ti.TotalSize() - offset
 	}
 
@@ -1066,7 +1066,7 @@ func (t *Torrent) InfoHash() string {
 
 // Name ...
 func (t *Torrent) Name() string {
-	if t.name != "" {
+	if t.name != "" || t.Closer.IsSet() {
 		return t.name
 	}
 
@@ -1108,7 +1108,7 @@ func (t *Torrent) GetSelectedSize() int64 {
 
 // Length ...
 func (t *Torrent) Length() int64 {
-	if t.th == nil || t.ti == nil || t.ti.Swigcptr() == 0 || !t.gotMetainfo.IsSet() {
+	if t.Closer.IsSet() || t.th == nil || t.ti == nil || t.ti.Swigcptr() == 0 || !t.gotMetainfo.IsSet() {
 		return 0
 	}
 
@@ -1119,8 +1119,8 @@ func (t *Torrent) Length() int64 {
 func (t *Torrent) Drop(removeFiles, removeData bool) {
 	defer perf.ScopeTimer()()
 
-	log.Infof("Dropping torrent: %s", t.Name())
 	t.Closer.Set()
+	log.Infof("Dropping torrent: %s", t.Name())
 
 	for _, r := range t.readers {
 		if r != nil {
@@ -1910,6 +1910,10 @@ func (t *Torrent) GetPlayURL(fileIndex string) string {
 
 // TorrentInfo writes torrent status to io.Writer
 func (t *Torrent) TorrentInfo(w io.Writer) {
+	if t.Closer.IsSet() {
+		return
+	}
+
 	st := t.th.Status()
 	defer lt.DeleteTorrentStatus(st)
 
@@ -2019,6 +2023,10 @@ func (t *Torrent) AlertFinished() {
 
 // GetLastStatus gets, or initially sets torrenthandle status
 func (t *Torrent) GetLastStatus(isForced bool) lt.TorrentStatus {
+	if t.Closer.IsSet() {
+		return t.lastStatus
+	}
+
 	if !isForced && t.lastStatus != nil && t.lastStatus.Swigcptr() != 0 {
 		return t.lastStatus
 	}
