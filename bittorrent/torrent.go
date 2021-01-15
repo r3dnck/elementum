@@ -1135,7 +1135,7 @@ func (t *Torrent) Drop(removeFiles, removeData bool) {
 			defer util.FreeMemoryGC()
 		}
 
-		if t.lastStatus == nil || t.lastStatus.Swigcptr() == 0 {
+		if t.lastStatus != nil && t.lastStatus.Swigcptr() != 0 {
 			lt.DeleteTorrentStatus(t.lastStatus)
 		}
 
@@ -1978,6 +1978,10 @@ func (t *Torrent) TorrentInfo(w io.Writer) {
 		return true
 	})
 	fmt.Fprint(w, "\n")
+
+	if t.Closer.IsSet() || t.ti == nil || t.ti.Swigcptr() == 0 || t.th == nil || t.th.Swigcptr() == 0 {
+		return
+	}
 
 	// TODO: Do we need pieces into?
 	// Emulate piece status get to update pieces states
