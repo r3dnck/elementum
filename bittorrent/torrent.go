@@ -1777,7 +1777,7 @@ func (t *Torrent) ChooseFile(btp *Player) (*File, int, error) {
 			//   in the torrent history table
 			go btp.smartMatch(choices)
 
-			lastMatched, foundMatches := MatchEpisodeFilename(btp.p.Season, btp.p.Episode, false, nil, nil, nil, choices)
+			lastMatched, foundMatches := MatchEpisodeFilename(btp.p.Season, btp.p.Episode, false, false, nil, nil, nil, choices)
 
 			if foundMatches == 1 {
 				return files[choices[lastMatched].Index], lastMatched, nil
