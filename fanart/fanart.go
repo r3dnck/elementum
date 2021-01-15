@@ -288,12 +288,14 @@ func GetMultipleShowImage(season, old string, lists ...[]*ShowImage) []string {
 				continue
 			}
 
-			if i.Lang == language && !contains(res, i.URL) {
-				res = append(res, i.URL)
-			}
-			if i.Lang == "en" || i.Lang == "" {
-				if !contains(res, i.URL) {
+			if season == "" || i.Season == "0" || i.Season == "" {
+				if i.Lang == language && !contains(res, i.URL) {
 					res = append(res, i.URL)
+				}
+				if i.Lang == "en" || i.Lang == "" {
+					if !contains(res, i.URL) {
+						res = append(res, i.URL)
+					}
 				}
 			}
 		}
@@ -344,13 +346,15 @@ func GetBestShowImage(season, old string, lists ...[]*ShowImage) string {
 				continue
 			}
 
-			if i.Lang == language {
-				return i.URL
-			}
-			if i.Lang == "en" || i.Lang == "" {
-				if likes := likeConvert(i.Likes); likes > bestLikes {
-					bestItem = i.URL
-					bestLikes = likes
+			if season == "" || i.Season == "0" || i.Season == "" {
+				if i.Lang == language {
+					return i.URL
+				}
+				if i.Lang == "en" || i.Lang == "" {
+					if likes := likeConvert(i.Likes); likes > bestLikes {
+						bestItem = i.URL
+						bestLikes = likes
+					}
 				}
 			}
 		}
@@ -396,7 +400,7 @@ func (fa *Show) ToSeasonListItemArt(season int, old *xbmc.ListItemArt) *xbmc.Lis
 	s := strconv.Itoa(season)
 
 	return &xbmc.ListItemArt{
-		TvShowPoster: GetBestShowImage(s, old.Poster, fa.SeasonPoster, fa.TVPoster),
+		TvShowPoster: GetBestShowImage("", old.Poster, fa.SeasonPoster, fa.TVPoster),
 		Poster:       GetBestShowImage(s, old.Poster, fa.SeasonPoster, fa.TVPoster),
 		Thumbnail:    old.Thumbnail,
 		Banner:       GetBestShowImage(s, old.Banner, fa.SeasonBanner, fa.TVBanner),
@@ -413,7 +417,7 @@ func (fa *Show) ToEpisodeListItemArt(season int, old *xbmc.ListItemArt) *xbmc.Li
 	s := strconv.Itoa(season)
 
 	return &xbmc.ListItemArt{
-		TvShowPoster: GetBestShowImage(s, old.Poster, fa.SeasonPoster, fa.TVPoster),
+		TvShowPoster: GetBestShowImage("", old.Poster, fa.SeasonPoster, fa.TVPoster),
 		Poster:       GetBestShowImage(s, old.Poster, fa.SeasonPoster, fa.TVPoster),
 		Thumbnail:    old.Thumbnail,
 		Banner:       GetBestShowImage(s, old.Banner, fa.SeasonBanner, fa.TVBanner),
