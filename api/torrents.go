@@ -58,7 +58,7 @@ func AddToTorrentsMap(tmdbID string, torrent *bittorrent.TorrentFile) {
 	if strings.HasPrefix(torrent.URI, "magnet") {
 		torrentsLog.Debugf("Saving torrent entry for TMDB: %#v", tmdbID)
 		if b, err := torrent.MarshalJSON(); err == nil {
-			database.GetStorm().AddTorrentLink(tmdbID, torrent.InfoHash, b)
+			database.GetStorm().AddTorrentLink(tmdbID, torrent.InfoHash, b, false)
 		}
 
 		return
@@ -70,7 +70,7 @@ func AddToTorrentsMap(tmdbID string, torrent *bittorrent.TorrentFile) {
 	}
 
 	torrentsLog.Debugf("Saving torrent entry for TMDB: %#v", tmdbID)
-	database.GetStorm().AddTorrentLink(tmdbID, torrent.InfoHash, b)
+	database.GetStorm().AddTorrentLink(tmdbID, torrent.InfoHash, b, false)
 }
 
 // InTorrentsMap ...

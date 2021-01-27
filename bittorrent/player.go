@@ -338,6 +338,7 @@ func (btp *Player) processMetadata() {
 	btp.t.DBItem = database.GetStorm().GetBTItem(infoHash)
 
 	go database.GetStorm().AddTorrentHistory(btp.t.InfoHash(), btp.t.Name(), btp.t.GetMetadata())
+	go database.GetStorm().AddTorrentLink(strconv.Itoa(btp.p.TMDBId), btp.t.InfoHash(), btp.t.GetMetadata(), true)
 
 	if btp.t.IsRarArchive {
 		// Just disable sequential download for RAR archives
@@ -917,7 +918,7 @@ func (btp *Player) smartMatch(choices []*CandidateFile) {
 
 			index, found := MatchEpisodeFilename(season.Season, episode.EpisodeNumber, len(show.Seasons) == 1, true, show, episode, tvdbShow, choices)
 			if index >= 0 && found == 1 {
-				database.GetStorm().AddTorrentLink(strconv.Itoa(episode.ID), hash, b)
+				database.GetStorm().AddTorrentLink(strconv.Itoa(episode.ID), hash, b, false)
 			}
 		}
 	}

@@ -188,7 +188,7 @@ func (d *StormDatabase) CleanupTorrentLink(infoHash string) {
 }
 
 // AddTorrentLink saves link between torrent file and tmdbID entry
-func (d *StormDatabase) AddTorrentLink(tmdbID, infoHash string, b []byte) {
+func (d *StormDatabase) AddTorrentLink(tmdbID, infoHash string, b []byte, force bool) {
 	// Dummy check if infohash is real
 	if len(infoHash) == 0 || infoHash == "0000000000000000000000000000000000000000" {
 		return
@@ -199,7 +199,7 @@ func (d *StormDatabase) AddTorrentLink(tmdbID, infoHash string, b []byte) {
 	log.Debugf("Saving torrent entry for TMDB %s with infohash %s", tmdbID, infoHash)
 
 	var tm TorrentAssignMetadata
-	if err := d.db.One("InfoHash", infoHash, &tm); err != nil {
+	if err := d.db.One("InfoHash", infoHash, &tm); err != nil || force {
 		tm = TorrentAssignMetadata{
 			InfoHash: infoHash,
 			Metadata: b,

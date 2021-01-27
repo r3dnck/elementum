@@ -175,6 +175,8 @@ func (t *Torrent) Watch() {
 
 	t.prioritizeTicker = time.NewTicker(1 * time.Second)
 	t.nextTimer = time.NewTimer(0)
+	updateTicker := time.NewTicker(5 * time.Minute)
+	defer updateTicker.Stop()
 
 	sc := t.Service.Closer.C()
 	tc := t.Closer.C()
@@ -210,6 +212,17 @@ func (t *Torrent) Watch() {
 		case <-t.nextTimer.C:
 			if t.IsNextFile {
 				go t.Service.RemoveTorrent(t, false, false, false)
+			}
+
+		case <-updateTicker.C:
+			if t.IsPlaying {
+				// Update torrent metadata for currently running torrent.
+				// It will allow to save found trackers instead of waiting for them next time.
+				dbitem := t.GetDBItem()
+				if dbitem != nil && dbitem.ID != 0 {
+					log.Debugf("Updating torrent metadata in the database for TMDB=%d, InfoHash=%s", dbitem.ID, t.InfoHash())
+					go database.GetStorm().AddTorrentLink(strconv.Itoa(dbitem.ID), t.InfoHash(), t.GetMetadata(), true)
+				}
 			}
 		}
 	}
