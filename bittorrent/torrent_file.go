@@ -476,8 +476,9 @@ func (t *TorrentFile) Download() ([]byte, error) {
 	}
 	if len(parts) > 1 {
 		for _, part := range parts[1:] {
-			keyVal := strings.SplitN(part, "=", 2)
-			req.Header.Add(keyVal[0], keyVal[1])
+			if keyVal := strings.SplitN(part, "=", 2); len(keyVal) > 1 {
+				req.Header.Add(keyVal[0], keyVal[1])
+			}
 		}
 	}
 
