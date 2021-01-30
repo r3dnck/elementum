@@ -145,7 +145,7 @@ func (episode *Episode) ToListItem(show *Show, season *Season) *xbmc.ListItem {
 	if episode.StillPath != "" {
 		item.Art.FanArt = ImageURL(episode.StillPath, "w1280")
 		item.Art.Thumbnail = ImageURL(episode.StillPath, "w1280")
-		item.Art.Poster = ImageURL(episode.StillPath, "w1280")
+		item.Art.Poster = ImageURL(show.PosterPath, "w1280")
 		item.Thumbnail = ImageURL(episode.StillPath, "w1280")
 	}
 
