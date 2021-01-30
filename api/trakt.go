@@ -1435,7 +1435,7 @@ func renderProgressShows(ctx *gin.Context, shows []*trakt.ProgressShow, total in
 		})
 	}
 
-	ctx.JSON(200, xbmc.NewView("tvshows", items))
+	ctx.JSON(200, xbmc.NewView("episodes", items))
 }
 
 // SelectTraktUserList ...
