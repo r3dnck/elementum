@@ -1,6 +1,9 @@
 package xbmc
 
-import "time"
+import (
+        "strings"
+        "time"
+)
 
 //go:generate msgp -o msgp.go -io=false -tests=false
 
@@ -343,6 +346,9 @@ func (s *KodiTime) UnmarshalJSON(b []byte) (err error) {
 
 // NewView ...
 func NewView(contentType string, items ListItems) *View {
+        if strings.Contains(contentType, "menus_") {
+                contentType = ""
+        }
 	return &View{
 		ContentType: contentType,
 		Items:       items,
