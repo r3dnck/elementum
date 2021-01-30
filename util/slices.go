@@ -93,3 +93,25 @@ func takeArg(arg interface{}, kind reflect.Kind) (val reflect.Value, ok bool) {
 	}
 	return
 }
+
+// StringSliceContains ...
+func StringSliceContains(ary []string, q string) bool {
+	for _, i := range ary {
+		if i == q {
+			return true
+		}
+	}
+
+	return false
+}
+
+// IntSliceContains ...
+func IntSliceContains(ary []int, q int) bool {
+	for _, i := range ary {
+		if i == q {
+			return true
+		}
+	}
+
+	return false
+}
