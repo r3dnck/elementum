@@ -337,8 +337,9 @@ func (btp *Player) processMetadata() {
 	database.GetStorm().UpdateBTItem(infoHash, btp.p.TMDBId, btp.p.ContentType, files, btp.p.Query, btp.p.ShowID, btp.p.Season, btp.p.Episode)
 	btp.t.DBItem = database.GetStorm().GetBTItem(infoHash)
 
-	go database.GetStorm().AddTorrentHistory(btp.t.InfoHash(), btp.t.Name(), btp.t.GetMetadata())
-	go database.GetStorm().AddTorrentLink(strconv.Itoa(btp.p.TMDBId), btp.t.InfoHash(), btp.t.GetMetadata(), true)
+	meta := btp.t.UpdateMetadataTitle(btp.t.Title(), btp.t.GetMetadata())
+	go database.GetStorm().AddTorrentHistory(btp.t.InfoHash(), btp.t.Title(), meta)
+	go database.GetStorm().AddTorrentLink(strconv.Itoa(btp.p.TMDBId), btp.t.InfoHash(), meta, true)
 
 	if btp.t.IsRarArchive {
 		// Just disable sequential download for RAR archives

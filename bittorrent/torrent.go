@@ -48,6 +48,7 @@ type Torrent struct {
 	addedTime       time.Time
 	DownloadStorage int
 
+	title              string
 	name               string
 	infoHash           string
 	readers            map[int64]*TorrentFSEntry
@@ -175,8 +176,7 @@ func (t *Torrent) Watch() {
 
 	t.prioritizeTicker = time.NewTicker(1 * time.Second)
 	t.nextTimer = time.NewTimer(0)
-	updateTicker := time.NewTicker(5 * time.Minute)
-	defer updateTicker.Stop()
+	updateMetadataTicker := time.NewTicker(5 * time.Minute)
 
 	sc := t.Service.Closer.C()
 	tc := t.Closer.C()
@@ -187,6 +187,7 @@ func (t *Torrent) Watch() {
 		t.bufferTicker.Stop()
 		t.prioritizeTicker.Stop()
 		t.nextTimer.Stop()
+		updateMetadataTicker.Stop()
 		close(t.bufferFinished)
 	}()
 
@@ -214,15 +215,9 @@ func (t *Torrent) Watch() {
 				go t.Service.RemoveTorrent(t, false, false, false)
 			}
 
-		case <-updateTicker.C:
+		case <-updateMetadataTicker.C:
 			if t.IsPlaying {
-				// Update torrent metadata for currently running torrent.
-				// It will allow to save found trackers instead of waiting for them next time.
-				dbitem := t.GetDBItem()
-				if dbitem != nil && dbitem.ID != 0 {
-					log.Debugf("Updating torrent metadata in the database for TMDB=%d, InfoHash=%s", dbitem.ID, t.InfoHash())
-					go database.GetStorm().AddTorrentLink(strconv.Itoa(dbitem.ID), t.InfoHash(), t.GetMetadata(), true)
-				}
+				go t.UpdateTorrentMetadata()
 			}
 		}
 	}
@@ -1093,6 +1088,15 @@ func (t *Torrent) Name() string {
 
 // Title returns name of a torrent, or, if present, how it looked in plugin that found it.
 func (t *Torrent) Title() string {
+	if t.title != "" {
+		return t.title
+	}
+
+	if oldTorrent, err := t.GetOldTorrent(); err == nil && oldTorrent != nil && oldTorrent.Title != "" {
+		t.title = oldTorrent.Title
+		return t.title
+	}
+
 	b := t.GetMetadata()
 	if len(b) == 0 {
 		return t.Name()
@@ -1103,7 +1107,8 @@ func (t *Torrent) Title() string {
 		return t.Name()
 	}
 
-	return torrentFile.Title
+	t.title = torrentFile.Title
+	return t.title
 }
 
 // GetSelectedSize returns size of all chosen files
@@ -1260,8 +1265,8 @@ func (t *Torrent) SaveMetainfo(path string) (string, error) {
 		return path, nil
 	}
 
-	bEncodedTorrent := t.GetMetadata()
-	ioutil.WriteFile(path, bEncodedTorrent, 0644)
+	out, _ := t.UpdateDatabaseMetadata(t.GetMetadata())
+	ioutil.WriteFile(path, out, 0644)
 
 	return path, nil
 }
@@ -1511,6 +1516,8 @@ func (t *Torrent) onMetadataReceived() {
 	go func() {
 		// After metadata is fetched for a torrent, we should
 		// save it to torrent file for re-adding after program restart.
+		t.UpdateTorrentMetadata()
+
 		if p, err := t.SaveMetainfo(t.Service.config.TorrentsPath); err == nil {
 			// Removing .torrent file
 			if i, err := os.Stat(t.torrentFile); err == nil && !i.IsDir() && t.torrentFile != p && strings.Contains(t.torrentFile, t.Service.config.TorrentsPath) {
@@ -1935,6 +1942,7 @@ func (t *Torrent) TorrentInfo(w io.Writer) {
 	}
 
 	fmt.Fprintf(w, "    Name:               %s \n", st.GetName())
+	fmt.Fprintf(w, "    Title:              %s \n", t.Title())
 	fmt.Fprintf(w, "    Infohash:           %s \n", hex.EncodeToString([]byte(st.GetInfoHash().ToString())))
 	fmt.Fprintf(w, "    Status:             %s \n", xbmc.Translate(StatusStrings[st.GetState()]))
 	fmt.Fprintf(w, "    Piece size:         %d \n", t.ti.NumPieces())
@@ -1985,7 +1993,24 @@ func (t *Torrent) TorrentInfo(w io.Writer) {
 	lt.DeleteStdVectorInt(filePriorities)
 
 	fmt.Fprint(w, "\n")
-	fmt.Fprint(w, "    Trackers:\n")
+	fmt.Fprint(w, "    Libtorrent Trackers:\n")
+
+	trackers := t.ti.Trackers()
+	trackersSize := trackers.Size()
+	for i := 0; i < int(trackersSize); i++ {
+		tracker := trackers.Get(i)
+		fmt.Fprintf(w, "        %s: %s seeds, %s peers, updating: %v, is_working: %v, message: %s\n",
+			tracker.GetUrl(),
+			peerNumToString(tracker.GetScrapeComplete()),
+			peerNumToString(tracker.GetScrapeIncomplete()),
+			tracker.GetUpdating(),
+			tracker.IsWorking(),
+			tracker.GetMessage())
+	}
+
+	fmt.Fprint(w, "\n")
+	fmt.Fprint(w, "    Invernal Trackers:\n")
+
 	t.trackers.Range(func(t, p interface{}) bool {
 		fmt.Fprintf(w, "        %s: %d peers\n", t, p)
 		return true
@@ -2054,4 +2079,74 @@ func (t *Torrent) GetLastStatus(isForced bool) lt.TorrentStatus {
 
 	t.lastStatus = t.th.Status(uint(lt.WrappedTorrentHandleQueryPieces))
 	return t.lastStatus
+}
+
+// UpdateTorrentMetadata updates metadata for specific TMDB id
+func (t *Torrent) UpdateTorrentMetadata() error {
+	b := t.GetMetadata()
+	out, err := t.UpdateDatabaseMetadata(b)
+	if err != nil {
+		return err
+	}
+
+	database.GetStorm().UpdateTorrentMetadata(t.InfoHash(), out)
+	return nil
+}
+
+// UpdateMetadataTitle ...
+func (t *Torrent) UpdateMetadataTitle(title string, in []byte) []byte {
+	var torrentFile *TorrentFileRaw
+	if err := bencode.DecodeBytes(in, &torrentFile); err != nil {
+		return in
+	}
+
+	if title != "" {
+		torrentFile.Title = title
+	}
+
+	out, err := bencode.EncodeBytes(torrentFile)
+	if err != nil {
+		return in
+	}
+
+	return out
+}
+
+// UpdateDatabaseMetadata in decoding torrent bencoded,
+// 	adding proper Title and then returning encoded bencoded.
+func (t *Torrent) UpdateDatabaseMetadata(in []byte) ([]byte, error) {
+	log.Debugf("Updating torrent metadata in the database for InfoHash=%s", t.InfoHash())
+
+	oldTorrent, err := t.GetOldTorrent()
+	if err != nil {
+		return in, err
+	}
+
+	out := t.UpdateMetadataTitle(oldTorrent.Title, in)
+	return out, nil
+}
+
+// GetOldTorrent gets old torrent from the database
+func (t *Torrent) GetOldTorrent() (*TorrentFile, error) {
+	var tm database.TorrentAssignMetadata
+	if err := database.GetStormDB().One("InfoHash", t.InfoHash(), &tm); err != nil {
+		return nil, err
+	}
+
+	oldTorrent := &TorrentFile{}
+	if tm.Metadata[0] == '{' {
+		oldTorrent.UnmarshalJSON(tm.Metadata)
+	} else {
+		oldTorrent.LoadFromBytes(tm.Metadata)
+	}
+
+	return oldTorrent, nil
+}
+
+func peerNumToString(num int) string {
+	if num <= 0 {
+		return "-"
+	}
+
+	return strconv.Itoa(num)
 }
