@@ -229,6 +229,33 @@ func (d *StormDatabase) AddTorrentLink(tmdbID, infoHash string, b []byte, force 
 	}
 }
 
+// UpdateTorrentMetadata updates bytes for specific InfoHash
+func (d *StormDatabase) UpdateTorrentMetadata(infoHash string, b []byte) {
+	// Dummy check if infohash is real
+	if len(infoHash) == 0 || infoHash == "0000000000000000000000000000000000000000" {
+		return
+	}
+
+	defer perf.ScopeTimer()()
+
+	log.Debugf("Updating torrent metadata for infohash %s", infoHash)
+
+	var tm TorrentAssignMetadata
+	if err := d.db.One("InfoHash", infoHash, &tm); err != nil {
+		tm = TorrentAssignMetadata{
+			InfoHash: infoHash,
+			Metadata: b,
+		}
+		d.db.Save(&tm)
+	} else {
+		tm = TorrentAssignMetadata{
+			InfoHash: infoHash,
+			Metadata: b,
+		}
+		d.db.Update(&tm)
+	}
+}
+
 // Bittorrent Database handlers
 
 // GetBTItem ...
