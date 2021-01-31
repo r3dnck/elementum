@@ -1,7 +1,6 @@
 package bittorrent
 
 import (
-	"bytes"
 	"compress/gzip"
 	"crypto/sha1"
 	"encoding/base32"
@@ -67,6 +66,19 @@ type TorrentFileRaw struct {
 	Announce     string                 `bencode:"announce"`
 	AnnounceList [][]string             `bencode:"announce-list"`
 	Info         map[string]interface{} `bencode:"info"`
+}
+
+// HasAnnounce checks AnnounceList for specific tracker
+func (t TorrentFileRaw) HasAnnounce(tracker string) bool {
+	for _, tier := range t.AnnounceList {
+		for _, v := range tier {
+			if v == tracker {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 const (
@@ -418,28 +430,21 @@ func (t *TorrentFile) LoadFromBytes(in []byte) error {
 	if len(t.Trackers) == 0 {
 		t.Trackers = append(t.Trackers, torrentFile.Announce)
 		for _, trackers := range torrentFile.AnnounceList {
-			t.Trackers = append(t.Trackers, trackers...)
+			for _, tracker := range trackers {
+				if !util.StringSliceContains(t.Trackers, tracker) {
+					t.Trackers = append(t.Trackers, tracker)
+				}
+			}
 		}
 	}
 
-	// Save torrent file in temp folder
-	torrentFileName := filepath.Join(config.Get().Info.TempPath, fmt.Sprintf("%s.torrent", t.InfoHash))
-	out, err := os.Create(torrentFileName)
+	fileName := t.GenerateFileName()
+	err := t.SaveToFile(in)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		cerr := out.Close()
-		if err == nil {
-			err = cerr
-		}
-	}()
-	buf := bytes.NewReader(in)
-	if _, err := io.Copy(out, buf); err != nil {
-		return err
-	}
-	t.URI = torrentFileName
 
+	t.URI = fileName
 	t.hasResolved = true
 
 	t.initialize()
@@ -511,6 +516,8 @@ func (t *TorrentFile) Download() ([]byte, error) {
 
 // Resolve ...
 func (t *TorrentFile) Resolve() error {
+	defer t.EnrichTrackers()
+
 	if t.IsMagnet() {
 		t.hasResolved = true
 		return nil
@@ -521,45 +528,35 @@ func (t *TorrentFile) Resolve() error {
 		return err
 	}
 
-	var torrentFile *TorrentFileRaw
-
-	if errDec := bencode.DecodeBytes(b, &torrentFile); errDec != nil {
-		return fmt.Errorf("Decode error: %s", errDec)
+	err = t.LoadFromBytes(b)
+	if err != nil {
+		return err
 	}
 
-	if t.InfoHash == "" {
-		hasher := sha1.New()
-		bencode.NewEncoder(hasher).Encode(torrentFile.Info)
-		t.InfoHash = hex.EncodeToString(hasher.Sum(nil))
-	}
+	cachedInfoHash.Store(t.URI, t.GenerateFileName())
 
-	if t.Name == "" {
-		t.Name = torrentFile.Info["name"].(string)
-	}
-	if t.Title == "" {
-		if len(torrentFile.Title) > 0 {
-			t.Title = torrentFile.Title
-		} else {
-			t.Title = t.Name
+	return nil
+}
+
+// EnrichTrackers ...
+func (t *TorrentFile) EnrichTrackers() {
+	for _, trackerURL := range DefaultTrackers {
+		if !util.StringSliceContains(t.Trackers, trackerURL) {
+			t.Trackers = append(t.Trackers, trackerURL)
 		}
 	}
+}
 
-	if torrentFile.Info["private"] != nil {
-		if torrentFile.Info["private"].(int64) == 1 {
-			t.IsPrivate = true
-		}
-	}
+// GenerateFileName ...
+func (t *TorrentFile) GenerateFileName() string {
+	return filepath.Join(config.Get().Info.TempPath, fmt.Sprintf("%s.torrent", t.InfoHash))
+}
 
-	if len(t.Trackers) == 0 {
-		t.Trackers = append(t.Trackers, torrentFile.Announce)
-		for _, trackers := range torrentFile.AnnounceList {
-			t.Trackers = append(t.Trackers, trackers...)
-		}
-	}
-
+// SaveToFile will save torrent to .torrent file for libtorrent
+func (t *TorrentFile) SaveToFile(b []byte) error {
 	// Save torrent file in temp folder
-	torrentFileName := filepath.Join(config.Get().Info.TempPath, fmt.Sprintf("%s.torrent", t.InfoHash))
-	out, err := os.Create(torrentFileName)
+	fileName := t.GenerateFileName()
+	out, err := os.Create(fileName)
 	if err != nil {
 		return err
 	}
@@ -572,13 +569,6 @@ func (t *TorrentFile) Resolve() error {
 	if _, err := out.Write(b); err != nil {
 		return err
 	}
-
-	cachedInfoHash.Store(t.URI, torrentFileName)
-	t.URI = torrentFileName
-
-	t.hasResolved = true
-
-	t.initialize()
 
 	return nil
 }
@@ -674,4 +664,47 @@ func (t *TorrentFile) parseSize() {
 	} else {
 		log.Debugf("Could not parse torrent size for '%s': %#v", t.Size, err)
 	}
+}
+
+// UpdateTorrentTrackers updates raw torrent file trackers
+func (t *TorrentFile) UpdateTorrentTrackers() error {
+	if t.IsMagnet() {
+		magnetURI, _ := url.Parse(t.URI)
+		vals := magnetURI.Query()
+		existing := vals["tr"]
+
+		for _, tracker := range t.Trackers {
+			if !util.StringSliceContains(existing, tracker) {
+				t.URI += "&tr=" + tracker
+			}
+		}
+	} else {
+		_, err := os.Stat(t.URI)
+		if err != nil {
+			return err
+		}
+
+		var b []byte
+		b, err = ioutil.ReadFile(t.URI)
+
+		var torrentFile *TorrentFileRaw
+		if err := bencode.DecodeBytes(b, &torrentFile); err != nil {
+			return err
+		}
+
+		for _, tracker := range t.Trackers {
+			if !torrentFile.HasAnnounce(tracker) {
+				torrentFile.AnnounceList = append(torrentFile.AnnounceList, []string{tracker})
+			}
+		}
+
+		b, err = bencode.EncodeBytes(torrentFile)
+		if err != nil {
+			return err
+		}
+
+		return t.SaveToFile(b)
+	}
+
+	return nil
 }

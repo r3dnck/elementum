@@ -158,7 +158,6 @@ func SearchEpisode(searchers []EpisodeSearcher, show *tmdb.Show, episode *tmdb.E
 }
 
 func processLinks(torrentsChan chan *bittorrent.TorrentFile, sortType int, isSilent bool) []*bittorrent.TorrentFile {
-	trackers := map[string]*bittorrent.Tracker{}
 	torrentsMap := map[string]*bittorrent.TorrentFile{}
 
 	torrents := make([]*bittorrent.TorrentFile, 0)
@@ -261,7 +260,13 @@ func processLinks(torrentsChan chan *bittorrent.TorrentFile, sortType int, isSil
 		}
 
 		if existingTorrent, exists := torrentsMap[torrentKey]; exists {
-			existingTorrent.Trackers = append(existingTorrent.Trackers, torrent.Trackers...)
+			// Collect all trackers
+			for _, trackerURL := range torrent.Trackers {
+				if !util.StringSliceContains(existingTorrent.Trackers, trackerURL) {
+					existingTorrent.Trackers = append(existingTorrent.Trackers, trackerURL)
+				}
+			}
+
 			existingTorrent.Provider += ", " + torrent.Provider
 			if torrent.Resolution > existingTorrent.Resolution {
 				existingTorrent.Name = torrent.Name
@@ -285,31 +290,20 @@ func processLinks(torrentsChan chan *bittorrent.TorrentFile, sortType int, isSil
 			if existingTorrent.IsMagnet() && !torrent.IsMagnet() {
 				existingTorrent.URI = torrent.URI
 			}
+			if existingTorrent.Seeds < torrent.Seeds {
+				existingTorrent.Seeds = torrent.Seeds
+				existingTorrent.Peers = torrent.Peers
+			}
 
 			existingTorrent.Multi = true
 		} else {
 			torrentsMap[torrentKey] = torrent
 		}
-
-		for _, tracker := range torrent.Trackers {
-			bTracker, err := bittorrent.NewTracker(tracker)
-			if err != nil {
-				continue
-			}
-			trackers[bTracker.URL.Host] = bTracker
-		}
-
-		if torrent.IsPrivate == false {
-			for _, trackerURL := range bittorrent.DefaultTrackers {
-				if tracker, err := bittorrent.NewTracker(trackerURL); err == nil && tracker != nil {
-					trackers[tracker.URL.Host] = tracker
-				}
-			}
-		}
 	}
 
 	torrents = make([]*bittorrent.TorrentFile, 0, len(torrentsMap))
 	for _, torrent := range torrentsMap {
+		torrent.UpdateTorrentTrackers()
 		torrents = append(torrents, torrent)
 	}
 
@@ -321,105 +315,6 @@ func processLinks(torrentsChan chan *bittorrent.TorrentFile, sortType int, isSil
 		}
 		return torrents
 	}
-
-	// log.Infof("Scraping torrent metrics from %d trackers...\n", len(trackers))
-
-	// progressTotal = len(trackers)*2 + 1
-	// progress = 0
-	// progressMsg := "LOCALIZE[30118]"
-	// dialogProgressBG.Update(progress*100/progressTotal, "Elementum", progressMsg)
-
-	// scrapeResults := make(chan []bittorrent.ScrapeResponseEntry, len(trackers))
-	// failedConnect := 0
-	// failedScrape := 0
-	// go func() {
-	// 	wg := sync.WaitGroup{}
-	// 	for _, tracker := range trackers {
-	// 		wg.Add(1)
-	// 		go func(tracker *bittorrent.Tracker) {
-	// 			defer wg.Done()
-	// 			defer func() {
-	// 				progress += 2
-	// 				if !closed.IsSet() {
-	// 					progressUpdate <- progressMsg
-	// 				}
-	// 			}()
-
-	// 			failed := make(chan bool)
-	// 			connected := make(chan bool)
-	// 			var scrapeResult []bittorrent.ScrapeResponseEntry
-
-	// 			go func(tracker *bittorrent.Tracker) {
-	// 				if err := tracker.Connect(); err != nil {
-	// 					log.Warningf("Tracker %s failed: %s", tracker, err)
-	// 					failedConnect++
-	// 					close(failed)
-	// 					return
-	// 				}
-	// 				close(connected)
-	// 			}(tracker)
-
-	// 			for {
-	// 				select {
-	// 				case <-failed:
-	// 					return
-	// 				case <-time.After(trackerTimeout): // Connect timeout...
-	// 					failedConnect++
-	// 					return
-	// 				case <-connected:
-	// 					scraped := make(chan bool)
-	// 					go func(tracker *bittorrent.Tracker) {
-	// 						scrapeResult = tracker.Scrape(torrents)
-	// 						close(scraped)
-	// 					}(tracker)
-
-	// 					for {
-	// 						select {
-	// 						case <-time.After(trackerTimeout): // Scrape timeout...
-	// 							failedScrape++
-	// 							return
-	// 						case <-scraped:
-	// 							scrapeResults <- scrapeResult
-	// 							return
-	// 						}
-	// 					}
-	// 				}
-	// 			}
-	// 		}(tracker)
-	// 	}
-	// 	log.Debug("Waiting for scrape from trackers")
-	// 	wg.Wait()
-
-	// 	dialogProgressBG.Update(100, "Elementum", progressMsg)
-
-	// 	if failedConnect > 0 {
-	// 		log.Warningf("Failed to connect to %d tracker(s)", failedConnect)
-	// 	}
-	// 	if failedScrape > 0 {
-	// 		log.Warningf("Failed to scrape results from %d tracker(s)", failedScrape)
-	// 	} else if failedConnect > 0 {
-	// 		log.Notice("Scraped all other trackers successfully")
-	// 	} else {
-	// 		log.Notice("Scraped all trackers successfully")
-	// 	}
-
-	// 	dialogProgressBG.Close()
-	// 	dialogProgressBG = nil
-
-	// 	close(scrapeResults)
-	// }()
-
-	// for results := range scrapeResults {
-	// 	for i, result := range results {
-	// 		if int64(result.Seeders) > torrents[i].Seeds {
-	// 			torrents[i].Seeds = int64(result.Seeders)
-	// 		}
-	// 		if int64(result.Leechers) > torrents[i].Peers {
-	// 			torrents[i].Peers = int64(result.Leechers)
-	// 		}
-	// 	}
-	// }
-	// log.Notice("Finished comparing seeds/peers of results to trackers...")
 
 	if !isSilent {
 		dialogProgressBG.Close()
