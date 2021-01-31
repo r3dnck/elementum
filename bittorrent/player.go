@@ -916,7 +916,7 @@ func (btp *Player) smartMatch(choices []*CandidateFile) {
 				continue
 			}
 
-			index, found := MatchEpisodeFilename(season.Season, episode.EpisodeNumber, len(show.Seasons) == 1, true, show, episode, tvdbShow, choices)
+			index, found := MatchEpisodeFilename(season.Season, episode.EpisodeNumber, len(show.Seasons) == 1, btp.p.Season, show, episode, tvdbShow, choices)
 			if index >= 0 && found == 1 {
 				database.GetStorm().AddTorrentLink(strconv.Itoa(episode.ID), hash, b, false)
 			}
@@ -1460,7 +1460,7 @@ func TrimChoices(choices []*CandidateFile) {
 }
 
 // MatchEpisodeFilename matches season and episode in the filename to get ocurrence
-func MatchEpisodeFilename(s, e int, isSingleSeason bool, isSmartMatch bool, show *tmdb.Show, episode *tmdb.Episode, tvdbShow *tvdb.Show, choices []*CandidateFile) (index, found int) {
+func MatchEpisodeFilename(s, e int, isSingleSeason bool, activeSeason int, show *tmdb.Show, episode *tmdb.Episode, tvdbShow *tvdb.Show, choices []*CandidateFile) (index, found int) {
 	index = -1
 
 	re := regexp.MustCompile(fmt.Sprintf(episodeMatchRegex, s, e))
@@ -1493,7 +1493,7 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, isSmartMatch bool, show
 		}
 	}
 
-	if !isSmartMatch && found == 0 {
+	if found == 0 && activeSeason == s {
 		re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, e))
 		for i, choice := range choices {
 			if re.MatchString(choice.Path) {
