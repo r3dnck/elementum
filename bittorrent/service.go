@@ -687,6 +687,11 @@ func (s *Service) AddTorrent(uri string, paused bool, downloadStorage int) (*Tor
 			uri = torrent.URI
 		}
 
+		if _, err := os.Stat(uri); err != nil {
+			log.Warningf("Cannot open torrent file at %s: %s", uri, err)
+			return nil, err
+		}
+
 		log.Debugf("Adding torrent: %#v", uri)
 
 		info := lt.NewTorrentInfo(uri)
