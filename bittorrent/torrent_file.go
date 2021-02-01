@@ -378,7 +378,7 @@ func (t *TorrentFile) Magnet() {
 		}
 	}
 	if config.Get().MagnetTrackers == magnetEnricherAdd {
-		for _, tracker := range DefaultTrackers {
+		for _, tracker := range extraTrackers {
 			if !util.StringSliceContains(t.Trackers, tracker) {
 				params.Add("tr", tracker)
 			}
@@ -540,7 +540,7 @@ func (t *TorrentFile) Resolve() error {
 
 // EnrichTrackers ...
 func (t *TorrentFile) EnrichTrackers() {
-	for _, trackerURL := range DefaultTrackers {
+	for _, trackerURL := range extraTrackers {
 		if !util.StringSliceContains(t.Trackers, trackerURL) {
 			t.Trackers = append(t.Trackers, trackerURL)
 		}
@@ -668,6 +668,10 @@ func (t *TorrentFile) parseSize() {
 
 // UpdateTorrentTrackers updates raw torrent file trackers
 func (t *TorrentFile) UpdateTorrentTrackers() error {
+	if t.IsPrivate {
+		return nil
+	}
+
 	if t.IsMagnet() {
 		magnetURI, _ := url.Parse(t.URI)
 		vals := magnetURI.Query()
