@@ -386,7 +386,7 @@ func (btp *Player) statusStrings(progress float64, status lt.TorrentStatus) (str
 
 	// Adding buffer size to progress window
 	if btp.t.IsBuffering {
-		query := int64(len(btp.t.BufferPiecesProgress)) * btp.t.pieceLength
+		query := btp.t.BufferLength
 		done := int64(float64(progress/100) * float64(query))
 
 		line1 = fmt.Sprintf("%s (%.2f%%) | (%s / %s)", statusName, progress, humanize.Bytes(uint64(done)), humanize.Bytes(uint64(query)))

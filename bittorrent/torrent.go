@@ -40,6 +40,7 @@ type Torrent struct {
 	th              lt.TorrentHandle
 	ti              lt.TorrentInfo
 	lastStatus      lt.TorrentStatus
+	lastStatusTime  time.Time
 	lastProgress    float64
 	ms              lt.MemoryStorage
 	fastResumeFile  string
@@ -88,6 +89,7 @@ type Torrent struct {
 	mu        *sync.Mutex
 	muBuffer  *sync.RWMutex
 	muReaders *sync.Mutex
+	muStatus  *sync.Mutex
 
 	pieceLength int64
 	pieceCount  int
@@ -140,6 +142,7 @@ func NewTorrent(service *Service, handle lt.TorrentHandle, info lt.TorrentInfo, 
 		muReaders:        &sync.Mutex{},
 		muAwaitingPieces: &sync.RWMutex{},
 		muDemandPieces:   &sync.RWMutex{},
+		muStatus:         &sync.Mutex{},
 	}
 
 	return t
@@ -216,7 +219,7 @@ func (t *Torrent) Watch() {
 			}
 
 		case <-updateMetadataTicker.C:
-			if t.IsPlaying {
+			if t.IsPlaying && !t.IsSeeding {
 				go t.UpdateTorrentMetadata()
 			}
 		}
@@ -307,8 +310,7 @@ func (t *Torrent) GetConnections() (int, int, int, int) {
 		return 0, 0, 0, 0
 	}
 
-	ts := t.th.Status(uint(lt.WrappedTorrentHandleQueryName))
-	defer lt.DeleteTorrentStatus(ts)
+	ts := t.GetLastStatus(false)
 
 	seedsTotal := ts.GetNumComplete()
 	if seedsTotal <= 0 {
@@ -329,9 +331,7 @@ func (t *Torrent) GetSpeeds() (down, up int) {
 		return 0, 0
 	}
 
-	ts := t.th.Status(uint(lt.WrappedTorrentHandleQueryName))
-	defer lt.DeleteTorrentStatus(ts)
-
+	ts := t.GetLastStatus(false)
 	return ts.GetDownloadPayloadRate(), ts.GetUploadPayloadRate()
 }
 
@@ -790,7 +790,7 @@ func (t *Torrent) GetAddedTime() time.Time {
 
 // GetStatus ...
 func (t *Torrent) GetStatus() lt.TorrentStatus {
-	return t.th.Status(uint(lt.WrappedTorrentHandleQueryName))
+	return t.th.Status()
 }
 
 // GetState ...
@@ -809,11 +809,9 @@ func (t *Torrent) GetStateString() string {
 		return StatusStrings[StatusQueued]
 	}
 
-	torrentStatus := t.th.Status()
-	defer lt.DeleteTorrentStatus(torrentStatus)
-
+	torrentStatus := t.GetLastStatus(false)
 	progress := float64(torrentStatus.GetProgress()) * 100
-	state := t.GetState()
+	state := int(torrentStatus.GetState())
 
 	if t.Service.Session.IsPaused() {
 		return StatusStrings[StatusPaused]
@@ -867,13 +865,11 @@ func (t *Torrent) piecesProgress(pieces map[int]float64) {
 
 	defer perf.ScopeTimer()()
 
-	queue := lt.NewStdVectorPartialPieceInfo()
-	defer lt.DeleteStdVectorPartialPieceInfo(queue)
-
-	t.th.GetDownloadQueue(queue)
+	completed := 0
 	t.muAwaitingPieces.Lock()
 	for piece := range pieces {
 		if t.hasPiece(piece) {
+			completed++
 			pieces[piece] = 1.0
 
 			if t.awaitingPieces.ContainsInt(piece) {
@@ -883,9 +879,17 @@ func (t *Torrent) piecesProgress(pieces map[int]float64) {
 	}
 	t.muAwaitingPieces.Unlock()
 
-	t.GetLastStatus(false)
+	if completed == len(pieces) {
+		return
+	}
 
-	blockSize := t.lastStatus.GetBlockSize()
+	queue := lt.NewStdVectorPartialPieceInfo()
+	defer lt.DeleteStdVectorPartialPieceInfo(queue)
+
+	t.th.GetDownloadQueue(queue)
+
+	st := t.GetLastStatus(false)
+	blockSize := st.GetBlockSize()
 	queueSize := queue.Size()
 	for i := 0; i < int(queueSize); i++ {
 		ppi := queue.Get(i)
@@ -928,10 +932,9 @@ func (t *Torrent) GetProgress() float64 {
 // Should be taken in mind that for memory storage it's a progress of downloading currently active pieces,
 // not the whole torrent.
 func (t *Torrent) GetRealProgress() float64 {
-	ts := t.th.Status()
-	defer lt.DeleteTorrentStatus(ts)
-
+	ts := t.GetLastStatus(false)
 	t.lastProgress = float64(ts.GetProgress()) * 100
+
 	return t.lastProgress
 }
 
@@ -1065,10 +1068,9 @@ func (t *Torrent) InfoHash() string {
 		return ""
 	}
 
-	ts := t.th.Status()
-	defer lt.DeleteTorrentStatus(ts)
-
+	ts := t.GetLastStatus(false)
 	shaHash := ts.GetInfoHash().ToString()
+
 	return hex.EncodeToString([]byte(shaHash))
 }
 
@@ -1542,9 +1544,7 @@ func (t *Torrent) HasMetadata() bool {
 		return true
 	}
 
-	ts := t.th.Status(uint(lt.WrappedTorrentHandleQueryName))
-	defer lt.DeleteTorrentStatus(ts)
-
+	ts := t.GetLastStatus(false)
 	return ts.GetHasMetadata()
 }
 
@@ -1598,8 +1598,7 @@ func (t *Torrent) GetPaused() bool {
 		return false
 	}
 
-	ts := t.th.Status()
-	defer lt.DeleteTorrentStatus(ts)
+	ts := t.GetLastStatus(false)
 
 	return ts.GetPaused()
 }
@@ -1934,8 +1933,9 @@ func (t *Torrent) TorrentInfo(w io.Writer) {
 		return
 	}
 
-	st := t.th.Status()
-	defer lt.DeleteTorrentStatus(st)
+	defer perf.ScopeTimer()()
+
+	st := t.GetLastStatus(true)
 
 	if st == nil || st.Swigcptr() == 0 {
 		return
@@ -1995,11 +1995,11 @@ func (t *Torrent) TorrentInfo(w io.Writer) {
 	fmt.Fprint(w, "\n")
 	fmt.Fprint(w, "    Libtorrent Trackers:\n")
 
-	trackers := t.ti.Trackers()
+	trackers := t.th.Trackers()
 	trackersSize := trackers.Size()
 	for i := 0; i < int(trackersSize); i++ {
 		tracker := trackers.Get(i)
-		fmt.Fprintf(w, "        %s: %s seeds, %s peers, updating: %v, is_working: %v, message: %s\n",
+		fmt.Fprintf(w, "        %-60s: %-3s seeds, %-3s peers, updating: %-5v, is_working: %-5v, message: %s\n",
 			tracker.GetUrl(),
 			peerNumToString(tracker.GetScrapeComplete()),
 			peerNumToString(tracker.GetScrapeIncomplete()),
@@ -2012,7 +2012,7 @@ func (t *Torrent) TorrentInfo(w io.Writer) {
 	fmt.Fprint(w, "    Invernal Trackers:\n")
 
 	t.trackers.Range(func(t, p interface{}) bool {
-		fmt.Fprintf(w, "        %s: %d peers\n", t, p)
+		fmt.Fprintf(w, "        %-60s: %-3d peers\n", t, p)
 		return true
 	})
 	fmt.Fprint(w, "\n")
@@ -2069,7 +2069,12 @@ func (t *Torrent) GetLastStatus(isForced bool) lt.TorrentStatus {
 		return t.lastStatus
 	}
 
-	if !isForced && t.lastStatus != nil && t.lastStatus.Swigcptr() != 0 {
+	defer perf.ScopeTimer()()
+
+	t.muStatus.Lock()
+	defer t.muStatus.Unlock()
+
+	if !isForced && t.lastStatus != nil && t.lastStatus.Swigcptr() != 0 && time.Since(t.lastStatusTime) < 1*time.Second {
 		return t.lastStatus
 	}
 
@@ -2077,12 +2082,16 @@ func (t *Torrent) GetLastStatus(isForced bool) lt.TorrentStatus {
 		lt.DeleteTorrentStatus(t.lastStatus)
 	}
 
-	t.lastStatus = t.th.Status(uint(lt.WrappedTorrentHandleQueryPieces))
+	t.lastStatus = t.GetStatus()
+	t.lastStatusTime = time.Now()
+
 	return t.lastStatus
 }
 
 // UpdateTorrentMetadata updates metadata for specific TMDB id
 func (t *Torrent) UpdateTorrentMetadata() error {
+	defer perf.ScopeTimer()()
+
 	b := t.GetMetadata()
 	out, err := t.UpdateDatabaseMetadata(b)
 	if err != nil {
@@ -2095,6 +2104,8 @@ func (t *Torrent) UpdateTorrentMetadata() error {
 
 // UpdateMetadataTitle ...
 func (t *Torrent) UpdateMetadataTitle(title string, in []byte) []byte {
+	defer perf.ScopeTimer()()
+
 	var torrentFile *TorrentFileRaw
 	if err := bencode.DecodeBytes(in, &torrentFile); err != nil {
 		return in
@@ -2115,6 +2126,8 @@ func (t *Torrent) UpdateMetadataTitle(title string, in []byte) []byte {
 // UpdateDatabaseMetadata in decoding torrent bencoded,
 // 	adding proper Title and then returning encoded bencoded.
 func (t *Torrent) UpdateDatabaseMetadata(in []byte) ([]byte, error) {
+	defer perf.ScopeTimer()()
+
 	log.Debugf("Updating torrent metadata in the database for InfoHash=%s", t.InfoHash())
 
 	oldTorrent, err := t.GetOldTorrent()
@@ -2128,6 +2141,8 @@ func (t *Torrent) UpdateDatabaseMetadata(in []byte) ([]byte, error) {
 
 // GetOldTorrent gets old torrent from the database
 func (t *Torrent) GetOldTorrent() (*TorrentFile, error) {
+	defer perf.ScopeTimer()()
+
 	var tm database.TorrentAssignMetadata
 	if err := database.GetStormDB().One("InfoHash", t.InfoHash(), &tm); err != nil {
 		return nil, err

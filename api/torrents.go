@@ -12,8 +12,6 @@ import (
 	"strings"
 	"time"
 
-	lt "github.com/ElementumOrg/libtorrent-go"
-
 	"github.com/anacrolix/missinggo/perf"
 	"github.com/dustin/go-humanize"
 	"github.com/gin-gonic/gin"
@@ -180,16 +178,14 @@ func ListTorrents(s *bittorrent.Service) gin.HandlerFunc {
 			return
 		}
 
-		// torrentsLog.Debug("Currently downloading:")
 		for _, t := range s.GetTorrents() {
-			if t == nil {
+			if t == nil || t.Closer.IsSet() || s.Closer.IsSet() {
 				continue
 			}
 
 			torrentName := t.Name()
 			progress := t.GetProgress()
 			status := xbmc.Translate(t.GetStateString())
-			// dt := t.GetAddedTime()
 
 			torrentAction := []string{"LOCALIZE[30231]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/torrents/pause/%s", t.InfoHash()))}
 			sessionAction := []string{"LOCALIZE[30233]", fmt.Sprintf("XBMC.RunPlugin(%s)", URLForXBMC("/torrents/pause"))}
@@ -269,28 +265,22 @@ func ListTorrentsWeb(s *bittorrent.Service) gin.HandlerFunc {
 
 		defer perf.ScopeTimer()()
 
-		// TODO: Need to rewrite all this lists to use Service.[]Torrent
-		torrentsVector := s.Session.GetTorrents()
-		defer lt.DeleteStdVectorTorrentHandle(torrentsVector)
-
-		torrentsVectorSize := int(torrentsVector.Size())
-		torrents := make([]*TorrentsWeb, 0, torrentsVectorSize)
-		seedTimeLimit := config.Get().SeedTimeLimit
-
-		if torrentsVectorSize == 0 {
+		items := make([]*TorrentsWeb, 0, len(s.GetTorrents()))
+		if len(s.GetTorrents()) == 0 {
 			ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-			ctx.JSON(200, torrents)
+			ctx.JSON(200, items)
 			return
 		}
 
+		seedTimeLimit := config.Get().SeedTimeLimit
+
 		for _, t := range s.GetTorrents() {
 			th := t.GetHandle()
-			if th == nil || !th.IsValid() || !t.HasMetadata() {
+			if th == nil || !th.IsValid() || !t.HasMetadata() || t.Closer.IsSet() || s.Closer.IsSet() {
 				continue
 			}
 
-			torrentStatus := th.Status()
-			defer lt.DeleteTorrentStatus(torrentStatus)
+			torrentStatus := t.GetLastStatus(false)
 
 			torrentName := torrentStatus.GetName()
 			progress := float64(torrentStatus.GetProgress()) * 100
@@ -340,11 +330,11 @@ func ListTorrentsWeb(s *bittorrent.Service) gin.HandlerFunc {
 				Peers:         peers,
 				PeersTotal:    peersTotal,
 			}
-			torrents = append(torrents, ti)
+			items = append(items, ti)
 		}
 
 		ctx.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		ctx.JSON(200, torrents)
+		ctx.JSON(200, items)
 	}
 }
 
