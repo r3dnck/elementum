@@ -46,6 +46,15 @@ var (
 	errNoCandidates = fmt.Errorf("No candidates left")
 )
 
+const (
+	// ResumeEmpty ...
+	ResumeEmpty = iota
+	// ResumeYes ...
+	ResumeYes
+	// ResumeNo ...
+	ResumeNo
+)
+
 // Player ...
 type Player struct {
 	s                        *Service
@@ -96,7 +105,7 @@ type PlayerParams struct {
 	NextFileIndex     int
 	ResumeToken       string
 	ResumeHash        string
-	ResumePlayback    bool
+	ResumePlayback    int
 	TraktScrobbled    bool
 	ContentType       string
 	KodiID            int
@@ -316,7 +325,12 @@ func (btp *Player) processMetadata() {
 
 	btp.FetchStoredResume()
 	if btp.p.StoredResume != nil && btp.p.StoredResume.Position > 0 && !btp.p.Background {
-		if !config.Get().StoreResume || config.Get().StoreResumeAction == 0 || !(config.Get().SilentStreamStart || config.Get().StoreResumeAction == 2 || xbmc.DialogConfirmFocused("Elementum", fmt.Sprintf("LOCALIZE[30535];;%s", btp.p.StoredResume.ToString()))) {
+		if btp.p.ResumePlayback == ResumeNo ||
+			config.Get().PlayResumeAction == 0 ||
+			!(config.Get().SilentStreamStart ||
+				btp.p.ResumePlayback == ResumeYes ||
+				config.Get().PlayResumeAction == 2 ||
+				xbmc.DialogConfirmFocused("Elementum", fmt.Sprintf("LOCALIZE[30535];;%s", btp.p.StoredResume.ToString()))) {
 			log.Infof("Resetting stored resume")
 			btp.p.StoredResume.Reset()
 			btp.SaveStoredResume()
