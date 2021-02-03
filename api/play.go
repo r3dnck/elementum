@@ -41,7 +41,7 @@ func Play(s *bittorrent.Service) gin.HandlerFunc {
 
 		uri := ctx.Query("uri")
 		resume := ctx.Query("resume")
-		doresume := ctx.DefaultQuery("doresume", "true")
+		doresume := ctx.DefaultQuery("doresume", "")
 		query := ctx.Query("query")
 		contentType := ctx.Query("type")
 		tmdb := ctx.Query("tmdb")
@@ -52,6 +52,13 @@ func Play(s *bittorrent.Service) gin.HandlerFunc {
 
 		if uri == "" && resume == "" {
 			return
+		}
+
+		resumePlayback := bittorrent.ResumeEmpty
+		if doresume == "true" {
+			resumePlayback = bittorrent.ResumeYes
+		} else if doresume == "false" {
+			resumePlayback = bittorrent.ResumeNo
 		}
 
 		fileIndex := strToInt(index, -1)
@@ -72,7 +79,7 @@ func Play(s *bittorrent.Service) gin.HandlerFunc {
 			NextOriginalIndex: nextOriginalIndex,
 			NextFileIndex:     nextFileIndex,
 			ResumeHash:        resume,
-			ResumePlayback:    doresume != "false",
+			ResumePlayback:    resumePlayback,
 			KodiPosition:      -1,
 			ContentType:       contentType,
 			TMDBId:            tmdbID,

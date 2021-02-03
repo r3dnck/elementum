@@ -191,7 +191,7 @@ func (s *Service) configure() {
 
 	// Bools
 	settings.SetBool("announce_to_all_tiers", true)
-	settings.SetBool("announce_to_all_trackers", false)
+	settings.SetBool("announce_to_all_trackers", true)
 	settings.SetBool("apply_ip_filter_to_trackers", false)
 	settings.SetBool("lazy_bitfields", true)
 	settings.SetBool("no_atime_storage", true)
@@ -591,8 +591,7 @@ func (s *Service) checkAvailableSpace(t *Torrent) bool {
 		return false
 	}
 
-	status := t.th.Status(uint(lt.WrappedTorrentHandleQueryAccurateDownloadCounters) | uint(lt.WrappedTorrentHandleQuerySavePath) | uint(lt.WrappedTorrentHandleQueryName))
-	defer lt.DeleteTorrentStatus(status)
+	status := t.GetLastStatus(false)
 
 	totalSize := t.ti.TotalSize()
 	totalDone := status.GetTotalDone()
@@ -685,6 +684,11 @@ func (s *Service) AddTorrent(uri string, paused bool, downloadStorage int) (*Tor
 				return nil, err
 			}
 			uri = torrent.URI
+		}
+
+		if _, err := os.Stat(uri); err != nil {
+			log.Warningf("Cannot open torrent file at %s: %s", uri, err)
+			return nil, err
 		}
 
 		log.Debugf("Adding torrent: %#v", uri)
@@ -873,9 +877,7 @@ func (s *Service) saveResumeDataLoop() {
 					continue
 				}
 
-				status := t.th.Status()
-				defer lt.DeleteTorrentStatus(status)
-
+				status := t.GetLastStatus(false)
 				if status.GetHasMetadata() == false || status.GetNeedSaveResume() == false {
 					continue
 				}

@@ -154,6 +154,7 @@ func main() {
 			time.Sleep(1 * time.Second)
 		}
 	}
+	go bittorrent.UpdateDefaultTrackers()
 	go watchParentProcess()
 
 	http.Handle("/", api.Routes(s))

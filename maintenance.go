@@ -135,9 +135,9 @@ func Notification(w http.ResponseWriter, r *http.Request, s *bittorrent.Service)
 		p.Params().WasSeeked = true
 		resumePosition := float64(0)
 
-		if !config.Get().PlayResume {
+		if p.Params().ResumePlayback == bittorrent.ResumeNo {
 			return
-		} else if config.Get().StoreResume && p.Params().StoredResume != nil && p.Params().StoredResume.Position > 0 {
+		} else if p.Params().StoredResume != nil && p.Params().StoredResume.Position > 0 {
 			resumePosition = p.Params().StoredResume.Position
 		} else if p.Params().Resume != nil && p.Params().Resume.Position > 0 {
 			resumePosition = p.Params().Resume.Position

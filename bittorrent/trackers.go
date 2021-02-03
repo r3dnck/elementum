@@ -6,11 +6,15 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
+	"io/ioutil"
 	"math/rand"
 	"net"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/elgatito/elementum/proxy"
+	"github.com/elgatito/elementum/util"
 )
 
 const (
@@ -205,4 +209,24 @@ func (tracker *Tracker) Scrape(torrents []*TorrentFile) []ScrapeResponseEntry {
 
 func (tracker *Tracker) String() string {
 	return tracker.URL.String()
+}
+
+// UpdateDefaultTrackers fetches default trackers from predefined page
+func UpdateDefaultTrackers() {
+	resp, err := proxy.GetClient().Get(defaultTrackersURL)
+	if err != nil || resp == nil {
+		return
+	} else if err == nil && resp.StatusCode != 200 {
+		return
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	scanner := bufio.NewScanner(bytes.NewReader(bodyBytes))
+	for scanner.Scan() {
+		tracker := strings.TrimSpace(scanner.Text())
+		if !util.StringSliceContains(extraTrackers, tracker) {
+			extraTrackers = append(extraTrackers, tracker)
+		}
+	}
 }

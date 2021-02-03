@@ -188,7 +188,7 @@ func (d *StormDatabase) CleanupTorrentLink(infoHash string) {
 }
 
 // AddTorrentLink saves link between torrent file and tmdbID entry
-func (d *StormDatabase) AddTorrentLink(tmdbID, infoHash string, b []byte) {
+func (d *StormDatabase) AddTorrentLink(tmdbID, infoHash string, b []byte, force bool) {
 	// Dummy check if infohash is real
 	if len(infoHash) == 0 || infoHash == "0000000000000000000000000000000000000000" {
 		return
@@ -199,7 +199,7 @@ func (d *StormDatabase) AddTorrentLink(tmdbID, infoHash string, b []byte) {
 	log.Debugf("Saving torrent entry for TMDB %s with infohash %s", tmdbID, infoHash)
 
 	var tm TorrentAssignMetadata
-	if err := d.db.One("InfoHash", infoHash, &tm); err != nil {
+	if err := d.db.One("InfoHash", infoHash, &tm); err != nil || force {
 		tm = TorrentAssignMetadata{
 			InfoHash: infoHash,
 			Metadata: b,
@@ -226,6 +226,33 @@ func (d *StormDatabase) AddTorrentLink(tmdbID, infoHash string, b []byte) {
 	}
 	if err := d.db.Save(&ti); err != nil {
 		log.Debugf("Could not insert torrent info: %s", err)
+	}
+}
+
+// UpdateTorrentMetadata updates bytes for specific InfoHash
+func (d *StormDatabase) UpdateTorrentMetadata(infoHash string, b []byte) {
+	// Dummy check if infohash is real
+	if len(infoHash) == 0 || infoHash == "0000000000000000000000000000000000000000" {
+		return
+	}
+
+	defer perf.ScopeTimer()()
+
+	log.Debugf("Updating torrent metadata for infohash %s", infoHash)
+
+	var tm TorrentAssignMetadata
+	if err := d.db.One("InfoHash", infoHash, &tm); err != nil {
+		tm = TorrentAssignMetadata{
+			InfoHash: infoHash,
+			Metadata: b,
+		}
+		d.db.Save(&tm)
+	} else {
+		tm = TorrentAssignMetadata{
+			InfoHash: infoHash,
+			Metadata: b,
+		}
+		d.db.Update(&tm)
 	}
 }
 

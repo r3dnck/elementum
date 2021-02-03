@@ -921,7 +921,7 @@ func searchStrm(dir string) []string {
 
 			// Make sure we return only one file per directory, no need to get all of them
 			dir := filepath.Dir(osPathname)
-			if hasStringItem(foundDirs, dir) {
+			if util.StringSliceContains(foundDirs, dir) {
 				return nil
 			}
 

@@ -46,6 +46,15 @@ var (
 	errNoCandidates = fmt.Errorf("No candidates left")
 )
 
+const (
+	// ResumeEmpty ...
+	ResumeEmpty = iota
+	// ResumeYes ...
+	ResumeYes
+	// ResumeNo ...
+	ResumeNo
+)
+
 // Player ...
 type Player struct {
 	s                        *Service
@@ -96,7 +105,7 @@ type PlayerParams struct {
 	NextFileIndex     int
 	ResumeToken       string
 	ResumeHash        string
-	ResumePlayback    bool
+	ResumePlayback    int
 	TraktScrobbled    bool
 	ContentType       string
 	KodiID            int
@@ -316,7 +325,12 @@ func (btp *Player) processMetadata() {
 
 	btp.FetchStoredResume()
 	if btp.p.StoredResume != nil && btp.p.StoredResume.Position > 0 && !btp.p.Background {
-		if !config.Get().StoreResume || config.Get().StoreResumeAction == 0 || !(config.Get().SilentStreamStart || config.Get().StoreResumeAction == 2 || xbmc.DialogConfirmFocused("Elementum", fmt.Sprintf("LOCALIZE[30535];;%s", btp.p.StoredResume.ToString()))) {
+		if btp.p.ResumePlayback == ResumeNo ||
+			config.Get().PlayResumeAction == 0 ||
+			!(config.Get().SilentStreamStart ||
+				btp.p.ResumePlayback == ResumeYes ||
+				config.Get().PlayResumeAction == 2 ||
+				xbmc.DialogConfirmFocused("Elementum", fmt.Sprintf("LOCALIZE[30535];;%s", btp.p.StoredResume.ToString()))) {
 			log.Infof("Resetting stored resume")
 			btp.p.StoredResume.Reset()
 			btp.SaveStoredResume()
@@ -337,7 +351,9 @@ func (btp *Player) processMetadata() {
 	database.GetStorm().UpdateBTItem(infoHash, btp.p.TMDBId, btp.p.ContentType, files, btp.p.Query, btp.p.ShowID, btp.p.Season, btp.p.Episode)
 	btp.t.DBItem = database.GetStorm().GetBTItem(infoHash)
 
-	go database.GetStorm().AddTorrentHistory(btp.t.InfoHash(), btp.t.Name(), btp.t.GetMetadata())
+	meta := btp.t.UpdateMetadataTitle(btp.t.Title(), btp.t.GetMetadata())
+	go database.GetStorm().AddTorrentHistory(btp.t.InfoHash(), btp.t.Title(), meta)
+	go database.GetStorm().AddTorrentLink(strconv.Itoa(btp.p.TMDBId), btp.t.InfoHash(), meta, true)
 
 	if btp.t.IsRarArchive {
 		// Just disable sequential download for RAR archives
@@ -384,7 +400,7 @@ func (btp *Player) statusStrings(progress float64, status lt.TorrentStatus) (str
 
 	// Adding buffer size to progress window
 	if btp.t.IsBuffering {
-		query := int64(len(btp.t.BufferPiecesProgress)) * btp.t.pieceLength
+		query := btp.t.BufferLength
 		done := int64(float64(progress/100) * float64(query))
 
 		line1 = fmt.Sprintf("%s (%.2f%%) | (%s / %s)", statusName, progress, humanize.Bytes(uint64(done)), humanize.Bytes(uint64(query)))
@@ -915,9 +931,9 @@ func (btp *Player) smartMatch(choices []*CandidateFile) {
 				continue
 			}
 
-			index, found := MatchEpisodeFilename(season.Season, episode.EpisodeNumber, len(show.Seasons) == 1, true, show, episode, tvdbShow, choices)
+			index, found := MatchEpisodeFilename(season.Season, episode.EpisodeNumber, len(show.Seasons) == 1, btp.p.Season, show, episode, tvdbShow, choices)
 			if index >= 0 && found == 1 {
-				database.GetStorm().AddTorrentLink(strconv.Itoa(episode.ID), hash, b)
+				database.GetStorm().AddTorrentLink(strconv.Itoa(episode.ID), hash, b, false)
 			}
 		}
 	}
@@ -1459,7 +1475,7 @@ func TrimChoices(choices []*CandidateFile) {
 }
 
 // MatchEpisodeFilename matches season and episode in the filename to get ocurrence
-func MatchEpisodeFilename(s, e int, isSingleSeason bool, isSmartMatch bool, show *tmdb.Show, episode *tmdb.Episode, tvdbShow *tvdb.Show, choices []*CandidateFile) (index, found int) {
+func MatchEpisodeFilename(s, e int, isSingleSeason bool, activeSeason int, show *tmdb.Show, episode *tmdb.Episode, tvdbShow *tvdb.Show, choices []*CandidateFile) (index, found int) {
 	index = -1
 
 	re := regexp.MustCompile(fmt.Sprintf(episodeMatchRegex, s, e))
@@ -1492,7 +1508,7 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, isSmartMatch bool, show
 		}
 	}
 
-	if !isSmartMatch && found == 0 {
+	if found == 0 && activeSeason == s {
 		re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, e))
 		for i, choice := range choices {
 			if re.MatchString(choice.Path) {
