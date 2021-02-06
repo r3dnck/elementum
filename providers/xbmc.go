@@ -251,6 +251,7 @@ func (as *AddonSearcher) GetSeasonSearchObject(show *tmdb.Show, season *tmdb.Sea
 		Titles:     map[string]string{"original": NormalizeTitle(show.OriginalName), "source": show.OriginalName},
 		Year:       year,
 		Season:     season.Season,
+		Anime:      show.IsAnime(),
 	}
 
 	// Collect titles from AlternativeTitles
@@ -315,6 +316,7 @@ func (as *AddonSearcher) GetEpisodeSearchObject(show *tmdb.Show, episode *tmdb.E
 		Episode:        episode.EpisodeNumber,
 		Year:           year,
 		AbsoluteNumber: absoluteNumber,
+		Anime:          show.IsAnime(),
 	}
 
 	// Collect titles from AlternativeTitles
