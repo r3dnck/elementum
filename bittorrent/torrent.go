@@ -1615,6 +1615,25 @@ func (t *Torrent) GetNextEpisodeFile(season, episode int) *File {
 	return nil
 }
 
+// GetNextSingleEpisodeFile ...
+func (t *Torrent) GetNextSingleEpisodeFile(episode int) *File {
+	lastMatched, foundMatches := 0, 0
+
+	re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, episode))
+	for index, choice := range t.files {
+		if re.MatchString(choice.Path) {
+			lastMatched = index
+			foundMatches++
+		}
+	}
+
+	if foundMatches == 1 {
+		return t.files[lastMatched]
+	}
+
+	return nil
+}
+
 // HasAvailableFiles ...
 func (t *Torrent) HasAvailableFiles() bool {
 	// Keeping it simple? If not all files are chosen - then true?

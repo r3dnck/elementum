@@ -1059,12 +1059,18 @@ func (btp *Player) findNextFile() {
 
 	if btp.p.ShowID != 0 {
 		// Searching if we have next episode in the torrent
-		if btp.next.f = btp.t.GetNextEpisodeFile(btp.p.Season, btp.p.Episode+1); btp.next.f == nil || btp.chosenFile == nil || btp.chosenFile.Size == 0 {
+		if btp.next.f == nil {
+			btp.next.f = btp.t.GetNextEpisodeFile(btp.p.Season, btp.p.Episode+1)
+		}
+		if btp.next.f == nil && btp.p.AbsoluteNumber > 0 {
+			btp.next.f = btp.t.GetNextSingleEpisodeFile(btp.p.AbsoluteNumber + 1)
+		}
+		if btp.next.f == nil {
+			btp.next.f = btp.t.GetNextSingleEpisodeFile(btp.p.Episode + 1)
+		}
+		if btp.next.f == nil {
 			// If next episode not matched, try to find first episode of next season
-			if btp.next.f = btp.t.GetNextEpisodeFile(btp.p.Season+1, 1); btp.next.f == nil || btp.chosenFile == nil || btp.chosenFile.Size == 0 {
-				btp.t.HasNextFile = false
-				return
-			}
+			btp.next.f = btp.t.GetNextEpisodeFile(btp.p.Season+1, 1)
 		}
 	} else if btp.p.ContentType == movieType {
 		return

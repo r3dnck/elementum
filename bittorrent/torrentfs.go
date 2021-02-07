@@ -142,7 +142,7 @@ func (tf *TorrentFSEntry) consumeAlerts() {
 		switch alert.Type {
 		case lt.TorrentRemovedAlertAlertType:
 			removedAlert := lt.SwigcptrTorrentAlert(alert.Pointer)
-			if removedAlert.GetHandle().Equal(tf.t.th) {
+			if tf.t.Closer.IsSet() || removedAlert.GetHandle().Equal(tf.t.th) {
 				tf.removed.Set()
 				return
 			}
