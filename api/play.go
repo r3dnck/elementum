@@ -94,7 +94,11 @@ func Play(s *bittorrent.Service) gin.HandlerFunc {
 		log.Infof("Playing item: %s", litter.Sdump(params))
 		if t := s.GetTorrentByHash(resume); resume != "" && t != nil {
 			player.SetTorrent(t)
-		}
+		} else if t := s.GetTorrentByURI(uri); t != nil {
+			resume = t.InfoHash()
+			player.SetTorrent(t)
+		} 
+		
 		if player.Buffer() != nil || !player.HasChosenFile() || player.Params().Background {
 			player.Close()
 			return

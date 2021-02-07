@@ -306,23 +306,19 @@ func (t *Torrent) bufferTickerEvent() {
 
 // GetConnections returns connected and overall number of peers
 func (t *Torrent) GetConnections() (int, int, int, int) {
-	if t.th == nil || t.th.Swigcptr() == 0 {
+	if t.Closer.IsSet() || t.th == nil || t.th.Swigcptr() == 0 {
 		return 0, 0, 0, 0
 	}
 
 	ts := t.GetLastStatus(false)
 
-	seedsTotal := ts.GetNumComplete()
-	if seedsTotal <= 0 {
-		seedsTotal = ts.GetListSeeds()
-	}
+	seeds := ts.GetNumSeeds()
+	seedsTotal := max(ts.GetListSeeds(), ts.GetNumComplete())
 
-	peersTotal := ts.GetNumComplete() + ts.GetNumIncomplete()
-	if peersTotal <= 0 {
-		peersTotal = ts.GetListPeers()
-	}
+	peers := ts.GetNumPeers() - ts.GetNumSeeds()
+	peersTotal := max(ts.GetListPeers()-ts.GetListSeeds(), ts.GetNumComplete()+ts.GetNumIncomplete())
 
-	return ts.GetNumSeeds(), seedsTotal, ts.GetNumPeers() - ts.GetNumSeeds(), peersTotal
+	return seeds, seedsTotal, peers, peersTotal
 }
 
 // GetSpeeds returns download and upload speeds
@@ -1615,6 +1611,25 @@ func (t *Torrent) GetNextEpisodeFile(season, episode int) *File {
 	return nil
 }
 
+// GetNextSingleEpisodeFile ...
+func (t *Torrent) GetNextSingleEpisodeFile(episode int) *File {
+	lastMatched, foundMatches := 0, 0
+
+	re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, episode))
+	for index, choice := range t.files {
+		if re.MatchString(choice.Path) {
+			lastMatched = index
+			foundMatches++
+		}
+	}
+
+	if foundMatches == 1 {
+		return t.files[lastMatched]
+	}
+
+	return nil
+}
+
 // HasAvailableFiles ...
 func (t *Torrent) HasAvailableFiles() bool {
 	// Keeping it simple? If not all files are chosen - then true?
@@ -1960,11 +1975,13 @@ func (t *Torrent) TorrentInfo(w io.Writer) {
 	fmt.Fprintf(w, "        Wanted done:            %v (%.2f%%) \n", humanize.Bytes(uint64(st.GetTotalWantedDone())), 100*(float64(st.GetTotalWantedDone())/float64(st.GetTotalWanted())))
 	fmt.Fprint(w, "\n")
 	fmt.Fprint(w, "    Connections:\n")
-	fmt.Fprintf(w, "        Connected:              %d \n", st.GetNumConnections())
+	fmt.Fprintf(w, "        Connections:            %d \n", st.GetNumConnections())
 	fmt.Fprintf(w, "        Connected seeds:        %d \n", st.GetNumSeeds())
 	fmt.Fprintf(w, "        Connected peers:        %d \n", st.GetNumPeers())
-	fmt.Fprintf(w, "        Seeds:                  %d \n", st.GetListSeeds())
-	fmt.Fprintf(w, "        Peers:                  %d \n", st.GetListPeers())
+	fmt.Fprintf(w, "        NumComplete:            %d \n", st.GetNumComplete())
+	fmt.Fprintf(w, "        NumIncomplete:          %d \n", st.GetNumIncomplete())
+	fmt.Fprintf(w, "        ListSeeds:              %d \n", st.GetListSeeds())
+	fmt.Fprintf(w, "        ListPeers:              %d \n", st.GetListPeers())
 
 	fmt.Fprint(w, "    Flags:\n")
 	fmt.Fprintf(w, "        paused: %v \n", st.GetPaused())
@@ -2164,4 +2181,18 @@ func peerNumToString(num int) string {
 	}
 
 	return strconv.Itoa(num)
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

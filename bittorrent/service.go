@@ -862,6 +862,11 @@ func (s *Service) GetTorrentByHash(hash string) *Torrent {
 	return s.q.FindByHash(hash)
 }
 
+// GetTorrentByURI ...
+func (s *Service) GetTorrentByURI(uri string) *Torrent {
+	return s.q.FindByURI(uri)
+}
+
 func (s *Service) saveResumeDataLoop() {
 	saveResumeWait := time.NewTicker(time.Duration(s.config.SessionSave) * time.Second)
 	closing := s.Closer.C()

@@ -58,6 +58,17 @@ func (q *Queue) FindByHash(hash string) *Torrent {
 	return nil
 }
 
+// FindByURI checks if torrent with infohash is in the queue
+func (q *Queue) FindByURI(uri string) *Torrent {
+	for _, t := range q.torrents {
+		if t.torrentFile == uri {
+			return t
+		}
+	}
+
+	return nil
+}
+
 // Clean would cleanup torrents list,
 // should be used in case of a service reload
 func (q *Queue) Clean() {

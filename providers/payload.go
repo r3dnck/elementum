@@ -50,6 +50,7 @@ type SeasonSearchObject struct {
 	Season     int               `json:"season"`
 	Year       int               `json:"year"`
 	Titles     map[string]string `json:"titles"`
+	Anime      bool              `json:"anime"`
 }
 
 // EpisodeSearchObject ...
@@ -65,6 +66,7 @@ type EpisodeSearchObject struct {
 	Year           int               `json:"year"`
 	Titles         map[string]string `json:"titles"`
 	AbsoluteNumber int               `json:"absolute_number"`
+	Anime          bool              `json:"anime"`
 }
 
 func (sp *SearchPayload) String() string {
