@@ -38,8 +38,8 @@ import (
 )
 
 const (
-	episodeMatchRegex       = `(?i)(^|\W|_|\w)(S0*%[1]d[x\W]?E?0*%[2]d|0*%[1]d[x\W]0*%[2]d|\W0*%[1]d0*%[2]d)(\W|_|\D)`
-	singleEpisodeMatchRegex = `(?i)(^|\W|_)(E0*%[1]d|0*%[1]d)(\W|_)`
+	episodeMatchRegex       = `(?i)(^|\W|_|\w)(S0*%[1]d[x\W]?E?p?0*%[2]d|0*%[1]d[x\W]0*%[2]d|\W0*%[1]d0*%[2]d)(\W|_|\D)`
+	singleEpisodeMatchRegex = `(?i)(^|\W|_)(Ep?0*%[1]d|0*%[1]d)(\W|_)`
 )
 
 var (
