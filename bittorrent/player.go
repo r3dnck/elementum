@@ -1497,7 +1497,7 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, activeSeason int, show 
 
 	re := regexp.MustCompile(fmt.Sprintf(episodeMatchRegex, s, e))
 	for i, choice := range choices {
-		if re.MatchString(choice.Path) {
+		if re.MatchString(choice.Filename) {
 			index = i
 			found++
 		}
@@ -1506,7 +1506,7 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, activeSeason int, show 
 	if isSingleSeason && found == 0 {
 		re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, e))
 		for i, choice := range choices {
-			if re.MatchString(choice.Path) {
+			if re.MatchString(choice.Filename) {
 				index = i
 				found++
 			}
@@ -1517,7 +1517,7 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, activeSeason int, show 
 		if an, _ := show.AnimeInfoWithShow(episode, tvdbShow); an != 0 {
 			re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, an))
 			for i, choice := range choices {
-				if re.MatchString(choice.Path) {
+				if re.MatchString(choice.Filename) {
 					index = i
 					found++
 				}
@@ -1528,7 +1528,7 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, activeSeason int, show 
 	if found == 0 && activeSeason == s {
 		re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, e))
 		for i, choice := range choices {
-			if re.MatchString(choice.Path) {
+			if re.MatchString(choice.Filename) {
 				index = i
 				found++
 			}

@@ -1603,7 +1603,7 @@ func (t *Torrent) GetPaused() bool {
 func (t *Torrent) GetNextEpisodeFile(season, episode int) *File {
 	re := regexp.MustCompile(fmt.Sprintf(episodeMatchRegex, season, episode))
 	for _, choice := range t.files {
-		if re.MatchString(choice.Path) {
+		if re.MatchString(choice.Name) {
 			return choice
 		}
 	}
@@ -1617,7 +1617,7 @@ func (t *Torrent) GetNextSingleEpisodeFile(episode int) *File {
 
 	re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, episode))
 	for index, choice := range t.files {
-		if re.MatchString(choice.Path) {
+		if re.MatchString(choice.Name) {
 			lastMatched = index
 			foundMatches++
 		}
@@ -1826,7 +1826,7 @@ func (t *Torrent) ChooseFile(btp *Player) (*File, int, error) {
 
 						re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, btp.p.AbsoluteNumber))
 						for index, choice := range choices {
-							if re.MatchString(choice.Path) {
+							if re.MatchString(choice.Filename) {
 								lastMatched = index
 								foundMatches++
 							}
