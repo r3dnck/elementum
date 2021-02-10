@@ -133,10 +133,11 @@ func Notification(w http.ResponseWriter, r *http.Request, s *bittorrent.Service)
 		log.Infof("OnPlay. Resume check. Resume: %#v, StoredResume: %#v", p.Params().Resume, p.Params().StoredResume)
 
 		p.Params().WasSeeked = true
-		resumePosition := float64(0)
+		resumePosition := float64(-1)
 
 		if p.Params().ResumePlayback == bittorrent.ResumeNo {
-			return
+			// If we don't need to Seek, then make sure Kodi will start from the beginning and not resume on it's own
+			resumePosition = 0
 		} else if p.Params().StoredResume != nil && p.Params().StoredResume.Position > 0 {
 			resumePosition = p.Params().StoredResume.Position
 		} else if p.Params().Resume != nil && p.Params().Resume.Position > 0 {
@@ -150,7 +151,7 @@ func Notification(w http.ResponseWriter, r *http.Request, s *bittorrent.Service)
 			}
 		}
 
-		if resumePosition > 0 {
+		if resumePosition > -1 {
 			go func(resume float64) {
 				log.Infof("OnPlay. Seeking to %v", resume)
 

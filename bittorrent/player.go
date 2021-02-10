@@ -343,6 +343,7 @@ func (btp *Player) processMetadata() {
 			log.Infof("Resetting stored resume")
 			resume.Reset()
 			btp.SaveStoredResume()
+			btp.p.ResumePlayback = ResumeNo
 		} else {
 			btp.p.ResumePlayback = ResumeYes
 		}
