@@ -124,6 +124,9 @@ func NewService() *Service {
 // Close ...
 func (s *Service) Close(isShutdown bool) {
 	now := time.Now()
+	defer func() {
+		log.Infof("Closed service in %s", time.Since(now))
+	}()
 
 	s.isShutdown = isShutdown
 	s.Closer.Set()
@@ -132,13 +135,16 @@ func (s *Service) Close(isShutdown bool) {
 	s.stopServices()
 
 	s.CloseSession()
-
-	log.Infof("Closed service in %s", time.Since(now))
 }
 
 // CloseSession tries to close libtorrent session with a timeout,
 // because it takes too much to close and Kodi hangs.
 func (s *Service) CloseSession() {
+	now := time.Now()
+	defer func() {
+		log.Infof("Closed session in %s", time.Since(now))
+	}()
+
 	log.Info("Closing Session")
 	if err := lt.DeleteSession(s.SessionGlobal); err != nil {
 		log.Errorf("Could not delete libtorrent session: %s", err)
