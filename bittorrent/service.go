@@ -704,6 +704,22 @@ func (s *Service) AddTorrent(uri string, paused bool, downloadStorage int) (*Tor
 	log.Infof("Setting save path to %s", s.config.DownloadPath)
 	torrentParams.SetSavePath(s.config.DownloadPath)
 
+	// Add extra trackers to each added torrent.
+	if len(extraTrackers) > 0 {
+		trackers := lt.NewStdVectorString()
+		defer lt.DeleteStdVectorString(trackers)
+
+		for _, t := range extraTrackers {
+			if t == "" {
+				continue
+			}
+
+			trackers.Add(t)
+		}
+
+		torrentParams.SetTrackers(trackers)
+	}
+
 	skipPriorities := false
 	if downloadStorage != StorageMemory {
 		log.Infof("Checking for fast resume data in %s.fastresume", infoHash)

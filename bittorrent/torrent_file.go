@@ -377,13 +377,6 @@ func (t *TorrentFile) Magnet() {
 			}
 		}
 	}
-	if config.Get().MagnetTrackers == magnetEnricherAdd {
-		for _, tracker := range extraTrackers {
-			if !util.StringSliceContains(t.Trackers, tracker) {
-				params.Add("tr", tracker)
-			}
-		}
-	}
 
 	t.URI = fmt.Sprintf("magnet:?xt=urn:btih:%s&%s", t.InfoHash, params.Encode())
 
@@ -516,8 +509,6 @@ func (t *TorrentFile) Download() ([]byte, error) {
 
 // Resolve ...
 func (t *TorrentFile) Resolve() error {
-	defer t.EnrichTrackers()
-
 	if t.IsMagnet() {
 		t.hasResolved = true
 		return nil
