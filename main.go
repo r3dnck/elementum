@@ -19,6 +19,7 @@ import (
 
 	"github.com/elgatito/elementum/api"
 	"github.com/elgatito/elementum/bittorrent"
+	"github.com/elgatito/elementum/broadcast"
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/database"
 	"github.com/elgatito/elementum/library"
@@ -126,6 +127,9 @@ func main() {
 		if s == nil || s.Closer.IsSet() {
 			return
 		}
+
+		// Set global Closer
+		broadcast.Closer.Set()
 
 		s.Closer.Set()
 
