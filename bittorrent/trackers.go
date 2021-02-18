@@ -223,6 +223,7 @@ func UpdateDefaultTrackers() {
 
 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
 	scanner := bufio.NewScanner(bytes.NewReader(bodyBytes))
+	extraTrackers = append([]string(nil), defaultTrackers...)
 	for scanner.Scan() {
 		tracker := strings.TrimSpace(scanner.Text())
 		if !util.StringSliceContains(extraTrackers, tracker) {

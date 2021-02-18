@@ -284,6 +284,7 @@ func Routes(s *bittorrent.Service) *gin.Engine {
 	trakt := r.Group("/trakt")
 	{
 		trakt.GET("/authorize", AuthorizeTrakt)
+		trakt.GET("/deauthorize", DeauthorizeTrakt)
 		trakt.GET("/select_list/:action/:media", SelectTraktUserList)
 		trakt.GET("/update", UpdateTrakt)
 	}

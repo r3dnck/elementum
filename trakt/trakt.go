@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/elgatito/elementum/broadcast"
 	"github.com/elgatito/elementum/cache"
 	"github.com/elgatito/elementum/config"
 	"github.com/elgatito/elementum/util"
@@ -909,58 +910,96 @@ func TokenRefreshHandler() {
 // Authorize ...
 func Authorize(fromSettings bool) error {
 	code, err := GetCode()
-
 	if err != nil {
+		log.Error("Could not get authorization code from Trakt.tv: %s", err)
 		xbmc.Notify("Elementum", err.Error(), config.AddonIcon())
 		return err
 	}
 	log.Noticef("Got code for %s: %s", code.VerificationURL, code.UserCode)
 
-	if xbmc.Dialog("LOCALIZE[30058]", fmt.Sprintf("Visit %s and enter your code: %s", code.VerificationURL, code.UserCode)) == false {
+	go func(code *Code) {
+		cl := broadcast.Closer.C()
+		tick := time.NewTicker(time.Duration(5) * time.Second)
+		defer tick.Stop()
+
+		attempts := 0
+
+		for {
+			select {
+			case <-cl:
+				log.Error("Cancelling authorization due to closing application state")
+				return
+
+			case <-tick.C:
+				attempts++
+
+				if attempts > 30 {
+					xbmc.Notify("Elementum", "LOCALIZE[30651]", config.AddonIcon())
+					return
+				}
+
+				token, err := PollToken(code)
+				log.Debugf("Received token: %#v, error: %s", token, err)
+
+				if err != nil {
+					continue
+				}
+
+				// Cleanup last activities to force requesting again
+				cacheStore := cache.NewDBStore()
+				_ = cacheStore.Set(cache.TraktActivitiesKey, "", 1)
+
+				expiry := time.Now().Unix() + int64(token.ExpiresIn)
+				xbmc.SetSetting("trakt_token_expiry", strconv.Itoa(int(expiry)))
+				xbmc.SetSetting("trakt_token", token.AccessToken)
+				xbmc.SetSetting("trakt_refresh_token", token.RefreshToken)
+
+				config.Get().TraktToken = token.AccessToken
+
+				// Getting username for currently authorized user
+				params := napping.Params{}.AsUrlValues()
+				resp, err := GetWithAuth("users/settings", params)
+				if resp.Status() == 200 {
+					user := &UserSettings{}
+					errJSON := resp.Unmarshal(user)
+					if errJSON != nil {
+						return
+					}
+
+					if user != nil && user.User.Ids.Slug != "" {
+						log.Debugf("Setting Trakt Username as %s", user.User.Ids.Slug)
+						xbmc.SetSetting("trakt_username", user.User.Ids.Slug)
+					}
+				}
+
+				config.Reload()
+
+				xbmc.Notify("Elementum", "LOCALIZE[30650]", config.AddonIcon())
+				return
+			}
+		}
+	}(code)
+
+	if xbmc.Dialog(xbmc.GetLocalizedString(30646), fmt.Sprintf(xbmc.GetLocalizedString(30649), code.VerificationURL, code.UserCode)) == false {
 		return errors.New("Authentication canceled")
 	}
 
-	token, err := PollToken(code)
-	log.Debugf("Received token: %#v", token)
+	return nil
+}
 
-	if err != nil {
-		xbmc.Notify("Elementum", err.Error(), config.AddonIcon())
-		return err
-	}
-
+// Deauthorize ...
+func Deauthorize(fromSettings bool) error {
 	// Cleanup last activities to force requesting again
 	cacheStore := cache.NewDBStore()
 	_ = cacheStore.Set(cache.TraktActivitiesKey, "", 1)
 
-	success := "Woohoo!"
-	if fromSettings {
-		success += " (Save your settings!)"
-	}
+	xbmc.SetSetting("trakt_token_expiry", "")
+	xbmc.SetSetting("trakt_token", "")
+	xbmc.SetSetting("trakt_refresh_token", "")
+	xbmc.SetSetting("trakt_username", "")
 
-	expiry := time.Now().Unix() + int64(token.ExpiresIn)
-	xbmc.SetSetting("trakt_token_expiry", strconv.Itoa(int(expiry)))
-	xbmc.SetSetting("trakt_token", token.AccessToken)
-	xbmc.SetSetting("trakt_refresh_token", token.RefreshToken)
+	xbmc.Notify("Elementum", "LOCALIZE[30652]", config.AddonIcon())
 
-	config.Get().TraktToken = token.AccessToken
-
-	// Getting username for currently authorized user
-	params := napping.Params{}.AsUrlValues()
-	resp, err := GetWithAuth("users/settings", params)
-	if resp.Status() == 200 {
-		user := &UserSettings{}
-		errJSON := resp.Unmarshal(user)
-		if errJSON != nil {
-			return errJSON
-		}
-
-		if user != nil && user.User.Ids.Slug != "" {
-			log.Debugf("Setting Trakt Username as %s", user.User.Ids.Slug)
-			xbmc.SetSetting("trakt_username", user.User.Ids.Slug)
-		}
-	}
-
-	xbmc.Notify("Elementum", success, config.AddonIcon())
 	return nil
 }
 

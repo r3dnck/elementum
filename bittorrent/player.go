@@ -38,8 +38,8 @@ import (
 )
 
 const (
-	episodeMatchRegex       = `(?i)(^|\W|_|\w)(S0*%[1]d[x\W]?E?0*%[2]d|0*%[1]d[x\W]0*%[2]d|\W0*%[1]d0*%[2]d)(\W|_|\D)`
-	singleEpisodeMatchRegex = `(?i)(^|\W|_)(E0*%[1]d|0*%[1]d)(\W|_)`
+	episodeMatchRegex       = `(?i)(^|\W|_|\w)(S0*%[1]d[x\W]?E?p?0*%[2]d|0*%[1]d[x\W]0*%[2]d|\W0*%[1]d0*%[2]d)(\W|_|\D)`
+	singleEpisodeMatchRegex = `(?i)(^|\W|_)(Ep?0*%[1]d|0*%[1]d)(\W|_)`
 )
 
 var (
@@ -343,6 +343,7 @@ func (btp *Player) processMetadata() {
 			log.Infof("Resetting stored resume")
 			resume.Reset()
 			btp.SaveStoredResume()
+			btp.p.ResumePlayback = ResumeNo
 		} else {
 			btp.p.ResumePlayback = ResumeYes
 		}
@@ -1497,7 +1498,7 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, activeSeason int, show 
 
 	re := regexp.MustCompile(fmt.Sprintf(episodeMatchRegex, s, e))
 	for i, choice := range choices {
-		if re.MatchString(choice.Path) {
+		if re.MatchString(choice.Filename) {
 			index = i
 			found++
 		}
@@ -1506,7 +1507,7 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, activeSeason int, show 
 	if isSingleSeason && found == 0 {
 		re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, e))
 		for i, choice := range choices {
-			if re.MatchString(choice.Path) {
+			if re.MatchString(choice.Filename) {
 				index = i
 				found++
 			}
@@ -1517,7 +1518,7 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, activeSeason int, show 
 		if an, _ := show.AnimeInfoWithShow(episode, tvdbShow); an != 0 {
 			re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, an))
 			for i, choice := range choices {
-				if re.MatchString(choice.Path) {
+				if re.MatchString(choice.Filename) {
 					index = i
 					found++
 				}
@@ -1528,7 +1529,7 @@ func MatchEpisodeFilename(s, e int, isSingleSeason bool, activeSeason int, show 
 	if found == 0 && activeSeason == s {
 		re := regexp.MustCompile(fmt.Sprintf(singleEpisodeMatchRegex, e))
 		for i, choice := range choices {
-			if re.MatchString(choice.Path) {
+			if re.MatchString(choice.Filename) {
 				index = i
 				found++
 			}

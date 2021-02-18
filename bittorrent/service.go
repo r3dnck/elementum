@@ -124,6 +124,9 @@ func NewService() *Service {
 // Close ...
 func (s *Service) Close(isShutdown bool) {
 	now := time.Now()
+	defer func() {
+		log.Infof("Closed service in %s", time.Since(now))
+	}()
 
 	s.isShutdown = isShutdown
 	s.Closer.Set()
@@ -132,13 +135,16 @@ func (s *Service) Close(isShutdown bool) {
 	s.stopServices()
 
 	s.CloseSession()
-
-	log.Infof("Closed service in %s", time.Since(now))
 }
 
 // CloseSession tries to close libtorrent session with a timeout,
 // because it takes too much to close and Kodi hangs.
 func (s *Service) CloseSession() {
+	now := time.Now()
+	defer func() {
+		log.Infof("Closed session in %s", time.Since(now))
+	}()
+
 	log.Info("Closing Session")
 	if err := lt.DeleteSession(s.SessionGlobal); err != nil {
 		log.Errorf("Could not delete libtorrent session: %s", err)
@@ -703,6 +709,22 @@ func (s *Service) AddTorrent(uri string, paused bool, downloadStorage int) (*Tor
 
 	log.Infof("Setting save path to %s", s.config.DownloadPath)
 	torrentParams.SetSavePath(s.config.DownloadPath)
+
+	// Add extra trackers to each added torrent.
+	if len(extraTrackers) > 0 {
+		trackers := lt.NewStdVectorString()
+		defer lt.DeleteStdVectorString(trackers)
+
+		for _, t := range extraTrackers {
+			if t == "" {
+				continue
+			}
+
+			trackers.Add(t)
+		}
+
+		torrentParams.SetTrackers(trackers)
+	}
 
 	skipPriorities := false
 	if downloadStorage != StorageMemory {
@@ -1726,7 +1748,7 @@ func (s *Service) HasTorrentByEpisode(tmdbID int, season, episode int) *Torrent 
 		} else if t.DBItem.ShowID == tmdbID {
 			// Try to find an episode
 			for _, choice := range t.files {
-				if re.MatchString(choice.Path) {
+				if re.MatchString(choice.Name) {
 					return t
 				}
 			}

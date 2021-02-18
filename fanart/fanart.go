@@ -309,13 +309,16 @@ func GetMultipleShowImage(season, old string, lists ...[]*ShowImage) []string {
 
 // GetBestShowImage returns best image from multiple lists,
 // according to the lang setting. Taking order of lists into account.
-func GetBestShowImage(season, old string, lists ...[]*ShowImage) string {
+func GetBestShowImage(season string, isStrict bool, old string, lists ...[]*ShowImage) string {
 	if lists == nil || len(lists) == 0 {
 		return ""
 	}
 
+	idx := 0
 	language := config.Get().Language
 	for _, l := range lists {
+		idx++
+
 		bestLikes := 0
 		bestItem := ""
 
@@ -346,7 +349,9 @@ func GetBestShowImage(season, old string, lists ...[]*ShowImage) string {
 				continue
 			}
 
-			if season == "" || i.Season == "0" || i.Season == "" {
+			// Take item with season=0 only if this is not a strict mode,
+			//    which means first array is season dedicated, and 0 means special.
+			if season == "" || (i.Season == "0" && (!isStrict || idx > 1)) || i.Season == "" {
 				if i.Lang == language {
 					return i.URL
 				}
@@ -384,14 +389,14 @@ func (fa *Movie) ToListItemArt(old *xbmc.ListItemArt) *xbmc.ListItemArt {
 // ToListItemArt ...
 func (fa *Show) ToListItemArt(old *xbmc.ListItemArt) *xbmc.ListItemArt {
 	return &xbmc.ListItemArt{
-		Poster:    GetBestShowImage("", old.Poster, fa.TVPoster),
+		Poster:    GetBestShowImage("", false, old.Poster, fa.TVPoster),
 		Thumbnail: old.Thumbnail,
-		Banner:    GetBestShowImage("", old.Banner, fa.TVBanner),
-		FanArt:    GetBestShowImage("", old.FanArt, fa.ShowBackground),
+		Banner:    GetBestShowImage("", false, old.Banner, fa.TVBanner),
+		FanArt:    GetBestShowImage("", false, old.FanArt, fa.ShowBackground),
 		FanArts:   GetMultipleShowImage("", old.FanArt, fa.ShowBackground),
-		ClearArt:  GetBestShowImage("", old.ClearArt, fa.HDClearArt, fa.ClearArt),
-		ClearLogo: GetBestShowImage("", old.ClearLogo, fa.HdtvLogo, fa.ClearLogo),
-		Landscape: GetBestShowImage("", old.Landscape, fa.TVThumb),
+		ClearArt:  GetBestShowImage("", false, old.ClearArt, fa.HDClearArt, fa.ClearArt),
+		ClearLogo: GetBestShowImage("", false, old.ClearLogo, fa.HdtvLogo, fa.ClearLogo),
+		Landscape: GetBestShowImage("", false, old.Landscape, fa.TVThumb),
 	}
 }
 
@@ -400,15 +405,15 @@ func (fa *Show) ToSeasonListItemArt(season int, old *xbmc.ListItemArt) *xbmc.Lis
 	s := strconv.Itoa(season)
 
 	return &xbmc.ListItemArt{
-		TvShowPoster: GetBestShowImage("", old.Poster, fa.SeasonPoster, fa.TVPoster),
-		Poster:       GetBestShowImage(s, old.Poster, fa.SeasonPoster, fa.TVPoster),
+		TvShowPoster: GetBestShowImage("", true, old.Poster, fa.SeasonPoster, fa.TVPoster),
+		Poster:       GetBestShowImage(s, true, old.Poster, fa.SeasonPoster, fa.TVPoster),
 		Thumbnail:    old.Thumbnail,
-		Banner:       GetBestShowImage(s, old.Banner, fa.SeasonBanner, fa.TVBanner),
-		FanArt:       GetBestShowImage(s, old.FanArt, fa.ShowBackground),
+		Banner:       GetBestShowImage(s, true, old.Banner, fa.SeasonBanner, fa.TVBanner),
+		FanArt:       GetBestShowImage(s, false, old.FanArt, fa.ShowBackground),
 		FanArts:      GetMultipleShowImage(s, old.FanArt, fa.ShowBackground),
-		ClearArt:     GetBestShowImage(s, old.ClearArt, fa.HDClearArt, fa.ClearArt),
-		ClearLogo:    GetBestShowImage(s, old.ClearLogo, fa.HdtvLogo, fa.ClearLogo),
-		Landscape:    GetBestShowImage(s, old.Landscape, fa.SeasonThumb, fa.TVThumb),
+		ClearArt:     GetBestShowImage(s, false, old.ClearArt, fa.HDClearArt, fa.ClearArt),
+		ClearLogo:    GetBestShowImage(s, false, old.ClearLogo, fa.HdtvLogo, fa.ClearLogo),
+		Landscape:    GetBestShowImage(s, true, old.Landscape, fa.SeasonThumb, fa.TVThumb),
 	}
 }
 
@@ -417,15 +422,15 @@ func (fa *Show) ToEpisodeListItemArt(season int, old *xbmc.ListItemArt) *xbmc.Li
 	s := strconv.Itoa(season)
 
 	return &xbmc.ListItemArt{
-		TvShowPoster: GetBestShowImage("", old.Poster, fa.SeasonPoster, fa.TVPoster),
-		Poster:       GetBestShowImage(s, old.Poster, fa.SeasonPoster, fa.TVPoster),
+		TvShowPoster: GetBestShowImage("", true, old.Poster, fa.SeasonPoster, fa.TVPoster),
+		Poster:       GetBestShowImage(s, true, old.Poster, fa.SeasonPoster, fa.TVPoster),
 		Thumbnail:    old.Thumbnail,
-		Banner:       GetBestShowImage(s, old.Banner, fa.SeasonBanner, fa.TVBanner),
-		FanArt:       GetBestShowImage(s, old.FanArt, fa.ShowBackground),
+		Banner:       GetBestShowImage(s, true, old.Banner, fa.SeasonBanner, fa.TVBanner),
+		FanArt:       GetBestShowImage(s, false, old.FanArt, fa.ShowBackground),
 		FanArts:      GetMultipleShowImage(s, old.FanArt, fa.ShowBackground),
-		ClearArt:     GetBestShowImage(s, old.ClearArt, fa.HDClearArt, fa.ClearArt),
-		ClearLogo:    GetBestShowImage(s, old.ClearLogo, fa.HdtvLogo, fa.ClearLogo),
-		Landscape:    GetBestShowImage(s, old.Landscape, fa.SeasonThumb, fa.TVThumb),
+		ClearArt:     GetBestShowImage(s, false, old.ClearArt, fa.HDClearArt, fa.ClearArt),
+		ClearLogo:    GetBestShowImage(s, false, old.ClearLogo, fa.HdtvLogo, fa.ClearLogo),
+		Landscape:    GetBestShowImage(s, true, old.Landscape, fa.SeasonThumb, fa.TVThumb),
 	}
 }
 

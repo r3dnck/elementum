@@ -126,6 +126,17 @@ func AuthorizeTrakt(ctx *gin.Context) {
 	}
 }
 
+// DeauthorizeTrakt ...
+func DeauthorizeTrakt(ctx *gin.Context) {
+	err := trakt.Deauthorize(true)
+	if err == nil {
+		ctx.String(200, "")
+	} else {
+		xbmc.Notify("Elementum", err.Error(), config.AddonIcon())
+		ctx.String(200, "")
+	}
+}
+
 //
 // Main lists
 //
